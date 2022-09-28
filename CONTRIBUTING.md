@@ -16,3 +16,8 @@ Please follow good git practices for developing code. In particular that means:
 1. Make sure that the `environment.yaml` is up-to-date, in case you have added other dependencies
 2. Update the README.md if necessary
 3. Remove all hard coded stuff in your code, in particular paths.
+
+## Things that should not be pushed
+- large files, binaries, images
+- compiled code
+- cache
