@@ -1,0 +1,10 @@
+name: psflearning
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.10
+
+  - omegaconf
+  - pytest
