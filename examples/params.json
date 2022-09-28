@@ -1,0 +1,75 @@
+{
+  "filelist": [],
+  "datapath": "Z:\\projects\\PSFLearning\\exampledata\\dualcolor_M2\\",
+  "keyword": "3d",
+  "savename": "psfmodel",
+  "subfolder": "3d",
+  "format": ".tif",
+  "PSFtype": "voxel",
+  "channeltype": "multi",
+  "mirrortype": "up-down",
+  "channel_arrange": "up-down",
+  "gain": 1,
+  "ccd_offset": 500,
+  "roi_size": [
+    30,
+    30
+  ],
+  "gaus_sigma": [
+    2,
+    2
+  ],
+  "peak_height": 0.5,
+  "max_kernel": [
+    3,
+    3
+  ],
+  "pixelsize_x": 0.127,
+  "pixelsize_y": 0.117,
+  "pixelsize_z": 0.08,
+  "bead_radius": 0,
+  "iteration": 100,
+  "ref_channel": 1,
+  "vary_photon": false,
+  "usecuda": true,
+  "plotall": true,
+  "estimate_drift": false,
+  "rej_threshold": {
+    "bias_z": 5,
+    "mse": 3,
+    "photon": 1.5
+  },
+  "modulation_period": 0.26,
+  "skew_const": [
+    0,
+    0
+  ],
+  "FOV": {
+    "y_center": 256,
+    "x_center": 128,
+    "radius": 80,
+    "z_start": 1,
+    "z_end": 0,
+    "z_step": 4
+  },
+  "loss_weight": {
+    "mse1": 1,
+    "mse2": 1,
+    "smooth": 1,
+    "edge": 0.01,
+    "psf_min": 1,
+    "bg_min": 1,
+    "photon_min": 1E-6,
+    "Inorm": 0
+  },
+  "option_params": {
+    "emission_wavelength": 0.68,
+    "RI": 1.516,
+    "RI_med": 1.33,
+    "RI_cov": 1.516,
+    "NA": 1.43,
+    "pupilsize": 64,
+    "n_max": 9,
+    "gauss_filter_sigma": 2
+  }
+}
