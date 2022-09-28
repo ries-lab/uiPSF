@@ -1,0 +1,469 @@
+"""
+Copyright (c) 2022      Ries Lab, EMBL, Heidelberg, Germany
+All rights reserved     
+
+@author: Sheng Liu
+"""
+#%%
+from pickle import FALSE
+import h5py as h5
+import czifile as czi
+import numpy as np
+import scipy as sp
+import matplotlib.pyplot as plt
+from skimage import io
+# append the path of the parent directory as long as it's not a real package
+import sys
+import glob
+import scipy.io as sio
+import tensorflow as tf
+import json
+from tqdm import tqdm
+from PIL import Image
+import os
+from tkinter import EXCEPTION, messagebox as mbox
+
+#sys.path.append("..")
+
+from .learning import ( PreprocessedImageDataSingleChannel,
+                        PreprocessedImageDataMultiChannel,
+                        PreprocessedImageDataSingleChannel_smlm,
+                        Fitter,
+                        PSFVolumeBased,
+                        PSFZernikeBased_vector,
+                        PSFPupilBased_vector,
+                        PSFPupilBased,
+                        PSFZernikeBased,
+                        PSFZernikeBased_FD,
+                        PSFVolumeBased4pi,
+                        PSFPupilBased4pi,
+                        PSFZernikeBased4pi,
+                        PSFMultiChannel,
+                        PSFMultiChannel4pi,
+                        PSFZernikeBased_vector_smlm,
+                        L_BFGS_B,
+                        mse_real,
+                        mse_real_zernike,
+                        mse_real_zernike_FD,
+                        mse_real_zernike_smlm,
+                        mse_real_4pi,
+                        mse_zernike_4pi,
+                        mse_real_pupil,
+                        mse_pupil_4pi,
+                        mse_real_All,
+                        mse_real_4pi_All)
+
+
+#%%
+PSF_DICT = dict(voxel=PSFVolumeBased, 
+                pupil=PSFPupilBased,
+                zernike=PSFZernikeBased,
+                zernike_vector=PSFZernikeBased_vector,
+                pupil_vector=PSFPupilBased_vector,
+                zernike_FD=PSFZernikeBased_FD,
+                insitu = PSFZernikeBased_vector_smlm)
+
+LOSSFUN_DICT = dict(voxel=mse_real, 
+                pupil=mse_real_pupil,
+                zernike=mse_real_zernike,
+                zernike_vector=mse_real_zernike,
+                pupil_vector=mse_real_pupil,
+                zernike_FD=mse_real_zernike_FD,
+                insitu = mse_real_zernike_smlm)
+
+
+PSF_DICT_4pi = dict(voxel=PSFVolumeBased4pi, 
+                    pupil=PSFPupilBased4pi,
+                    zernike=PSFZernikeBased4pi)
+
+LOSSFUN_DICT_4pi = dict(voxel=mse_real_4pi, 
+                pupil=mse_pupil_4pi,
+                zernike=mse_zernike_4pi)
+
+            
+
+class psflearninglib:
+    def __init__(self,param=None):
+        self.param = param
+        self.loc_FD = None
+
+    def getparam(self, paramfile):
+        with open(paramfile,'r') as file:
+            param = json.load(file)
+        file.close()
+        self.param = param
+        return
+
+    def getpsfclass(self):
+        param = self.param
+        PSFtype = param['PSFtype']
+        channeltype = param['channeltype']
+        lossfun = LOSSFUN_DICT[PSFtype]
+        lossfunmulti = None
+
+        if channeltype == 'single':
+            psfclass = PSF_DICT[PSFtype]
+            psfmulticlass = None
+        elif channeltype == 'multi':
+            psfclass = PSF_DICT[PSFtype]
+            psfmulticlass = PSFMultiChannel
+            lossfunmulti = mse_real_All
+        elif channeltype == '4pi':
+            psfclass = PSF_DICT_4pi[PSFtype]
+            lossfun = LOSSFUN_DICT_4pi[PSFtype]
+            psfmulticlass = PSFMultiChannel4pi
+            lossfunmulti = mse_real_4pi_All
+
+        self.psf_class = psfclass
+        self.psf_class_multi = psfmulticlass
+        self.loss_fun = lossfun
+        self.loss_fun_multi = lossfunmulti
+        return
+
+    def load_data(self,frange=None):
+        param = self.param
+        folder = param['datapath']
+        keyword = param['keyword']
+        varname = param['varname']
+        gain = param['gain']
+        ccdoffset = param['ccd_offset']
+        subfolder = param['subfolder']
+        format = param['format']
+        channeltype = param['channeltype']
+        PSFtype = param['PSFtype']
+        datatype = param['datatype']
+        channel_arrange = param['channel_arrange']
+        mirrortype = param['mirrortype']
+        ref_channel = param['ref_channel']
+        filelist = param['filelist']
+        framerange = param['frame_range']
+        if not filelist:
+            if not subfolder:
+                filelist = glob.glob(folder+'/*'+keyword+'*'+format)
+            else:
+                filelist = []
+                folderlist = glob.glob(folder+'/*'+subfolder+'*/')
+                for f in folderlist:
+                    filelist.append(glob.glob(f+'/*'+keyword+'*'+format)[0])
+
+        if frange:
+            filelist = filelist[frange[0]:frange[1]]
+        imageraw = []
+        for filename in filelist:
+            print(filename)
+            if channeltype == 'single':
+                if format == '.mat':
+                    fdata = h5.File(filename,'r')
+                    if varname:
+                        name = [varname]
+                    else:
+                        name = list(fdata.keys())       
+                    try:
+                        name.remove('metadata')
+                    except:
+                        pass
+                    try:
+                        name.remove('#refs#')
+                    except:
+                        pass
+                    dat = np.squeeze(np.array(fdata.get(name[0])).astype(np.float32))
+                elif (format == '.tif') or (format == '.tiff'):
+                    if datatype == 'smlm':
+                        dat = []
+                        fID = Image.open(filename)
+                        #fmax = fID.n_frames 
+                        
+                        for ii in range(framerange[0],framerange[1]):
+                            fID.seek(ii)
+                            dat.append(np.asarray(fID))
+                        dat = np.stack(dat).astype(np.float32)
+                    else:
+                        dat = np.squeeze(io.imread(filename).astype(np.float32))
+                       
+                elif format == '.czi':
+                    dat = np.squeeze(czi.imread(filename).astype(np.float32))
+                else:
+                    raise TypeError('supported data format (single channel) is '+'.mat,'+'.tif,'+'.czi.')
+            else:
+                if format == '.mat':
+                    fdata = h5.File(filename,'r')
+                    if varname:
+                        name = [varname]
+                    else:
+                        name = list(fdata.keys())     
+                        
+                    try:
+                        name.remove('metadata')
+                    except:
+                        pass
+                    try:
+                        name.remove('#refs#')
+                    except:
+                        pass
+                    dat = []
+                    for ch in name:            
+                        datai = np.squeeze(np.array(fdata.get(ch)).astype(np.float32))
+                        dat.append(datai)
+                    dat = np.squeeze(np.stack(dat))
+                elif format == '.tif':
+                    datai = np.squeeze(io.imread(filename).astype(np.float32))
+                    if channel_arrange == 'up-down':
+                        cc = datai.shape[-2]//2
+                        if mirrortype == 'up-down':
+                            #dat = np.stack([np.flip(datai[:,:-cc],axis=-2),datai[:,cc:]])
+                            dat = np.stack([datai[:,:-cc],np.flip(datai[:,cc:],axis=-2)])
+                        else:
+                            #dat = np.stack([np.flip(datai[:,:-cc],axis=-1),datai[:,cc:]])
+                            dat = np.stack([datai[:,:-cc],np.flip(datai[:,cc:],axis=-1)])
+                    else:
+                        cc = datai.shape[-1]//2
+                        if mirrortype == 'up-down':
+                            #dat = np.stack([np.flip(datai[...,:-cc],axis=-2),datai[...,cc:]])
+                            dat = np.stack([datai[...,:-cc],np.flip(datai[...,cc:],axis=-2)])
+                        else:
+                            #dat = np.stack([np.flip(datai[...,:-cc],axis=-1),datai[...,cc:]])
+                            dat = np.stack([datai[...,:-cc],np.flip(datai[...,cc:],axis=-1)])      
+                else:
+                    raise TypeError('supported data format (multi channel) is '+'.mat,'+'.tif.')
+            
+            dat = (dat-ccdoffset)*gain
+            imageraw.append(dat)
+        imagesall = np.stack(imageraw)
+        
+        if channeltype == '4pi':
+            if varname:
+                images = np.transpose(imagesall,(1,0,2,3,4,5))
+            else:
+                images = np.transpose(imagesall,(1,0,3,2,4,5))
+        elif channeltype == 'multi':
+            images = np.transpose(imagesall,(1,0,2,3,4))
+            id = list(range(images.shape[0]))
+            id[0],id[ref_channel] = id[ref_channel],id[0]
+            images = images[id]
+        else:
+            images = imagesall
+
+        if PSFtype == 'insitu':
+            images = images.reshape(-1,images.shape[-2],images.shape[-1])
+
+        if format == '.tif':
+            #images = np.swapaxes(images,-1,-2)
+            tmp = np.zeros(images.shape[:-2]+(images.shape[-1],images.shape[-2]),dtype=np.float32)            
+            tmp[0:] = np.swapaxes(images[0:],-1,-2)
+            images = tmp
+
+        if param['stage_mov_dir']=='reverse':
+            images = np.flip(images,axis=-3)
+        
+        print(images.shape)
+        return images
+
+    def prep_data(self,images):
+        param = self.param
+        peak_height = param['peak_height']
+        roi_size = param['roi_size']
+        gaus_sigma = param['gaus_sigma']
+        kernel = param['max_kernel']
+        pixelsize_x = param['pixelsize_x']
+        pixelsize_y = param['pixelsize_y']
+        pixelsize_z = param['pixelsize_z']
+        bead_radius = param['bead_radius']
+        showplot = param['plotall']
+        zT = param['modulation_period']
+        PSFtype = param['PSFtype']
+        channeltype = param['channeltype']
+        fov = list(param['FOV'].values())
+        skew_const = param['skew_const']
+        maxNobead = param['max_bead_number']
+
+
+        zstart = fov[-3]
+        zend = images.shape[-3]+fov[-2]
+        zstep = fov[-1]
+        zind = range(zstart,zend,zstep)
+        ims = np.swapaxes(images,0,-3)
+
+        ims = ims[zind]
+        images = np.swapaxes(ims,0,-3)
+
+        if PSFtype == 'voxel':
+            isvolume = True
+            padpsf = True
+        else:
+            isvolume = False
+            padpsf = False
+
+        if channeltype == 'single':
+            if PSFtype == 'insitu':
+                dataobj = PreprocessedImageDataSingleChannel_smlm(images)
+            else:
+                dataobj = PreprocessedImageDataSingleChannel(images)
+        else:
+            if channeltype == '4pi':
+                dataobj = PreprocessedImageDataMultiChannel(images, PreprocessedImageDataSingleChannel, is4pi=True)        
+            else:
+                dataobj = PreprocessedImageDataMultiChannel(images, PreprocessedImageDataSingleChannel)
+        
+        if fov[2]==0:
+            fov = None
+        if (skew_const[0]==0.0) & (skew_const[1]==0.0):
+            skew_const = None
+        dataobj.process( roi_size = roi_size,
+                        gaus_sigma=gaus_sigma,
+                        min_border_dist=list(np.array(roi_size)//2+1),
+                        min_center_dist = np.max(roi_size),
+                        FOV=fov,
+                        max_threshold= peak_height,
+                        max_kernel=kernel,
+                        pixelsize_x = pixelsize_x,
+                        pixelsize_y = pixelsize_y,
+                        pixelsize_z = pixelsize_z,
+                        bead_radius = bead_radius,
+                        modulation_period=zT,
+                        plot = showplot,
+                        padPSF = padpsf,
+                        isVolume = isvolume,
+                        skew_const=skew_const,
+                        max_bead_number=maxNobead)
+        
+        return dataobj
+
+    def learn_psf(self,dataobj,time=None):
+        param = self.param
+        rej_threshold = list(param['rej_threshold'].values())
+        estdrift = param['estimate_drift']
+        varphoton = param['vary_photon']
+        maxiter = param['iteration']
+        w = list(param['loss_weight'].values())
+        usecuda = param['usecuda']
+        showplot = param['plotall']
+        optionparam = param['option_params']
+        channeltype = param['channeltype']
+        PSFtype = param['PSFtype']
+        roi_size = param['roi_size']
+        batchsize = param['batch_size']
+        pupilfile = param['option_params']['init_pupil_file']
+        if self.psf_class_multi is None:
+            if PSFtype == 'insitu':
+                psfobj = self.psf_class(options=optionparam)
+            else:
+                psfobj = self.psf_class(estdrift=estdrift,varphoton=varphoton,options=optionparam)
+        else:
+            optimizer_single = L_BFGS_B(maxiter=50)
+            optimizer_single.batch_size = batchsize
+            psfobj = self.psf_class_multi(self.psf_class,optimizer_single,estdrift=estdrift,varphoton=varphoton,options=optionparam,loss_weight=w)
+
+        if pupilfile:
+            f = h5.File(pupilfile, 'r')
+            try:
+                psfobj.initpupil = np.array(f['res']['pupil'])
+            except:
+                pass
+            psfobj.initpsf = np.array(f['res']['I_model']).astype(np.float32)
+        optimizer = L_BFGS_B(maxiter=maxiter)
+        optimizer.batch_size = batchsize
+        if self.loss_fun_multi:
+            fitter = Fitter(dataobj, psfobj,optimizer,self.loss_fun_multi,loss_func_single=self.loss_fun,loss_weight=w)
+        else:
+            fitter = Fitter(dataobj, psfobj,optimizer,self.loss_fun,loss_weight=w)
+        _, _, centers, file_idxs = dataobj.get_image_data()
+        centers = np.stack(centers)
+        res, toc = fitter.learn_psf(start_time=time)
+
+        pos = res[-1][0]
+        zpos = pos[:,0:1]
+        zpos = zpos-np.mean(zpos)
+        if (centers.shape[-1]==3) & (np.max(np.abs(zpos))>2) & (param['PSFtype']=='voxel'):
+            cor = dataobj.centers
+
+            if dataobj.skew_const:
+                sk = dataobj.skew_const
+                centers1 = np.int32(np.round(np.hstack((cor[:,0:1]-zpos,cor[:,1:2]-sk[0]*zpos,cor[:,2:]-sk[1]*zpos))))
+            else:
+                centers1 = np.int32(np.round(np.hstack((cor[:,0:1]-zpos,cor[:,1:2],cor[:,2:]))))
+            dataobj.cut_new_rois(centers1, file_idxs, roi_size=roi_size)
+            offset = np.min((np.quantile(dataobj.rois,1e-3),0))
+            dataobj.rois = dataobj.rois-offset
+            if dataobj.skew_const:
+                dataobj.deskew_roi(roi_size)
+
+            fitter.dataobj=dataobj
+            res, toc = fitter.learn_psf(start_time=time)
+        
+        if len(file_idxs)==1:
+            locres = fitter.localize(res,channeltype,usecuda=usecuda,start_time=toc)
+            res1 = res
+        else:
+             
+            # %%  remove ourlier
+            if PSFtype == 'insitu':
+                #th = [0.99,0.9] # quantile
+                res1,toc = fitter.relearn_smlm(res,channeltype,rej_threshold,start_time=toc)
+                locres = fitter.localize_smlm(res1,channeltype)
+            else:
+                locres = fitter.localize(res,channeltype,usecuda=usecuda,plot=showplot,start_time=toc)
+                toc = locres[-2]
+                res1, toc = fitter.relearn(res,channeltype,rej_threshold,start_time=toc)
+                if res1[0].shape[-2] < res[0].shape[-2]:
+                    locres = fitter.localize(res1,channeltype,usecuda=usecuda,plot=showplot,start_time=toc)
+            
+        self.learning_result = res1
+        self.loc_result = locres
+        return psfobj, fitter
+
+    def localize_FD(self,fitter, initz=None):
+        res = self.learning_result
+        usecuda = self.param['usecuda']
+
+        loc_FD = fitter.localize_FD(res, usecuda=usecuda, initz=initz)
+        self.loc_FD = loc_FD
+        return loc_FD
+
+    def save_result(self,psfobj,dataobj,fitter):
+        
+        param = self.param
+        res = self.learning_result
+        locres = self.loc_result
+        toc = locres[-2]
+        pbar = tqdm(desc='6/6: saving results',bar_format = "{desc}: [{elapsed}s] {postfix[0]}{postfix[1][time]:>4.2f}s",postfix=["total time: ", dict(time=toc)])
+        
+        folder = param['datapath']
+        savename = param['savename']+'_'+param['PSFtype']+'_'+param['channeltype']
+        res_dict = psfobj.res2dict(res)
+        if self.loc_FD is not None:
+            locres_dict = dict(P=locres[0],CRLB = locres[1],LL=locres[2],coeff=locres[3],loc=locres[-1],loc_FD=self.loc_FD)
+        else:
+            locres_dict = dict(P=locres[0],CRLB = locres[1],LL=locres[2],coeff=locres[3],loc=locres[-1])
+        img, _, centers, file_idxs = dataobj.get_image_data()
+        img = np.stack(img)
+        rois_dict = dict(cor=np.stack(centers),fileID=np.stack(file_idxs),psf_data=fitter.rois,
+                        psf_fit=fitter.forward_images,image_size=img.shape)
+        resfile = savename+'.h5'
+        with h5.File(resfile, "w") as f:
+            f.attrs["params"] = json.dumps(param)
+            g3 = f.create_group("rois")
+            g1 = f.create_group("res")
+            g2 = f.create_group("locres")
+
+            for k, v in locres_dict.items():
+                if isinstance(v,dict):
+                    gi = g2.create_group(k)
+                    for ki,vi in v.items():
+                        gi[ki] = vi
+                else:
+                    g2[k] = v
+            for k, v in res_dict.items():
+                if isinstance(v,dict):
+                    gi = g1.create_group(k)
+                    for ki,vi in v.items():
+                        gi[ki] = vi
+                else:
+                    g1[k] = v
+            for k, v in rois_dict.items():
+                g3[k] = v
+
+        self.result_file = resfile
+        pbar.postfix[1]['time'] = toc +pbar._time()-pbar.start_t
+        pbar.update()
+        pbar.close
+        return resfile, res_dict, locres_dict, rois_dict
