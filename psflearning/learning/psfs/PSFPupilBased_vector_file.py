@@ -128,6 +128,7 @@ class PSFPupilBased_vector(PSFInterface):
         filter2 = tf.complex(filter2,0.0)
 
         I_blur = im.ift3d(im.ft3d(I_res)*self.bead_kernel*filter2)
+        
         psf_fit = tf.math.real(I_blur)*intensities*self.weight[0]
         Nz = psf_fit.shape[-3]
         st = (self.bead_kernel.shape[0]-self.data.rois[0].shape[-3])//2
