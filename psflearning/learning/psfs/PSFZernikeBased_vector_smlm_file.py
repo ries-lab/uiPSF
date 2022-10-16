@@ -29,23 +29,24 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         """
         Provides initial values for the optimizable varibales for the fitter class.
         """
+        options = self.options
         self.data = data
         _, rois, centers, frames = self.data.get_image_data()
         pixelsize_z = np.array(self.data.pixelsize_z)
-        self.stagepos = self.options['stage_pos']/self.data.pixelsize_z
+        self.stagepos = options.insitu.stage_pos/self.data.pixelsize_z
         if hasattr(self,'initpsf'):
             I_init = self.initpsf
             Nz = I_init.shape[0]
             self.calpupilfield('vector', Nz)
-        elif not self.options['zernike_index']:
+        elif not options.insitu.zernike_index:
             I_init = self.estzernike(start_time=start_time)
         else:
-            Nz = np.int32(self.options['z_range']/self.data.pixelsize_z+1)
+            Nz = np.int32(options.insitu.z_range/self.data.pixelsize_z+1)
             self.calpupilfield('vector', Nz)
-            init_sigma = np.ones((2,),dtype=np.float32)*self.options['gauss_filter_sigma']*np.pi
+            init_sigma = np.ones((2,),dtype=np.float32)*options.model.blur_sigma*np.pi
             init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
             init_Zcoeff[0,0,0,0] = 1
-            init_Zcoeff[1,self.options['zernike_index'],0,0] = self.options['zernike_coeff']
+            init_Zcoeff[1,options.insitu.zernike_index,0,0] = options.insitu.zernike_coeff
             I_init = self.genpsfmodel(init_Zcoeff,init_sigma)
         
         dll = localizationlib(usecuda=True)
@@ -57,7 +58,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         photon = locres[0][2]  
         bg = locres[0][3]
         a = 0.99
-        a1 = self.options['min_photon']
+        a1 = options.insitu.min_photon
         mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp>np.quantile(zp,1-a)) & (zp<np.quantile(zp,a))
         mask = mask.flatten() & (locres[2]>np.quantile(locres[2],0.1)) & (photon>np.quantile(photon,a1))
         
@@ -68,7 +69,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         initz = zp.flatten()[mask]
         LL = locres[2][mask]
         
-        if self.options['partition_data']:
+        if self.options.insitu.partition_data:
             initz, roisavg = self.partitiondata(initz,LL)
             
         _, rois, _, _ = self.data.get_image_data()
@@ -84,7 +85,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
        
      
                                 
-        if self.options['const_pupilmag']:
+        if self.options.model.const_pupilmag:
             self.n_max_mag = 0
         else:
             self.n_max_mag = 100
@@ -92,7 +93,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
         self.weight = np.array([np.median(init_intensities)*10, 10, 30, 0.2, 0.2],dtype=np.float32) # [I, bg, pos, coeff]
-        sigma = np.ones((2,))*self.options['gauss_filter_sigma']*np.pi
+        sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         
         init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
         init_Zcoeff[:,0,0,0] = [1,0]/self.weight[4]
@@ -118,7 +119,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         Nk = np.min(((n_max+1)*(n_max+2)//2,self.Zk.shape[0]))
         mask = c1<Nk
         c1 = c1[mask]
-        if self.options['symmetric_mag']:
+        if self.options.model.symmetric_mag:
             pupil_mag = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff[0],indices=c1)*self.weight[4],axis=0))
         else:
             pupil_mag = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeff[0][0:Nk]*self.weight[4],axis=0))
@@ -154,10 +155,10 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
 
 
     def estzernike(self,start_time = None):
-        Nz = np.int32(self.options['z_range']/self.data.pixelsize_z+1)
+        Nz = np.int32(self.options.insitu.z_range/self.data.pixelsize_z+1)
         self.calpupilfield('vector', Nz)
         pixelsize_z = np.array(self.data.pixelsize_z)
-        init_sigma = np.ones((2,),dtype=np.float32)*self.options['gauss_filter_sigma']*np.pi
+        init_sigma = np.ones((2,),dtype=np.float32)*self.options.model.blur_sigma*np.pi
 
         llmax = -1e6
         LLavg = []
@@ -211,10 +212,10 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
     def partitiondata(self,zf,LL):
         _, rois, centers, frames = self.data.get_image_data()
         
-        nbin = self.options['partition_size'][0]
+        nbin = self.options.insitu.partition_size[0]
         count,edge = np.histogram(zf,nbin)
         ind = np.digitize(zf,edge)
-        Npsf = self.options['partition_size'][1]
+        Npsf = self.options.insitu.partition_size[1]
         rois1 = []
         rois1_avg = []
         zf1 = []

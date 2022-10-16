@@ -6,3 +6,5 @@ from omegaconf import OmegaConf, DictConfig
 
 def load(path: Union[str, Path]) -> DictConfig:
     return OmegaConf.load(path)
+
+

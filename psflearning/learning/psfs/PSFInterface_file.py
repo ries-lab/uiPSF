@@ -59,7 +59,7 @@ class PSFInterface():
         if Nz is None:
             Nz = self.data.bead_kernel.shape[0]
         Lx = self.data.rois.shape[-1]        
-        xsz =self.options['pupilsize']
+        xsz =self.options.model.pupilsize
      
         xrange = np.linspace(-Lx/2+0.5,Lx/2-0.5,Lx)
         [xx,yy] = np.meshgrid(xrange,xrange)
@@ -71,12 +71,12 @@ class PSFInterface():
 
         pixelsize_x = self.data.pixelsize_x
         pixelsize_y = self.data.pixelsize_y
-        NA = self.options['NA']
-        emission_wavelength = self.options['emission_wavelength']
-        nimm = self.options['RI_imm']
-        nmed = self.options['RI_med']
-        ncov = self.options['RI_cov']
-        n_max = self.options['n_max']
+        NA = self.options.imaging.NA
+        emission_wavelength = self.options.imaging.emission_wavelength
+        nimm = self.options.imaging.RI.imm
+        nmed = self.options.imaging.RI.med
+        ncov = self.options.imaging.RI.cov
+        n_max = self.options.model.n_max
         out = im.genZern(n_max,xsz,NA,emission_wavelength,nimm,pixelsize_x,applymask=False)
         Zk = out[0]        
         signm = out[-1]%2*2-1
@@ -114,7 +114,7 @@ class PSFInterface():
         hx = cos_phi*pvec-sin_phi*svec
         hy = sin_phi*pvec+cos_phi*svec
         h = np.concatenate((hx,hy),axis=0)
-        if self.options['with_apoid']:
+        if self.options.model.with_apoid:
             apoid = 1/np.lib.scimath.sqrt(cos_med)/1.225
         else:
             apoid = 1/np.lib.scimath.sqrt(1.0)

@@ -16,17 +16,19 @@ from tqdm import tqdm
 import os
 import sys
 import tensorflow as tf
+from psflearning import io
 #%%
 class localizationlib:
     def __init__(self,usecuda=False):
         thispath = os.path.dirname(os.path.abspath(__file__))
+        cfg = io.param.load('../config/config_path.yaml')
         if sys.platform.startswith('win'):
-            dllpath_cpu_astM = thispath+'/source/mleFit_LM_DLL/x64/Release/CPUmleFit_LM_MultiChannel.dll'
-            dllpath_gpu_astM = thispath+'/source/mleFit_LM_DLL/x64/Release/GPUmleFit_LM_MultiChannel.dll'
-            dllpath_cpu_4pi = thispath+'/source/mleFit_LM_DLL/x64/Release/CPUmleFit_LM_4Pi.dll'
-            dllpath_gpu_4pi = thispath+'/source/mleFit_LM_DLL/x64/Release/GPUmleFit_LM_4Pi.dll'
-            dllpath_cpu_ast = thispath+'/source/mleFit_LM_DLL/x64/Release/CPUmleFit_LM.dll'
-            dllpath_gpu_ast = thispath+'/source/mleFit_LM_DLL/x64/Release/GPUmleFit_LM.dll'
+            dllpath_cpu_astM = cfg.Paths.spline.win.cpu.astM
+            dllpath_gpu_astM = cfg.Paths.spline.win.cuda.astM
+            dllpath_cpu_4pi = cfg.Paths.spline.win.cpu.fpi
+            dllpath_gpu_4pi = cfg.Paths.spline.win.cuda.fpi
+            dllpath_cpu_ast = cfg.Paths.spline.win.cpu.ast
+            dllpath_gpu_ast = cfg.Paths.spline.win.cuda.ast
             
             if tf.test.gpu_device_name():
                 lib_gpu_astM = ctypes.CDLL(dllpath_gpu_astM)            
@@ -36,9 +38,9 @@ class localizationlib:
                 usecuda = False
         elif sys.platform.startswith('darwin'):
             usecuda = False
-            dllpath_cpu_ast = thispath+'/source/mleFit_LM_dylib/mac/Build/Products/Release/libCPUmleFit_LM.dylib'
-            dllpath_cpu_astM = thispath+'/source/mleFit_LM_dylib/mac/Build/Products/Release/libCPUmleFit_LM_MultiChannel.dylib'
-            dllpath_cpu_4pi = thispath+'/source/mleFit_LM_dylib/mac/Build/Products/Release/libCPUmleFit_LM_4Pi.dylib'
+            dllpath_cpu_ast = cfg.Paths.spline.mac.cpu.ast
+            dllpath_cpu_astM = cfg.Paths.spline.mac.cpu.astM
+            dllpath_cpu_4pi = cfg.Paths.spline.mac.cpu.fpi
 
         lib_cpu_astM = ctypes.CDLL(dllpath_cpu_astM)        
         lib_cpu_4pi = ctypes.CDLL(dllpath_cpu_4pi)        

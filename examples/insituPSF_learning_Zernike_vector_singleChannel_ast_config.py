@@ -7,14 +7,14 @@ import json
 sys.path.append("..")
 from psflearning.psflearninglib import psflearninglib
 from psflearning.learning import localizationlib
+from psflearning import io
 
-with open('datadir.json','r') as file:
-    maindatadir = json.load(file)['main_data_dir']
+cfg = io.param.load('../config/config_insitu_embl.yaml')
 
 #%% load parameters
-paramfile = r'params_default.json'
+#paramfile = r'params_default.json'
 L = psflearninglib()
-L.getparam(paramfile)
+L.param = cfg.Params
 #psffile = maindatadir+'211207_SL_bead_3D_M2/40nm_bead_50nm/psfmodel_voxel_single.h5'
 #psffile = maindatadir + r'\insitu data\210122_Ulf_1C3D_M2\beadstacks/psfmodel_voxel_single.h5'
 
@@ -25,11 +25,9 @@ L.getparam(paramfile)
 
 
 #%%
-L.param['datapath'] = maindatadir+'190910_u2os_course_96_WGA_3D_M2/01_191009_u2os_course_96_WGA_3D_ritu_1/'
-#L.param['datapath'] = maindatadir+'insitu data/'
+#L.param.datapath = maindatadir+'190910_u2os_course_96_WGA_3D_M2/01_191009_u2os_course_96_WGA_3D_ritu_1/'
 
-#L.param['datapath'] = r'D:\Sheng\data\12-08-2021 bead bottom\40nm/'
-#L.param['datapath'] = maindatadir+ r'bead data\01-04-2022 bead\40nm_top/'
+L.param.datapath = 'E:\Lucas\Bottom_cellMem24h_Pos0_Bottom_cellMem24h_Loc_1\Pos0_Bottom_cellMem24h_Loc_1/'
 
 L.param['keyword'] = 'Bottom'
 L.param['subfolder'] = ''

@@ -13,14 +13,11 @@ maindatadir = io.param.load('../config/config_path.yaml').main_data_dir
 #%% load parameters
 
 L = psflearninglib()
-L.param = io.param.load('../config/config_insitu_DM.yaml').Params
+L.param = io.param.load('../config/config_insitu_lucas.yaml').Params
 
 
 #%% load data
 
-L.param.datapath = maindatadir+r'insitu data\from Yiming\In-situ PSF learing data\Single molecule data for different DM models/U20S_MT_tublin_AF647_depth_200nm_2_2_zerniek_-1_1/'
-
-L.param.keyword = 'Default.'
 images = L.load_data()
 
 L.getpsfclass()
@@ -30,12 +27,11 @@ L.getpsfclass()
 dataobj = L.prep_data(images)
 
 #%% learning
-L.param.option.insitu.zernike_index=[]
-L.param.option.insitu.zernike_coeff=[]
+
 psfobj,fitter = L.learn_psf(dataobj,time=0)
 
 #%% save file
-L.param.savename = L.param.datapath + 'psfmodel_test2'
+L.param.savename = L.param.datapath + 'psfmodel_'
 resfile = L.save_result(psfobj,dataobj,fitter)
 
 
@@ -100,7 +96,7 @@ plt.ylabel('coefficient')
 plt.show()
 
 #%%
-plt.imshow(Zk[5]*aperture,cmap='viridis')
+plt.imshow(Zk[23]*aperture,cmap='viridis')
 #%%
 zf = pos[:,0]*p.pixel_size.z*1e3
 plt.plot(frames,zf,'.')

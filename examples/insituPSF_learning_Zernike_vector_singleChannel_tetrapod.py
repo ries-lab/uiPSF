@@ -2,27 +2,29 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-import h5py as h5
+
 import json
+
 sys.path.append("..")
 from psflearning.psflearninglib import psflearninglib
 from psflearning.learning import localizationlib
-
+from psflearning import io
 with open('datadir.json','r') as file:
     maindatadir = json.load(file)['main_data_dir']
 
 #%% load parameters
 paramfile = r'params_default.json'
 L = psflearninglib()
-L.getparam(paramfile)
+#L.getparam(paramfile)
 
 #psffile = maindatadir + r'\insitu data\from Yiming\In-situ PSF learing data\DMO1.2umNPC\PSF_DMO1.2_+-1um_10nm_2/psfmodel_LL_zernike_single.h5'
 psffile = maindatadir + r'\insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC\PSF_DMO6_alpha30_+-3umstep50nm_5/psfmodel_LL_zernike_single.h5'
+f,params = io.h5.load(psffile)
 
-f = h5.File(psffile, 'r')
-I_init=np.array(f.get('res/I_model')).astype(np.float32)
-bead_data = np.array(f.get('rois/psf_data')).astype(np.float32)
-params = json.loads(f.attrs['params'])
+
+I_init=f.res.I_model
+bead_data = f.rois.psf_data
+
 
 
 #%%
@@ -81,7 +83,7 @@ psfobj,fitter = L.learn_psf(dataobj,time=0)
 
 #%%
 L.param['savename'] = L.param['datapath'] + 'psfmodel_test1'
-resfile, res_dict, loc_dict, rois_dict = L.save_result(psfobj,dataobj,fitter)
+resfile = L.save_result(psfobj,dataobj,fitter)
 
 
 #%% localize bead data with insitu PSF

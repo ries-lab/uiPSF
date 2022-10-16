@@ -20,6 +20,7 @@ import tensorflow as tf
 import json
 from tqdm import tqdm
 from PIL import Image
+from omegaconf import OmegaConf
 import os
 from tkinter import EXCEPTION, messagebox as mbox
 
@@ -87,17 +88,12 @@ class psflearninglib:
         self.param = param
         self.loc_FD = None
 
-    def getparam(self, paramfile):
-        with open(paramfile,'r') as file:
-            param = json.load(file)
-        file.close()
-        self.param = param
-        return
+
 
     def getpsfclass(self):
         param = self.param
-        PSFtype = param['PSFtype']
-        channeltype = param['channeltype']
+        PSFtype = param.PSFtype
+        channeltype = param.channeltype
         lossfun = LOSSFUN_DICT[PSFtype]
         lossfunmulti = None
 
@@ -122,21 +118,21 @@ class psflearninglib:
 
     def load_data(self,frange=None):
         param = self.param
-        folder = param['datapath']
-        keyword = param['keyword']
-        varname = param['varname']
-        gain = param['gain']
-        ccdoffset = param['ccd_offset']
-        subfolder = param['subfolder']
-        format = param['format']
-        channeltype = param['channeltype']
-        PSFtype = param['PSFtype']
-        datatype = param['datatype']
-        channel_arrange = param['channel_arrange']
-        mirrortype = param['mirrortype']
-        ref_channel = param['ref_channel']
-        filelist = param['filelist']
-        framerange = param['frame_range']
+        folder = param.datapath
+        keyword = param.keyword
+        varname = param.varname
+        gain = param.gain
+        ccdoffset = param.ccd_offset
+        subfolder = param.subfolder
+        format = param.format
+        channeltype = param.channeltype
+        PSFtype = param.PSFtype
+        datatype = param.datatype
+        channel_arrange = param.dual.channel_arrange
+        mirrortype = param.dual.mirrortype
+        ref_channel = param.ref_channel
+        filelist = param.filelist
+        framerange = param.insitu.frame_range
         if not filelist:
             if not subfolder:
                 filelist = glob.glob(folder+'/*'+keyword+'*'+format)
@@ -260,21 +256,21 @@ class psflearninglib:
 
     def prep_data(self,images):
         param = self.param
-        peak_height = param['peak_height']
-        roi_size = param['roi_size']
-        gaus_sigma = param['gaus_sigma']
-        kernel = param['max_kernel']
-        pixelsize_x = param['pixelsize_x']
-        pixelsize_y = param['pixelsize_y']
-        pixelsize_z = param['pixelsize_z']
-        bead_radius = param['bead_radius']
-        showplot = param['plotall']
-        zT = param['modulation_period']
-        PSFtype = param['PSFtype']
-        channeltype = param['channeltype']
-        fov = list(param['FOV'].values())
-        skew_const = param['skew_const']
-        maxNobead = param['max_bead_number']
+        peak_height = param.roi.peak_height
+        roi_size = param.roi.roi_size
+        gaus_sigma = param.roi.gauss_sigma
+        kernel = param.roi.max_kernel
+        pixelsize_x = param.pixel_size.x
+        pixelsize_y = param.pixel_size.y
+        pixelsize_z = param.pixel_size.z
+        bead_radius = param.roi.bead_radius
+        showplot = param.plotall
+        zT = param.fpi.modulation_period
+        PSFtype = param.PSFtype
+        channeltype = param.channeltype
+        fov = list(param.FOV.values())
+        skew_const = param.LLS.skew_const
+        maxNobead = param.roi.max_bead_number
 
 
         zstart = fov[-3]
@@ -330,19 +326,19 @@ class psflearninglib:
 
     def learn_psf(self,dataobj,time=None):
         param = self.param
-        rej_threshold = list(param['rej_threshold'].values())
-        estdrift = param['estimate_drift']
-        varphoton = param['vary_photon']
-        maxiter = param['iteration']
-        w = list(param['loss_weight'].values())
-        usecuda = param['usecuda']
-        showplot = param['plotall']
-        optionparam = param['option_params']
-        channeltype = param['channeltype']
-        PSFtype = param['PSFtype']
-        roi_size = param['roi_size']
-        batchsize = param['batch_size']
-        pupilfile = param['option_params']['init_pupil_file']
+        rej_threshold = list(param.rej_threshold.values())
+        estdrift = param.estimate_drift
+        varphoton = param.var_photon
+        maxiter = param.iteration
+        w = list(param.loss_weight.values())
+        usecuda = param.usecuda
+        showplot = param.plotall
+        optionparam = param.option
+        channeltype = param.channeltype
+        PSFtype = param.PSFtype
+        roi_size = param.roi.roi_size
+        batchsize = param.batch_size
+        pupilfile = optionparam.model.init_pupil_file
         if self.psf_class_multi is None:
             if PSFtype == 'insitu':
                 psfobj = self.psf_class(options=optionparam)
@@ -373,7 +369,7 @@ class psflearninglib:
         pos = res[-1][0]
         zpos = pos[:,0:1]
         zpos = zpos-np.mean(zpos)
-        if (centers.shape[-1]==3) & (np.max(np.abs(zpos))>2) & (param['PSFtype']=='voxel'):
+        if (centers.shape[-1]==3) & (np.max(np.abs(zpos))>2) & (PSFtype=='voxel'):
             cor = dataobj.centers
 
             if dataobj.skew_const:
@@ -413,7 +409,7 @@ class psflearninglib:
 
     def localize_FD(self,fitter, initz=None):
         res = self.learning_result
-        usecuda = self.param['usecuda']
+        usecuda = self.param.usecuda
 
         loc_FD = fitter.localize_FD(res, usecuda=usecuda, initz=initz)
         self.loc_FD = loc_FD
@@ -427,8 +423,8 @@ class psflearninglib:
         toc = locres[-2]
         pbar = tqdm(desc='6/6: saving results',bar_format = "{desc}: [{elapsed}s] {postfix[0]}{postfix[1][time]:>4.2f}s",postfix=["total time: ", dict(time=toc)])
         
-        folder = param['datapath']
-        savename = param['savename']+'_'+param['PSFtype']+'_'+param['channeltype']
+        folder = param.datapath
+        savename = param.savename+'_'+param.PSFtype+'_'+param.channeltype
         res_dict = psfobj.res2dict(res)
         if self.loc_FD is not None:
             locres_dict = dict(P=locres[0],CRLB = locres[1],LL=locres[2],coeff=locres[3],loc=locres[-1],loc_FD=self.loc_FD)
@@ -440,7 +436,7 @@ class psflearninglib:
                         psf_fit=fitter.forward_images,image_size=img.shape)
         resfile = savename+'.h5'
         with h5.File(resfile, "w") as f:
-            f.attrs["params"] = json.dumps(param)
+            f.attrs["params"] = json.dumps(OmegaConf.to_container(param))
             g3 = f.create_group("rois")
             g1 = f.create_group("res")
             g2 = f.create_group("locres")
@@ -466,4 +462,4 @@ class psflearninglib:
         pbar.postfix[1]['time'] = toc +pbar._time()-pbar.start_t
         pbar.update()
         pbar.close
-        return resfile, res_dict, locres_dict, rois_dict
+        return resfile
