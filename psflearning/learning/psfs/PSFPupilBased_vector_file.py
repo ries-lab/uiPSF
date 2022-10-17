@@ -33,7 +33,8 @@ class PSFPupilBased_vector(PSFInterface):
         self.data = data
         _, rois, _, _ = self.data.get_image_data()
 
-        if self.options['with_IMM']:
+        options = self.options
+        if options.model.with_IMM:
             init_positions = np.zeros((rois.shape[0], len(rois.shape)))
         else:
             init_positions = np.zeros((rois.shape[0], len(rois.shape)-1))
@@ -51,13 +52,13 @@ class PSFPupilBased_vector(PSFInterface):
         N = rois.shape[0]
         Nz = self.data.bead_kernel.shape[0]
         Lx = rois.shape[-1]
-        xsz =self.options['pupilsize']
+        xsz =options.model.pupilsize
         
         self.calpupilfield('vector')
-        self.const_mag = self.options['const_pupilmag']
+        self.const_mag = options.model.const_pupilmag
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
         self.weight = np.array([np.median(init_intensities)*10, 10, 0.1, 10, 10],dtype=np.float32)
-        sigma = np.ones((2,))*self.options['gauss_filter_sigma']*np.pi
+        sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
 
         init_pupil = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
         init_backgrounds[init_backgrounds<0.1] = 0.1

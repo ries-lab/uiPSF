@@ -33,7 +33,8 @@ class PSFZernikeBased_vector(PSFInterface):
         self.data = data
         _, rois, _, _ = self.data.get_image_data()
 
-        if self.options['with_IMM']:
+        options = self.options
+        if options.model.with_IMM:
             init_positions = np.zeros((rois.shape[0], len(rois.shape)))
         else:
             init_positions = np.zeros((rois.shape[0], len(rois.shape)-1))
@@ -52,14 +53,14 @@ class PSFZernikeBased_vector(PSFInterface):
         Nz = self.data.bead_kernel.shape[0]
 
         self.calpupilfield('vector')
-        if self.options['const_pupilmag']:
+        if options.model.const_pupilmag:
             self.n_max_mag = 0
         else:
             self.n_max_mag = 100
      
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
         self.weight = np.array([np.median(init_intensities)*10, 10, 0.1, 0.2, 0.2],dtype=np.float32)
-        sigma = np.ones((2,))*self.options['gauss_filter_sigma']*np.pi
+        sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
 
         init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
         init_Zcoeff[:,0,0,0] = [1,0]/self.weight[4]
@@ -101,7 +102,7 @@ class PSFZernikeBased_vector(PSFInterface):
         Nk = np.min(((n_max+1)*(n_max+2)//2,self.Zk.shape[0]))
         mask = c1<Nk
         c1 = c1[mask]
-        if self.options['symmetric_mag']:
+        if self.options.model.symmetric_mag:
             pupil_mag = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff[0],indices=c1)*self.weight[4],axis=0))
         else:
             pupil_mag = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeff[0][0:Nk]*self.weight[4],axis=0))
