@@ -202,25 +202,27 @@ class psflearninglib:
                         dat.append(datai)
                     dat = np.squeeze(np.stack(dat))
                 elif format == '.tif':
-                    datai = np.squeeze(io.imread(filename).astype(np.float32))
-                    if channel_arrange == 'up-down':
-                        cc = datai.shape[-2]//2
-                        if mirrortype == 'up-down':
-                            #dat = np.stack([np.flip(datai[:,:-cc],axis=-2),datai[:,cc:]])
-                            dat = np.stack([datai[:,:-cc],np.flip(datai[:,cc:],axis=-2)])
-                        else:
-                            #dat = np.stack([np.flip(datai[:,:-cc],axis=-1),datai[:,cc:]])
-                            dat = np.stack([datai[:,:-cc],np.flip(datai[:,cc:],axis=-1)])
-                    else:
-                        cc = datai.shape[-1]//2
-                        if mirrortype == 'up-down':
-                            #dat = np.stack([np.flip(datai[...,:-cc],axis=-2),datai[...,cc:]])
-                            dat = np.stack([datai[...,:-cc],np.flip(datai[...,cc:],axis=-2)])
-                        else:
-                            #dat = np.stack([np.flip(datai[...,:-cc],axis=-1),datai[...,cc:]])
-                            dat = np.stack([datai[...,:-cc],np.flip(datai[...,cc:],axis=-1)])      
+                    dat = np.squeeze(io.imread(filename).astype(np.float32))
                 else:
                     raise TypeError('supported data format (multi channel) is '+'.mat,'+'.tif.')
+                if len(dat.shape)<4:
+                    if channel_arrange == 'up-down':
+                        cc = dat.shape[-2]//2
+                        if mirrortype == 'up-down':
+                            dat = np.stack([dat[:,:-cc],np.flip(dat[:,cc:],axis=-2)])
+                        elif mirrortype == 'left-right':
+                            dat = np.stack([dat[:,:-cc],np.flip(dat[:,cc:],axis=-1)])
+                        else:
+                            dat = np.stack([dat[:,:-cc],dat[:,cc:]])
+                    else:
+                        cc = dat.shape[-1]//2
+                        if mirrortype == 'up-down':
+                            dat = np.stack([dat[...,:-cc],np.flip(dat[...,cc:],axis=-2)])
+                        elif mirrortype == 'left-right':
+                            dat = np.stack([dat[...,:-cc],np.flip(dat[...,cc:],axis=-1)])  
+                        else:
+                            dat = np.stack([dat[...,:-cc],dat[...,cc:]])    
+                
             
             dat = (dat-ccdoffset)*gain
             imageraw.append(dat)

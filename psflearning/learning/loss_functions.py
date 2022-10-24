@@ -265,13 +265,16 @@ def mse_real_zernike_smlm(model,data,variables=None,mu=None,w=None):
     bg = variables[1]
     intensity = variables[2]
     zcoeff = variables[3]
+    stagepos = variables[5]
+    zpos = variables[0][:,0,...]
     bgmin = tf.reduce_mean(tf.math.square(tf.math.minimum(bg,0)))
+    zmin = tf.reduce_mean(tf.math.square(tf.math.minimum(zpos,0))) + tf.reduce_mean(tf.math.square(tf.math.minimum(stagepos,0)))
     intensitymin = tf.reduce_mean(tf.math.square(tf.math.minimum(intensity,0)))
 
     g1 = tf.reduce_sum(tf.square(zcoeff[0][1:]))
     g2 = tf.reduce_sum(tf.square(zcoeff[1]))
 
     #loss = mse_norm1*w[0] + mse_norm2*w[1] + bgmin*w[5]*mu  + intensitymin*w[6]*mu
-    loss = LL*w[0]  + bgmin*w[5]*mu  + intensitymin*w[6]*mu + (g1+g2)*w[2]
+    loss = LL*w[0]  + bgmin*w[5]*mu  + intensitymin*w[6]*mu + (g1+g2)*w[2] + zmin*w[4]*mu
     
     return loss

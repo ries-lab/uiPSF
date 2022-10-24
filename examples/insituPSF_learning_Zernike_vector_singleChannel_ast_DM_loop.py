@@ -2,7 +2,7 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-
+import glob
 sys.path.append("..")
 from psflearning.psflearninglib import psflearninglib
 from psflearning import io
@@ -16,29 +16,32 @@ L = psflearninglib()
 L.param = io.param.load('../config/config_insitu_DM.yaml').Params
 
 
+#%%
+#folder = maindatadir+r'insitu data/from Yiming/In-situ PSF learing data/high order/'
+folder = maindatadir+r'insitu data/from Yiming/In-situ PSF learing data/Single molecule data for different DM models/'
+folderlist = glob.glob(folder+'/*'+'U20S'+'*/')
 #%% load data
-dataname = 'U20S_MT_tublin_AF647_depth_200nm_7_-1_zerniek_1_1/'
-L.param.datapath = maindatadir+r'insitu data/from Yiming/In-situ PSF learing data/high order/'+dataname
+for foldername in folderlist:
+    
+    L.param.datapath = foldername
 
-L.param.keyword = 'Default.'
+    L.param.keyword = 'Default.'
+    images = L.load_data()
 
-images = L.load_data()
+    L.getpsfclass()
 
-L.getpsfclass()
+    #% segmentation
 
-#%% segmentation
+    dataobj = L.prep_data(images)
 
-dataobj = L.prep_data(images)
+    #% learning
+    L.param.option.insitu.zernike_index=[]
 
-#%% learning
-L.param.option.insitu.stage_pos = 0.8
-L.param.option.insitu.zernike_index=[29]
-L.param.option.insitu.zernike_coeff=[-0.7]
-psfobj,fitter = L.learn_psf(dataobj,time=0)
+    psfobj,fitter = L.learn_psf(dataobj,time=0)
 
-#%% save file
-L.param.savename = L.param.datapath + 'psfmodel_test_z_[29]_zs08_n8_seg200'
-resfile = L.save_result(psfobj,dataobj,fitter)
+    #% save file
+    L.param.savename = L.param.datapath + 'psfmodel_test_z_[]_zs0d8_n8_seg200'
+    resfile = L.save_result(psfobj,dataobj,fitter)
 
 
 #%% load and show result
@@ -111,7 +114,7 @@ for i,id in enumerate(zind):
     plt.axis('off')
 
 #%%
-plt.imshow(Zk[41]*aperture,cmap='viridis')
+plt.imshow(Zk[14]*aperture,cmap='viridis')
 #%%
 zf = pos[:,0]*p.pixel_size.z*1e3
 plt.plot(frames,zf,'.')

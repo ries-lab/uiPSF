@@ -78,7 +78,10 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
       
         
         z_center = self.stagepos*self.nmed/self.nimm
-        init_positions[:,0] = (initz-z_center)
+        if self.Zrange[0]>z_center:
+            init_positions[:,0] = initz
+        else:
+            init_positions[:,0] = initz+z_center-self.Zrange[0]
 
         init_backgrounds = np.array(np.min(gaussian_filter(rois, [0, 2, 2]), axis=(-2, -1), keepdims=True))
         init_intensities = np.sum(rois - init_backgrounds, axis=(-2, -1), keepdims=True)
@@ -92,7 +95,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
 
         
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
-        self.weight = np.array([np.median(init_intensities)*10, 10, 30, 0.2, 0.2],dtype=np.float32) # [I, bg, pos, coeff]
+        self.weight = np.array([np.median(init_intensities)*10, 10, 30, 0.2, 0.2, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         
         init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
@@ -101,19 +104,20 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         init_backgrounds = init_backgrounds / self.weight[1]
         init_Intensity = init_intensities / self.weight[0]
         init_positions = init_positions / self.weight[2]
-
+        init_stagepos = np.ones((1,))*self.stagepos / self.weight[5]
         return [init_positions.astype(np.float32),
                 init_backgrounds.astype(np.float32),
                 init_Intensity.astype(np.float32),
                 init_Zcoeff.astype(np.float32),
-                sigma.astype(np.float32)], start_time
+                sigma.astype(np.float32), 
+                init_stagepos.astype(np.float32)], start_time
         
     def calc_forward_images(self, variables):
         """
         Calculate forward images from the current guess of the variables.
         Shifting is done by Fourier transform and applying a phase ramp.
         """
-        pos, backgrounds, intensities, Zcoeff, sigma = variables
+        pos, backgrounds, intensities, Zcoeff, sigma, stagepos = variables
         c1 = self.spherical_terms
         n_max = self.n_max_mag
         Nk = np.min(((n_max+1)*(n_max+2)//2,self.Zk.shape[0]))
@@ -129,9 +133,10 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         pos = tf.complex(tf.reshape(pos*self.weight[2],pos.shape+(1,1)),0.0)
 
         #phiz = 1j*2*np.pi*self.kz*(pos[:,0])
-        
-        IMMphase = 1j*2*np.pi*(self.kz_med*self.stagepos*self.nmed/self.nimm-self.kz*self.stagepos)
-        phiz = 1j*2*np.pi*self.kz_med*pos[:,0] + IMMphase
+        stagepos = tf.complex(stagepos*self.weight[5],0.0)
+        #IMMphase = 1j*2*np.pi*(self.kz_med*stagepos*self.nmed/self.nimm-self.kz*stagepos)
+        #phiz = 1j*2*np.pi*self.kz_med*pos[:,0] + IMMphase
+        phiz = 1j*2*np.pi*(self.kz_med*pos[:,0]-self.kz*stagepos)
         phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
         I_res = 0.0
         for h in self.dipole_field:
@@ -162,8 +167,12 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
 
         llmax = -1e6
         LLavg = []
-        for k in range(4,21):
-            for val in [-0.5,0.5]:
+        if self.options.insitu.zkorder_rank == 'H':
+            zkrange = range(21,45)
+        else:
+            zkrange = range(4,21)
+        for k in zkrange:
+            for val in [-0.7,0.7]:
                 init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
                 init_Zcoeff[0,0,0,0] = 1
                 init_Zcoeff[1,k,0,0] = val
@@ -187,9 +196,13 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
 
         z_center = self.stagepos*self.nmed/self.nimm
-        zrange = -self.Zrange+self.Zrange[0]-z_center
-        IMMphase = 1j*2*np.pi*(self.kz_med*self.stagepos*self.nmed/self.nimm-self.kz*self.stagepos)  
-        phiz = 1j*2*np.pi*self.kz_med*zrange + IMMphase
+        if self.Zrange[0]>z_center:
+            zrange = -self.Zrange+self.Zrange[0]-z_center
+        else:
+            zrange = -self.Zrange
+        #IMMphase = 1j*2*np.pi*(self.kz_med*self.stagepos*self.nmed/self.nimm-self.kz*self.stagepos)  
+        #phiz = 1j*2*np.pi*self.kz_med*zrange + IMMphase
+        phiz = 1j*2*np.pi*(self.kz_med*(zrange+z_center)-self.kz*self.stagepos)  
         #phiz = 1j*2*np.pi*self.kz*self.Zrange
         phixy = 1j*2*np.pi*self.ky*0.0+1j*2*np.pi*self.kx*0.0
         I_res = 0.0
@@ -247,18 +260,24 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         real positions in the image from the positions in the roi. Also, normalizes
         psf and adapts intensities and background accordingly.
         """
-        positions, backgrounds, intensities, Zcoeff,sigma = variables
+        positions, backgrounds, intensities, Zcoeff,sigma, stagepos = variables
         #z_center = (self.Zrange.shape[-3] - 1) // 2
         positions = positions*self.weight[2]
         pupil_mag = tf.abs(tf.reduce_sum(self.Zk*Zcoeff[0]*self.weight[4],axis=0))
         pupil_phase = tf.reduce_sum(self.Zk*Zcoeff[1]*self.weight[3],axis=0)
         pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
-
-        z_center = self.stagepos*self.nmed/self.nimm
-        zrange = -self.Zrange+self.Zrange[0]-z_center
+        
+        stagepos = stagepos*self.weight[5]
+        z_center = stagepos*self.nmed/self.nimm
+        
+        if self.Zrange[0]>z_center:
+            zrange = -self.Zrange+self.Zrange[0]-z_center
+        else:
+            zrange = -self.Zrange
         #phiz = 1j*2*np.pi*self.kz*self.Zrange
-        IMMphase = 1j*2*np.pi*(self.kz_med*z_center-self.kz*self.stagepos)
-        phiz = 1j*2*np.pi*self.kz_med*zrange + IMMphase
+        #IMMphase = 1j*2*np.pi*(self.kz_med*z_center-self.kz*stagepos)
+        #phiz = 1j*2*np.pi*self.kz_med*zrange + IMMphase
+        phiz = 1j*2*np.pi*(self.kz_med*(zrange+z_center)-self.kz*stagepos)
         phixy = 1j*2*np.pi*self.ky*0.0+1j*2*np.pi*self.kx*0.0
         I_res = 0.0
         for h in self.dipole_field:
@@ -279,7 +298,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         original_shape = images.shape[-3:]
         #centers_with_z = np.concatenate((np.full((centers.shape[0], 1), z_center), centers[:,-2:]), axis=1)
         
-        global_positions = np.swapaxes(np.vstack((positions[:,0]+z_center,centers[:,-2]-positions[:,-2],centers[:,-1]-positions[:,-1])),1,0)
+        global_positions = np.swapaxes(np.vstack((positions[:,0],centers[:,-2]-positions[:,-2],centers[:,-1]-positions[:,-1])),1,0)
 
         # use modulo operator to get rid of periodicity from FFT shifting
         #global_positions = centers_with_z - positions
@@ -294,6 +313,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                 np.complex64(pupil),
                 Zcoeff*np.reshape(self.weight[[4,3]],(2,1,1,1)),     
                 sigma,
+                stagepos*self.data.pixelsize_z,
                 variables] # already correct
     
 
@@ -305,6 +325,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                         pupil = res[4],
                         zernike_coeff = np.squeeze(res[5]),
                         sigma = res[6]/np.pi,
+                        stagepos = res[7],
                         offset=np.min(res[3]),
                         zernike_polynomial = self.Zk,
                         apodization = self.apoid,
