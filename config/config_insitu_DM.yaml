@@ -9,7 +9,7 @@ Params:
   subfolder: ""                 # keyword for subfolder name if each bead data is saved in a individual folder
   format: .tif                  # .mat, .tif, .czi
   stage_mov_dir: normal         # normal, reverse: normal direction is where stage move towards the object when taking a z-stack bead data
-  gain: 0.47
+  gain: 0.7471
   ccd_offset: 100
   roi:
     roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
@@ -48,18 +48,18 @@ Params:
       emission_wavelength: 0.67    # unit: micron
       RI: 
         imm: 1.406
-        med: 1.33
+        med: 1.406
         cov: 1.524
       NA: 1.35
     insitu:
-      stage_pos: 0.8               # 0 at the coverslip, positive when move towards the coverslip
+      stage_pos: 1.0               # 0 at the coverslip, positive when move towards the coverslip
       min_photon: 0.4              # quantile for rejecting low photon emitters
       partition_data: true
       partition_size: [11,200]     # number of z segments, maximum number of emitter per segment
       zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
       zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 
       z_range: 2.0                 # unit: micron, z range of insitu psf model
-      zkorder_rank: L              # L, H: searching range of zernike coefficient (4,21), (21,45)
+      zkorder_rank: H             # L, H: searching range of zernike coefficient (4,21), (21,45)
     fpi:
       link_zernikecoeff: true
     model:

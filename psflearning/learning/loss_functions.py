@@ -259,7 +259,7 @@ def mse_real_zernike_smlm(model,data,variables=None,mu=None,w=None):
 
     mse_norm1 = tf.reduce_mean(tf.square(mydiff)) / tf.reduce_mean(data)     
     mse_norm2 = tf.reduce_mean(tf.reduce_mean(tf.square(mydiff),axis=(-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-2,-1)))*200
-    LL = (model-data*tf.math.log(model))
+    LL = (model-data-data*tf.math.log(model/data))
     LL = tf.reduce_mean(LL[tf.math.is_finite(LL)])
 
     bg = variables[1]

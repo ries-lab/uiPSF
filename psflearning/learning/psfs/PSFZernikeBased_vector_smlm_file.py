@@ -172,7 +172,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         else:
             zkrange = range(4,21)
         for k in zkrange:
-            for val in [-0.7,0.7]:
+            for val in [-0.5,0.5]:
                 init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
                 init_Zcoeff[0,0,0,0] = 1
                 init_Zcoeff[1,k,0,0] = val

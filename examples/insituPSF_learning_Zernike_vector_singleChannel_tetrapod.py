@@ -21,7 +21,6 @@ L.param = io.param.load('../config/config_insitu_tetrapod.yaml').Params
 psffile = maindatadir + r'\insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC\PSF_DMO6_alpha30_+-3umstep50nm_5/psfmodel_LL_zernike_single.h5'
 f0,p0 = io.h5.load(psffile)
 
-
 I_init=f0.res.I_model
 bead_data = f0.rois.psf_data
 

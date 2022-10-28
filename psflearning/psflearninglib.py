@@ -243,12 +243,16 @@ class psflearninglib:
 
         if PSFtype == 'insitu':
             images = images.reshape(-1,images.shape[-2],images.shape[-1])
+        
+        
 
-        if format == '.tif':
-            #images = np.swapaxes(images,-1,-2)
-            tmp = np.zeros(images.shape[:-2]+(images.shape[-1],images.shape[-2]),dtype=np.float32)            
-            tmp[0:] = np.swapaxes(images[0:],-1,-2)
-            images = tmp
+        #if format == '.tif':
+        #    #images = np.swapaxes(images,-1,-2)
+        #    tmp = np.zeros(images.shape[:-2]+(images.shape[-1],images.shape[-2]),dtype=np.float32)            
+        #    tmp[0:] = np.swapaxes(images[0:],-1,-2)
+        #    images = tmp
+
+        
 
         if param['stage_mov_dir']=='reverse':
             images = np.flip(images,axis=-3)

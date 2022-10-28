@@ -18,14 +18,14 @@ L.param = io.param.load('../config/config_insitu_DM.yaml').Params
 
 #%%
 #folder = maindatadir+r'insitu data/from Yiming/In-situ PSF learing data/high order/'
-folder = maindatadir+r'insitu data/from Yiming/In-situ PSF learing data/Single molecule data for different DM models/'
-folderlist = glob.glob(folder+'/*'+'U20S'+'*/')
+folder = maindatadir+r'insitu data\from Yiming\Tubulin\high order/'
+folderlist = glob.glob(folder+'/*'+'depth'+'*/')
 #%% load data
 for foldername in folderlist:
     
     L.param.datapath = foldername
 
-    L.param.keyword = 'Default.'
+    L.param.keyword = 'Pos0.'
     images = L.load_data()
 
     L.getpsfclass()
@@ -40,7 +40,7 @@ for foldername in folderlist:
     psfobj,fitter = L.learn_psf(dataobj,time=0)
 
     #% save file
-    L.param.savename = L.param.datapath + 'psfmodel_test_z_[]_zs0d8_n8_seg200'
+    L.param.savename = L.param.datapath + 'psfmodel_test_z_[]_zs1_n8_seg200'
     resfile = L.save_result(psfobj,dataobj,fitter)
 
 
