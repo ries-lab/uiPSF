@@ -93,9 +93,14 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         else:
             self.n_max_mag = 100
 
+        if self.options.model.zernike_nl:
+            noll_index = np.zeros(len(self.options.model.zernike_nl),dtype = np.int32)
+            for j, nl in enumerate(self.options.model.zernike_nl):
+                noll_index[j] = im.nl2noll(nl[0],nl[1])
         
+        self.noll_index = noll_index-1
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
-        self.weight = np.array([np.median(init_intensities)*10, 10, 30, 0.2, 0.2, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
+        self.weight = np.array([np.median(init_intensities)*10, 100, 20, 0.2, 0.2, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         
         init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
@@ -126,16 +131,19 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         if self.options.model.symmetric_mag:
             pupil_mag = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff[0],indices=c1)*self.weight[4],axis=0))
         else:
-            pupil_mag = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeff[0][0:Nk]*self.weight[4],axis=0))
-        pupil_phase = tf.reduce_sum(self.Zk[4:]*Zcoeff[1][4:]*self.weight[3],axis=0)
-        pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
-                
+            if self.options.model.zernike_nl:
+                pupil_mag = tf.abs(tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff[0],indices=self.noll_index)*self.weight[4],axis=0))
+            else:
+                pupil_mag = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeff[0][0:Nk]*self.weight[4],axis=0))
+        if self.options.model.zernike_nl:
+            pupil_phase = tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff[1],indices=self.noll_index)*self.weight[3],axis=0)
+        else:
+            pupil_phase = tf.reduce_sum(self.Zk[4:]*Zcoeff[1][4:]*self.weight[3],axis=0)
+        
+        pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid                
         pos = tf.complex(tf.reshape(pos*self.weight[2],pos.shape+(1,1)),0.0)
 
-        #phiz = 1j*2*np.pi*self.kz*(pos[:,0])
         stagepos = tf.complex(stagepos*self.weight[5],0.0)
-        #IMMphase = 1j*2*np.pi*(self.kz_med*stagepos*self.nmed/self.nimm-self.kz*stagepos)
-        #phiz = 1j*2*np.pi*self.kz_med*pos[:,0] + IMMphase
         phiz = 1j*2*np.pi*(self.kz_med*pos[:,0]-self.kz*stagepos)
         phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
         I_res = 0.0

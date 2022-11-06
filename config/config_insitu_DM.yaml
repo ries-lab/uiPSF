@@ -41,7 +41,7 @@ Params:
   LLS:                           # parameters only for lattice light-sheet psfs
     skew_const: [0,0]            # unit: pixel
   insitu:               
-    frame_range: [1000,5000]     # set the frames to be loaded
+    frame_range: [1000,6000]     # set the frames to be loaded
 
   option:                         # mainly for pupil and zernike, insitu  learning
     imaging:                       
@@ -65,6 +65,7 @@ Params:
     model:
       pupilsize: 64                # unit: pixel
       n_max: 8                     # maximum zernike order
+      zernike_nl: []
       blur_sigma: 0.5              # unit: pixel
       with_apoid: true
       const_pupilmag: true

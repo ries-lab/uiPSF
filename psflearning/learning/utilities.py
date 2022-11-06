@@ -443,9 +443,26 @@ def calsplinecoeff(A,psf,psf_up):
 
     return coeff
 
+def nl2noll(n,l):
+    mm = abs(l)
+    j = n * (n + 1) / 2 + 1 + max(0, mm - 1)
+    if ((l > 0) & (np.mod(n, 4) >= 2)) | ((l < 0) & (np.mod(n, 4) <= 1)):
+       j = j + 1
+    
+    return int(j)
 
+def noll2nl(j):
+    n = np.ceil((-3 + np.sqrt(1 + 8*j)) / 2)
+    l = j - n * (n + 1) / 2 - 1
+    if np.mod(n, 2) != np.mod(l, 2):
+       l = l + 1
+    
+    if np.mod(j, 2) == 1:
+       l= -l
+    
+    return int(n),int(l)
 
-def genZern(n_max,xsz,NA,emission_wavelength,RI,pixelsize_x,applymask=True):
+def genZern(n_max,xsz):
     coeff = np.zeros((n_max+1,n_max+1,n_max//2+1))
     for n in range(0,n_max+1):
         for m in range(n%2,n+1,2):
@@ -456,22 +473,13 @@ def genZern(n_max,xsz,NA,emission_wavelength,RI,pixelsize_x,applymask=True):
             for k in range(0,(n-m)//2+1):
                 coeff[n][m][k] = g*((-1)**k)*factorial(n-k)/factorial(k)/factorial((n+m)//2-k)/factorial((n-m)//2-k)
     
-    pkx = 1/xsz/pixelsize_x
+    pkx = 1/xsz
     xrange = np.linspace(-xsz/2+0.5,xsz/2-0.5,xsz)
     [xx,yy] = np.meshgrid(xrange,xrange)
     kr = np.lib.scimath.sqrt((xx*pkx)**2+(yy*pkx)**2)
-    kz = np.lib.scimath.sqrt((RI/emission_wavelength)**2-kr**2)
-    kr_max = NA/emission_wavelength
-    mask = kr<=kr_max
-    if applymask:
-        aperture = np.float32(mask)
-        rho = kr*aperture/kr_max
-    else:
-        aperture = np.ones(kr.shape)
-        rho = kr*2*pixelsize_x
+    aperture = np.ones(kr.shape)
+    rho = kr*2
     theta = np.arctan2(yy,xx)*aperture
-  
-
    
     thetas = np.array(range(0,n_max+1)).reshape((n_max+1,1,1))*theta
     rhos = rho**np.array(range(0,n_max+1)).reshape((n_max+1,1,1))
@@ -495,31 +503,24 @@ def genZern(n_max,xsz,NA,emission_wavelength,RI,pixelsize_x,applymask=True):
             if m==0:
                 l += 1
                 Z[l] = p
-                index_n[l]=n
-                index_m[l]=m
             else:
                 if l%2==0:
                     l += 1
                     Z[l] = p*np.cos(thetas[m])
-                    index_n[l]=n
-                    index_m[l]=m
                     l += 1
-                    Z[l] = p*np.sin(1*thetas[m])
-                    index_n[l]=n
-                    index_m[l]=m
+                    Z[l] = p*np.sin(thetas[m])
                 else:
                     l += 1
-                    Z[l] = p*np.sin(1*thetas[m])
-                    index_n[l]=n
-                    index_m[l]=m
+                    Z[l] = p*np.sin(thetas[m])
                     l += 1
                     Z[l] = p*np.cos(thetas[m])     
-                    index_n[l]=n
-                    index_m[l]=m               
             if l>Nk-2:
                 break
-            
-    return Z, kr, kz, aperture,index_n,index_m
+    
+    for j in range(Nk):
+        index_n[j],index_m[j] = noll2nl(j+1)
+
+    return Z, aperture,index_n,index_m
 
 def  prechirpz(xsize,qsize,N,M):
 

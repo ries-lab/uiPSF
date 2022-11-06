@@ -77,11 +77,11 @@ class PSFInterface():
         nmed = self.options.imaging.RI.med
         ncov = self.options.imaging.RI.cov
         n_max = self.options.model.n_max
-        out = im.genZern(n_max,xsz,NA,emission_wavelength,nimm,pixelsize_x,applymask=False)
+        out = im.genZern(n_max,xsz)
         Zk = out[0]        
-        signm = out[-1]%2*2-1
-        signm[0] = 0
-        self.signm = np.reshape(signm,(len(signm),1,1)).astype(np.float32)
+        #signm = out[-1]%2
+        #signm[0] = 0
+        #self.signm = np.reshape(signm,(len(signm),1,1)).astype(np.float32)
 
         n1 = np.array(range(-1,n_max,2))
         self.spherical_terms = (n1+1)*(n1+2)//2

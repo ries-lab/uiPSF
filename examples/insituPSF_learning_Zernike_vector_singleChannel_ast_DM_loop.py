@@ -36,11 +36,14 @@ for foldername in folderlist:
 
     #% learning
     L.param.option.insitu.zernike_index=[]
+    L.param.option.model.zernike_nl = [(2,-2),(2,2),(3,-1),(3,1),(4,0),(3,-3),(3,3),
+                             (4,-2),(4,2),(5,-1),(5,1),(6,0),(4,-4),(4,4),
+                             (5,-3),(5,3),(6,-2),(6,2),(7,1),(7,-1),(8,0)]
 
     psfobj,fitter = L.learn_psf(dataobj,time=0)
 
     #% save file
-    L.param.savename = L.param.datapath + 'psfmodel_test_z_[]_zs1_n8_seg200'
+    L.param.savename = L.param.datapath + 'psfmodel_LL_z_[]_zs1_nl_seg200'
     resfile = L.save_result(psfobj,dataobj,fitter)
 
 
