@@ -11,39 +11,17 @@ from psflearning import io
 maindatadir = io.param.load('../config/config_path.yaml').main_data_dir
 #%% load parameters
 L = psflearninglib()
-L.param = io.param.load('../config/config_zernike_yoav.yaml').Params
+L.param = io.param.load('../config/config_zernike_M2.yaml').Params
 
-
-
-#%%
-#L.param['datapath']= maindatadir + r'insitu data\from Yiming\In-situ PSF learing data\DMO1.2umNPC\PSF_DMO1.2_+-1um_10nm_2/'
-#L.param['datapath']= maindatadir + r'insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC\PSF_DMO6_alpha30_+-3umstep50nm_5/'
-#L.param['datapath'] = maindatadir + 'bead data/211207_SL_bead_3D_M2/40nm_bead_50nm/'
-#L.param['datapath'] = r'D:\Sheng\data\12-08-2021 bead bottom\40nm/'
-#L.param['datapath'] = maindatadir + r'bead data\01-04-2022 bead\40nm_top/'
-#L.param['datapath'] = maindatadir + r'\insitu data\210122_Ulf_1C3D_M2\beadstacks/'
-#L.param.datapath = r'C:\Users\Sheng\Documents\MATLAB\data\EMBL\from Aline\beads\same\InSample_bead_800nL_freshImBuffer/'
-L.param.datapath = maindatadir + r'\insitu data\from Yoav\3D STORM TP\bead zstack/'
-
-L.param.keyword = 'Tetra'
-L.param.subfolder = ''
 images = L.load_data()
 
 #%%
-L.param.PSFtype = 'pupil_vector'
 L.getpsfclass()
 
-#%%
-L.param.roi.max_bead_number = 100
-L.param.roi.peak_height = 0.7
 dataobj = L.prep_data(images)
 
-#%%
-L.param.loss_weight.smooth = 0.0
 psfobj,fitter = L.learn_psf(dataobj,time=0)
 
-#%%
-L.param.savename = L.param.datapath + L.param.keyword+ '_psfmodel'
 resfile = L.save_result(psfobj,dataobj,fitter)
 
 # %% show results
@@ -80,7 +58,7 @@ ax = fig.add_subplot(1,2,2)
 
 plt.imshow(np.angle(pupil))
 plt.title('pupil phase')
-plt.show()
+
 #
 if hasattr(f.res,'zernike_coeff'):
     fig = plt.figure(figsize=[12,6])
@@ -89,7 +67,7 @@ if hasattr(f.res,'zernike_coeff'):
     plt.xlabel('zernike polynomial')
     plt.ylabel('coefficient')
     plt.legend(['pupil magnitude','pupil phase'])
-    plt.show()
+    
 
     aperture=np.float32(psfobj.aperture)
     Zk = f.res.zernike_polynomial
@@ -106,7 +84,8 @@ if hasattr(f.res,'zernike_coeff'):
     ax = fig.add_subplot(1,2,2)
     plt.imshow(pupil_phase)
     #plt.colorbar(orientation='vertical')
-    plt.show()
+
+
 
 
 # %%
@@ -142,18 +121,9 @@ plt.plot(np.transpose(f.locres.loc.z-np.linspace(0,Nz-1,Nz))*p.pixel_size.z*1e3,
 plt.plot(f.locres.loc.z[0]*0.0,'r')
 ax.set_ylabel('z bias (nm)')
 ax.set_ylim([-40,40])
-# %%
-if hasattr(f.res,'zernike_coeff'):
-    N1 = 21
-    fig = plt.figure(figsize=[3*N1,3])
-    for i,zk in enumerate(Zk[0:N1]):
-
-        ax = fig.add_subplot(1,N1,i+1)
-        plt.imshow(zk*aperture,cmap='viridis')
-        #plt.colorbar(orientation='horizontal')
-        plt.axis('off')
 
 
+plt.show()
 
 
 

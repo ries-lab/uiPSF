@@ -42,11 +42,13 @@ from .learning import ( PreprocessedImageDataSingleChannel,
                         PSFMultiChannel,
                         PSFMultiChannel4pi,
                         PSFZernikeBased_vector_smlm,
+                        PSFPupilBased_vector_smlm,
                         L_BFGS_B,
                         mse_real,
                         mse_real_zernike,
                         mse_real_zernike_FD,
                         mse_real_zernike_smlm,
+                        mse_real_pupil_smlm,
                         mse_real_4pi,
                         mse_zernike_4pi,
                         mse_real_pupil,
@@ -62,7 +64,8 @@ PSF_DICT = dict(voxel=PSFVolumeBased,
                 zernike_vector=PSFZernikeBased_vector,
                 pupil_vector=PSFPupilBased_vector,
                 zernike_FD=PSFZernikeBased_FD,
-                insitu = PSFZernikeBased_vector_smlm)
+                insitu = PSFZernikeBased_vector_smlm,
+                insitu_pupil = PSFPupilBased_vector_smlm)
 
 LOSSFUN_DICT = dict(voxel=mse_real, 
                 pupil=mse_real_pupil,
@@ -70,7 +73,8 @@ LOSSFUN_DICT = dict(voxel=mse_real,
                 zernike_vector=mse_real_zernike,
                 pupil_vector=mse_real_pupil,
                 zernike_FD=mse_real_zernike_FD,
-                insitu = mse_real_zernike_smlm)
+                insitu = mse_real_zernike_smlm,
+                insitu_pupil = mse_real_pupil_smlm)
 
 
 PSF_DICT_4pi = dict(voxel=PSFVolumeBased4pi, 
@@ -133,6 +137,7 @@ class psflearninglib:
         ref_channel = param.ref_channel
         filelist = param.filelist
         framerange = param.insitu.frame_range
+
         if not filelist:
             if not subfolder:
                 filelist = glob.glob(folder+'/*'+keyword+'*'+format)
@@ -241,16 +246,16 @@ class psflearninglib:
         else:
             images = imagesall
 
-        if PSFtype == 'insitu':
+        if (PSFtype == 'insitu') or (PSFtype == 'insitu_pupil'):
             images = images.reshape(-1,images.shape[-2],images.shape[-1])
         
         
-
-        #if format == '.tif':
-        #    #images = np.swapaxes(images,-1,-2)
-        #    tmp = np.zeros(images.shape[:-2]+(images.shape[-1],images.shape[-2]),dtype=np.float32)            
-        #    tmp[0:] = np.swapaxes(images[0:],-1,-2)
-        #    images = tmp
+        if param.swaptif:
+            if format == '.tif':
+                #images = np.swapaxes(images,-1,-2)
+                tmp = np.zeros(images.shape[:-2]+(images.shape[-1],images.shape[-2]),dtype=np.float32)            
+                tmp[0:] = np.swapaxes(images[0:],-1,-2)
+                images = tmp
 
         
 
@@ -296,7 +301,7 @@ class psflearninglib:
             padpsf = False
 
         if channeltype == 'single':
-            if PSFtype == 'insitu':
+            if (PSFtype == 'insitu') or (PSFtype == 'insitu_pupil'):
                 dataobj = PreprocessedImageDataSingleChannel_smlm(images)
             else:
                 dataobj = PreprocessedImageDataSingleChannel(images)
@@ -346,7 +351,7 @@ class psflearninglib:
         batchsize = param.batch_size
         pupilfile = optionparam.model.init_pupil_file
         if self.psf_class_multi is None:
-            if PSFtype == 'insitu':
+            if (PSFtype == 'insitu') or (PSFtype == 'insitu_pupil'):
                 psfobj = self.psf_class(options=optionparam)
             else:
                 psfobj = self.psf_class(estdrift=estdrift,varphoton=varphoton,options=optionparam)
@@ -398,7 +403,7 @@ class psflearninglib:
         else:
              
             # %%  remove ourlier
-            if PSFtype == 'insitu':
+            if (PSFtype == 'insitu') or (PSFtype == 'insitu_pupil'):
                 #th = [0.99,0.9] # quantile
                 res1,toc = fitter.relearn_smlm(res,channeltype,rej_threshold,start_time=toc)
                 locres = fitter.localize_smlm(res1,channeltype)
@@ -420,6 +425,32 @@ class psflearninglib:
         loc_FD = fitter.localize_FD(res, usecuda=usecuda, initz=initz)
         self.loc_FD = loc_FD
         return loc_FD
+
+    def iterlearn_psf(self,dataobj,iterationN=5,time=None):
+        min_photon = self.param.option.insitu.min_photon
+        pz = self.param.pixel_size.z
+        for nn in range(0,iterationN):
+            psfobj,fitter = self.learn_psf(dataobj,time=time)
+            resfile = self.save_result(psfobj,dataobj,fitter)
+            self.param.option.model.init_pupil_file = resfile
+            self.param.option.insitu.min_photon = max([min_photon-nn*0.1,0.4])
+            res = psfobj.res2dict(self.learning_result)
+            dataobj.resetdata()
+                        
+            self.param.option.insitu.stage_pos = float(res['stagepos'])
+            I_model = res['I_model']
+            Nz = I_model.shape[0]
+            zind = range(0,Nz,4)
+            if self.param.plotall:
+                fig = plt.figure(figsize=[3*len(zind),3])
+                for i,id in enumerate(zind):
+                    ax = fig.add_subplot(1,len(zind),i+1)
+                    plt.imshow(I_model[id],cmap='twilight')
+                    plt.axis('off')
+                plt.show()
+        
+        return resfile
+
 
     def save_result(self,psfobj,dataobj,fitter):
         

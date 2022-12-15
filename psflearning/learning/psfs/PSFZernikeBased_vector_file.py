@@ -201,6 +201,10 @@ class PSFZernikeBased_vector(PSFInterface):
             I_res += psfA*tf.math.conj(psfA)*self.normf
 
         I_model = np.real(I_res)
+        normf = np.max(np.sum(I_model[2:-2],axis=(-1,-2)))
+        pupil = pupil/normf
+        I_model = I_model/normf
+
         #filter2 = tf.exp(-2*sigma*sigma*self.kspace)
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
 

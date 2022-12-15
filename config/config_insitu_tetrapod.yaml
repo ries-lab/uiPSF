@@ -4,7 +4,7 @@
 Params:
   # ------data specific parameters, should be updated for different data
   datapath: ''                  # full path to your data
-  keyword: bead                 # keyword for your data file, used for automatic finding files with the same keyword
+  keyword: Default.                 # keyword for your data file, used for automatic finding files with the same keyword
   savename: psfmodel            # full path to your result foder/filename
   subfolder: ""                 # keyword for subfolder name if each bead data is saved in a individual folder
   format: .tif                  # .mat, .tif, .czi
@@ -12,7 +12,7 @@ Params:
   gain: 0.47
   ccd_offset: 100
   roi:
-    roi_size: [41,41]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
+    roi_size: [31,31]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [12,12]          # blur kernel size, corresponding to dimensions defined in roi_size
     max_kernel: [13,13]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
     peak_height: 0.3            # relative to maximum bead intensity, bead intensity below which are rejected
@@ -41,7 +41,7 @@ Params:
   LLS:                           # parameters only for lattice light-sheet psfs
     skew_const: [0,0]            # unit: pixel
   insitu:               
-    frame_range: [10000,14000]     # set the frames to be loaded
+    frame_range: [1000,5000]     # set the frames to be loaded
 
   option:                         # mainly for pupil and zernike, insitu  learning
     imaging:                       
@@ -52,18 +52,22 @@ Params:
         cov: 1.524
       NA: 1.35
     insitu:
-      stage_pos: 3.0               # 0 at the coverslip, positive when move towards the coverslip
-      min_photon: 0.4              # quantile for rejecting low photon emitters
+      stage_pos: 2               # 0 at the coverslip, positive when move towards the coverslip
+      min_photon: 0.7              # quantile for rejecting low photon emitters
       partition_data: true
       partition_size: [31,100]     # number of z segments, maximum number of emitter per segment
       zernike_index: [12]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
       zernike_coeff: [-1.5]         # for initial pupil, value corresponding to the zernike index 
-      z_range: 6.0                 # unit: micron, z range of insitu psf model
+      z_range: 4                # unit: micron, z range of insitu psf model
+      zkorder_rank: L             # L, H: searching range of zernike coefficient (4,21), (21,45)    
+      var_stagepos: true
+      repeat: 2
     fpi:
       link_zernikecoeff: true
     model:
       pupilsize: 64                # unit: pixel
       n_max: 8                     # maximum zernike order
+      zernike_nl: []
       blur_sigma: 0.5              # unit: pixel
       with_apoid: true
       const_pupilmag: true
@@ -72,7 +76,7 @@ Params:
       init_pupil_file: ""
   
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
-  PSFtype: insitu                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
+  PSFtype: insitu_pupil                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
   channeltype: single            # single, multi, 4pi
   datatype: smlm                 # bead, smlm
   
@@ -101,5 +105,5 @@ Params:
   iteration: 200                 # number of iterations for learning
   varname: ""                    # only for simulated data from matlab, the variable name for the data
   filelist: []                   # user can also give a list of data files, instead of giving the keyword or subfolder, data loading will skip automatic populate filelist 
-
+  swaptif: false                  # permute x,y dimension of tif file
   

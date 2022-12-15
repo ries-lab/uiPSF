@@ -112,7 +112,10 @@ def mse_real_pupil(model,data,variables=None,mu=None,w=None):
     mse_norm2 = tf.reduce_mean(tf.reduce_sum(tf.square(mydiff),axis=(-3,-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-3,-2,-1)))/data.shape[-3]*200
 
 
-    LL = (model-data*tf.math.log(model))
+    #LL = (model-data*tf.math.log(model))
+    LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
+
+
     LL = tf.reduce_mean(LL[tf.math.is_finite(LL)]) 
     pupilR = variables[3]    
     pupilI = variables[4] 
@@ -143,6 +146,8 @@ def mse_pupil_4pi(model,data,variables=None,mu=None,w=None):
     mse_norm2 = tf.reduce_mean(tf.reduce_sum(tf.square(mydiff),axis=(-3,-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-3,-2,-1)))/data.shape[-3]*200
 
     LL = (model-data*tf.math.log(model))
+    #LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
+
     LL = tf.reduce_mean(LL[tf.math.is_finite(LL)]) 
 
     pupilR1 = variables[4]    
@@ -179,6 +184,8 @@ def mse_real_zernike(model,data,variables=None,mu=None,w=None):
     mse_norm2 = tf.reduce_mean(tf.reduce_sum(tf.square(mydiff),axis=(-3,-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-3,-2,-1)))/data.shape[-3]*200
 
     LL = (model-data*tf.math.log(model))
+    #LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
+
     LL = tf.reduce_mean(LL[tf.math.is_finite(LL)])
 
     bg = variables[1]
@@ -205,6 +212,8 @@ def mse_zernike_4pi(model,data,variables=None,mu=None,w=None):
     mse_norm2 = tf.reduce_mean(tf.reduce_sum(tf.square(mydiff),axis=(-3,-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-3,-2,-1)))/data.shape[-3]*200
 
     LL = (model-data*tf.math.log(model))
+    #LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
+
     LL = tf.reduce_mean(LL[tf.math.is_finite(LL)]) 
     bg = variables[1]
     intensity = variables[2]
@@ -237,6 +246,8 @@ def mse_real_zernike_FD(model,data,variables=None,mu=None,w=None):
     mse_norm2 = tf.reduce_mean(tf.reduce_sum(tf.square(mydiff),axis=(-3,-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-3,-2,-1)))/data.shape[-3]*200
 
     LL = (model-data*tf.math.log(model))
+    #LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
+
     LL = tf.reduce_mean(LL[tf.math.is_finite(LL)])
 
     bg = variables[1]
@@ -259,7 +270,7 @@ def mse_real_zernike_smlm(model,data,variables=None,mu=None,w=None):
 
     mse_norm1 = tf.reduce_mean(tf.square(mydiff)) / tf.reduce_mean(data)     
     mse_norm2 = tf.reduce_mean(tf.reduce_mean(tf.square(mydiff),axis=(-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-2,-1)))*200
-    LL = (model-data-data*tf.math.log(model/data))
+    LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
     LL = tf.reduce_mean(LL[tf.math.is_finite(LL)])
 
     bg = variables[1]
@@ -276,5 +287,34 @@ def mse_real_zernike_smlm(model,data,variables=None,mu=None,w=None):
 
     #loss = mse_norm1*w[0] + mse_norm2*w[1] + bgmin*w[5]*mu  + intensitymin*w[6]*mu
     loss = LL*w[0]  + bgmin*w[5]*mu  + intensitymin*w[6]*mu + (g1+g2)*w[2] + zmin*w[4]*mu
+    
+    return loss
+
+
+def mse_real_pupil_smlm(model,data,variables=None,mu=None,w=None):
+    mydiff = model-data
+
+    mse_norm1 = tf.reduce_mean(tf.square(mydiff)) / tf.reduce_mean(data)     
+    mse_norm2 = tf.reduce_mean(tf.reduce_mean(tf.square(mydiff),axis=(-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-2,-1)))*200
+    LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
+    LL = tf.reduce_mean(LL[tf.math.is_finite(LL)])
+
+    bg = variables[1]
+    intensity = variables[2]
+    pupilR = variables[3]    
+    pupilI = variables[4] 
+    stagepos = variables[6]
+    zpos = variables[0][:,0,...]
+    bgmin = tf.reduce_mean(tf.math.square(tf.math.minimum(bg,0)))
+    zmin = tf.reduce_mean(tf.math.square(tf.math.minimum(zpos,0))) + tf.reduce_mean(tf.math.square(tf.math.minimum(stagepos,0)))
+    intensitymin = tf.reduce_mean(tf.math.square(tf.math.minimum(intensity,0)))
+
+    dfxy1 = tf.reduce_sum(tf.math.square(tf.experimental.numpy.diff(pupilI, n = 1, axis = -1)))+ tf.reduce_sum(tf.math.square(tf.experimental.numpy.diff(pupilI, n = 1, axis = -2)))
+    dfxy2 = tf.reduce_sum(tf.math.square(tf.experimental.numpy.diff(pupilR, n = 1, axis = -1)))+ tf.reduce_sum(tf.math.square(tf.experimental.numpy.diff(pupilR, n = 1, axis = -2)))
+    dfxy = dfxy1+dfxy2
+
+    mu = np.min([mu,1.0e30])
+    #loss = mse_norm1*w[0] + mse_norm2*w[1] + bgmin*w[5]*mu  + intensitymin*w[6]*mu
+    loss = LL*w[0]  + bgmin*w[5]*mu  + intensitymin*w[6]*mu + dfxy*w[2] + zmin*w[4]*mu
     
     return loss

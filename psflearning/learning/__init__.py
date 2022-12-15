@@ -20,6 +20,7 @@ from .psfs.PSFPupilBased4pi_file import PSFPupilBased4pi
 from .psfs.PSFZernikeBased4pi_file import PSFZernikeBased4pi
 from .psfs.PSFMultiChannel4pi_file import PSFMultiChannel4pi
 from .psfs.PSFZernikeBased_vector_smlm_file import PSFZernikeBased_vector_smlm
+from .psfs.PSFPupilBased_vector_smlm_file import PSFPupilBased_vector_smlm
 
 
 from .loclib import localizationlib

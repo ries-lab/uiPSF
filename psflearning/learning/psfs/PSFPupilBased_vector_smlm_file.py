@@ -4,12 +4,12 @@ import tensorflow as tf
 from scipy.ndimage.filters import gaussian_filter
 from .PSFInterface_file import PSFInterface
 from ..data_representation.PreprocessedImageDataInterface_file import PreprocessedImageDataInterface
-from ..loss_functions import mse_real_zernike_smlm
+from ..loss_functions import mse_real_pupil_smlm
 from .. import utilities as im
 from .. import imagetools as nip
 from ..loclib import localizationlib
 
-class PSFZernikeBased_vector_smlm(PSFInterface):
+class PSFPupilBased_vector_smlm(PSFInterface):
     """
     PSF class that uses a 3D volume to describe the PSF.
     Should only be used with single-channel data.
@@ -22,7 +22,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         self.zT = None
         self.bead_kernel = None
         self.options = options
-        self.default_loss_func = mse_real_zernike_smlm
+        self.default_loss_func = mse_real_pupil_smlm
         return
 
     def calc_initials(self, data: PreprocessedImageDataInterface, start_time=None):
@@ -33,6 +33,8 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         self.data = data
         _, rois, centers, frames = self.data.get_image_data()
         pixelsize_z = np.array(self.data.pixelsize_z)
+        xsz =options.model.pupilsize
+
         self.stagepos = options.insitu.stage_pos/self.data.pixelsize_z
         if hasattr(self,'initpsf'):
             I_init = self.initpsf
@@ -77,27 +79,21 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         init_positions = np.zeros((rois.shape[0], 3))
        
         init_positions[:,0] = initz
-
         init_backgrounds = np.array(np.min(gaussian_filter(rois, [0, 2, 2]), axis=(-2, -1), keepdims=True))
         init_intensities = np.sum(rois - init_backgrounds, axis=(-2, -1), keepdims=True)
-                                   
+                                       
         if self.options.model.const_pupilmag:
             self.n_max_mag = 0
         else:
             self.n_max_mag = 100
 
-        if self.options.model.zernike_nl:
-            noll_index = np.zeros(len(self.options.model.zernike_nl),dtype = np.int32)
-            for j, nl in enumerate(self.options.model.zernike_nl):
-                noll_index[j] = im.nl2noll(nl[0],nl[1])
-            self.noll_index = noll_index-1
         
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
-        self.weight = np.array([np.median(init_intensities)*10, 100, 20, 0.2, 0.2, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
+        self.weight = np.array([np.median(init_intensities), 10, 20, 10, 10, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         
-        init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
-        init_Zcoeff[:,0,0,0] = [1,0]/self.weight[4]
+        init_pupil = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
+
         init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = init_backgrounds / self.weight[1]
         init_Intensity = init_intensities / self.weight[0]
@@ -107,7 +103,8 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         return [init_positions.astype(np.float32),
                 init_backgrounds.astype(np.float32),
                 init_Intensity.astype(np.float32),
-                init_Zcoeff.astype(np.float32),
+                np.real(init_pupil).astype(np.float32),
+                np.imag(init_pupil).astype(np.float32),
                 sigma.astype(np.float32), 
                 init_stagepos.astype(np.float32)], start_time
         
@@ -116,25 +113,15 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         Calculate forward images from the current guess of the variables.
         Shifting is done by Fourier transform and applying a phase ramp.
         """
-        pos, backgrounds, intensities, Zcoeff, sigma, stagepos = variables
-        c1 = self.spherical_terms
-        n_max = self.n_max_mag
-        Nk = np.min(((n_max+1)*(n_max+2)//2,self.Zk.shape[0]))
-        mask = c1<Nk
-        c1 = c1[mask]
-        if self.options.model.symmetric_mag:
-            pupil_mag = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff[0],indices=c1)*self.weight[4],axis=0))
+        pos, backgrounds, intensities, pupilR,pupilI, sigma, stagepos = variables
+
+        if self.options.model.const_pupilmag:
+            pupil_mag = tf.complex(1.0,0.0)
         else:
-            if self.options.model.zernike_nl:
-                pupil_mag = tf.abs(tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff[0],indices=self.noll_index)*self.weight[4],axis=0))
-            else:
-                pupil_mag = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeff[0][0:Nk]*self.weight[4],axis=0))
-        if self.options.model.zernike_nl:
-            pupil_phase = tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff[1],indices=self.noll_index)*self.weight[3],axis=0)
-        else:
-            pupil_phase = tf.reduce_sum(self.Zk[4:]*Zcoeff[1][4:]*self.weight[3],axis=0)
+            pupil_mag = tf.complex(pupilR*self.weight[4],0.0)
+
+        pupil = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*pupil_mag*self.aperture*self.apoid
         
-        pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid                
         pos = tf.complex(tf.reshape(pos*self.weight[2],pos.shape+(1,1)),0.0)
 
         if self.options.insitu.var_stagepos:
@@ -238,7 +225,6 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
             mask = (ind==ii)
             im1 = rois[mask]
             Nslice = np.min((Npsf,im1.shape[0]))            
-            #indsample = list(np.random.choice(im1.shape[0],Nslice,replace=False))
             indsample = np.argsort(-LL[mask])[0:Nslice]
             rois1.append(im1[indsample])
             rois1_avg.append(np.mean(rois1[-1],axis=0))
@@ -260,17 +246,17 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         real positions in the image from the positions in the roi. Also, normalizes
         psf and adapts intensities and background accordingly.
         """
-        positions, backgrounds, intensities, Zcoeff,sigma, stagepos = variables
-        #z_center = (self.Zrange.shape[-3] - 1) // 2
+        positions, backgrounds, intensities, pupilR,pupilI,sigma, stagepos = variables
         positions = positions*self.weight[2]
-        pupil_mag = tf.abs(tf.reduce_sum(self.Zk*Zcoeff[0]*self.weight[4],axis=0))
-        pupil_phase = tf.reduce_sum(self.Zk*Zcoeff[1]*self.weight[3],axis=0)
-        pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
-        
+        pupil_mag = tf.complex(pupilR*self.weight[4],0.0)
+        pupil = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*pupil_mag*self.aperture*self.apoid
+        pupil_real = [pupilR*self.weight[4],pupilI*self.weight[3]]
         stagepos = stagepos*self.weight[5]
         z_center = stagepos*self.nmed/self.nimm
         
+        
         zrange = -self.Zrange+self.Zrange[0]
+       
         phiz = 1j*2*np.pi*(self.kz_med*zrange-self.kz*stagepos)
         phixy = 1j*2*np.pi*self.ky*0.0+1j*2*np.pi*self.kx*0.0
         I_res = 0.0
@@ -284,7 +270,6 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         normf = np.max(np.sum(I_model[2:-2],axis=(-1,-2)))
         pupil = pupil/normf
         I_model = I_model/normf
-
         #filter2 = tf.exp(-2*sigma*sigma*self.kspace)
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
 
@@ -309,7 +294,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                 intensities*self.weight[0], # already correct
                 I_model,
                 np.complex64(pupil),
-                Zcoeff*np.reshape(self.weight[[4,3]],(2,1,1,1)),     
+                pupil_real,
                 sigma,
                 stagepos*self.data.pixelsize_z,
                 variables] # already correct
@@ -321,13 +306,13 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                         intensity=np.squeeze(res[2]),
                         I_model = res[3],
                         pupil = res[4],
-                        zernike_coeff = np.squeeze(res[5]),
+                        pupil_real = res[5],
                         sigma = res[6]/np.pi,
                         stagepos = res[7],
                         offset=np.min(res[3]),
                         zernike_polynomial = self.Zk,
                         apodization = self.apoid,
-                        cor_all = self.data.centers_all,
+                        cor_all = self.data.alldata['centers'],
                         cor = self.data.centers)
 
         return res_dict

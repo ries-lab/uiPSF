@@ -99,8 +99,14 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         self.centers = np.concatenate(all_centers).astype(np.int32)
         self.frames = np.array(frames).astype(np.int32)
         self.rois_available = True
-        self.centers_all = np.concatenate(all_centers).astype(np.int32)
+        #self.centers_all = np.concatenate(all_centers).astype(np.int32)
+        self.alldata = dict(rois=self.rois,centers=self.centers,frames=self.frames)
         return
+    
+    def resetdata(self):
+        self.rois = self.alldata['rois']
+        self.centers = self.alldata['centers']
+        self.frames = self.alldata['frames']
 
     def gen_bead_kernel(self,pixelsize_x,pixelsize_y,pixelsize_z,bead_radius,isVolume = True):
 
@@ -181,7 +187,7 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         self.centers = centers.astype(np.int32)
         self.frames = frames.astype(np.int32)
         self.rois_available = True
-
+        
         return
 
     def get_image_data(self):
@@ -207,6 +213,7 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         self.pixelsize_x = pixelsize_x
         self.bead_radius = bead_radius
         offset = np.min((np.quantile(rois,1e-3),0))
+        #offset = np.min(rois)-1e-6
         self.rois = rois-offset
         self.centers_all = cor
         if plot:

@@ -9,7 +9,7 @@ Params:
   subfolder: ""                 # keyword for subfolder name if each bead data is saved in a individual folder
   format: .tif                  # .mat, .tif, .czi
   stage_mov_dir: normal         # normal, reverse: normal direction is where stage move towards the object when taking a z-stack bead data
-  gain: 0.7471
+  gain: 0.5
   ccd_offset: 100
   roi:
     roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
@@ -19,8 +19,8 @@ Params:
     max_bead_number: 100        # ignored by insitu PSF learning
     bead_radius: 0.0            # unit: micron
   pixel_size:                   # unit: micron
-    x: 0.108
-    y: 0.108
+    x: 0.123
+    y: 0.123
     z: 0.05
   FOV:                           # define FOV for bead selection, if x_center, y_center, radius are 0, select the full FOV
     y_center: 0
@@ -45,24 +45,24 @@ Params:
 
   option:                         # mainly for pupil and zernike, insitu  learning
     imaging:                       
-      emission_wavelength: 0.67    # unit: micron
+      emission_wavelength: 0.69    # unit: micron
       RI: 
         imm: 1.406
-        med: 1.406
+        med: 1.35
         cov: 1.524
       NA: 1.35
     insitu:
       stage_pos: 1.0               # 0 at the coverslip, positive when move towards the coverslip
       min_photon: 0.4              # quantile for rejecting low photon emitters
       partition_data: true
-      partition_size: [11,200]     # number of z segments, maximum number of emitter per segment
+      partition_size: [21,100]     # number of z segments, maximum number of emitter per segment
       zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
       zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 
       z_range: 2.0                 # unit: micron, z range of insitu psf model
       zkorder_rank: L             # L, H: searching range of zernike coefficient (4,21), (21,45)
       var_stagepos: true
       repeat: 2
-  fpi:
+    fpi:
       link_zernikecoeff: true
     model:
       pupilsize: 64                # unit: pixel
@@ -76,7 +76,7 @@ Params:
       init_pupil_file: ""
   
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
-  PSFtype: insitu                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
+  PSFtype: insitu_pupil                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
   channeltype: single            # single, multi, 4pi
   datatype: smlm                 # bead, smlm
   
@@ -106,5 +106,4 @@ Params:
   varname: ""                    # only for simulated data from matlab, the variable name for the data
   filelist: []                   # user can also give a list of data files, instead of giving the keyword or subfolder, data loading will skip automatic populate filelist 
   swaptif: true                  # permute x,y dimension of tif file
-
   

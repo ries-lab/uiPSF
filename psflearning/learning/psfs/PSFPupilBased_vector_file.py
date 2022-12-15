@@ -57,7 +57,7 @@ class PSFPupilBased_vector(PSFInterface):
         self.calpupilfield('vector')
         self.const_mag = options.model.const_pupilmag
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
-        self.weight = np.array([np.median(init_intensities)*10, 10, 0.1, 10, 10],dtype=np.float32)
+        self.weight = np.array([np.median(init_intensities), 10, 0.1, 10, 10],dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
 
         init_pupil = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
@@ -193,6 +193,10 @@ class PSFPupilBased_vector(PSFInterface):
             I_res += psfA*tf.math.conj(psfA)*self.normf
     
         I_res = np.real(I_res)
+        normf = np.max(np.sum(I_res[2:-2],axis=(-1,-2)))
+        pupil = pupil/normf
+        I_res = I_res/normf
+
         #filter2 = tf.exp(-2*sigma*sigma*self.kspace)
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
 

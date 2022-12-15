@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 sys.path.append("..")
 from psflearning.psflearninglib import psflearninglib
-from psflearning.learning import localizationlib
 from psflearning import io
 
 maindatadir = io.param.load('../config/config_path.yaml').main_data_dir
@@ -12,10 +11,9 @@ maindatadir = io.param.load('../config/config_path.yaml').main_data_dir
 #%% load parameters
 
 L = psflearninglib()
-L.param = io.param.load('../config/config_insitu_tetrapod.yaml').Params
-
-#psffile = maindatadir + r'\insitu data\from Yiming\In-situ PSF learing data\DMO1.2umNPC\PSF_DMO1.2_+-1um_10nm_2/psfmodel_LL_zernike_single.h5'
-psffile = maindatadir + r'\insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC\PSF_DMO6_alpha30_+-3umstep50nm_5/psfmodel_LL_zernike_single.h5'
+L.param = io.param.load('../config/config_insitu_tetrapod_yoav.yaml').Params
+#%% load bead model
+psffile = maindatadir + r'\insitu data\from Yoav\3D STORM TP\bead zstack/Tetra_psfmodel_pupil_vector_single.h5'
 f0,p0 = io.h5.load(psffile)
 
 I_init=f0.res.I_model
@@ -23,26 +21,46 @@ bead_data = f0.rois.psf_data
 
 #%%
 
-L.param.datapath = maindatadir+r'insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC/'
-L.param.keyword = 'Default.'
+L.param.datapath = maindatadir+r'insitu data\from Yoav\3D STORM TP\converted/'
+L.param.keyword = 'data*'
 images = L.load_data()
 L.getpsfclass()
 
 #%%
-dataobj = L.prep_data(images)
+L.param.option.model.init_pupil_file = []
+L.param.roi.peak_height = 0.3
+L.param.option.insitu.min_photon = 0.7
+L.param.option.insitu.stage_pos = 3.5
+for nn in range(0,5):
+    
+    dataobj = L.prep_data(images)
 
-#%%
-#L.param.option.model.init_pupil_file = psffile
-L.param.option.insitu.zernike_index=[12]
-L.param.option.insitu.zernike_coeff=[-1.5]
-L.param.loss_weight.smooth = 0.0001
+    #
+    
+    L.param.option.insitu.zernike_index=[12]
+    L.param.option.insitu.zernike_coeff=[-2]
+    L.param.loss_weight.smooth = 0.000
+    psfobj,fitter = L.learn_psf(dataobj,time=0)
 
-psfobj,fitter = L.learn_psf(dataobj,time=0)
+    #
+    L.param.savename = L.param.datapath + 'psfmodel_loop'
+    resfile = L.save_result(psfobj,dataobj,fitter)
+    L.param.option.model.init_pupil_file = resfile
+    L.param.option.insitu.min_photon = max([0.7-nn*0.1,0.4])
+    
+    #L.param.roi.peak_height = max([0.5-0.1*nn,0.3])
+    #
+    f,p = io.h5.load(resfile)
+    I_model = f.res.I_model
+    Nz = I_model.shape[0]
+    zind = range(0,Nz,4)
+    fig = plt.figure(figsize=[3*len(zind),3])
+    for i,id in enumerate(zind):
+        ax = fig.add_subplot(1,len(zind),i+1)
+        plt.imshow(I_model[id],cmap='twilight')
+        plt.axis('off')
 
-#%%
-L.param.savename = L.param.datapath + 'psfmodel_'
-resfile = L.save_result(psfobj,dataobj,fitter)
-
+    L.param.option.insitu.stage_pos = float(f.res.stagepos)
 #%%
 f,p = io.h5.load(resfile)
 

@@ -2,46 +2,53 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
+
 sys.path.append("..")
 from psflearning.psflearninglib import psflearninglib
-from psflearning.learning import localizationlib
 from psflearning import io
+
 
 maindatadir = io.param.load('../config/config_path.yaml').main_data_dir
 
 #%% load parameters
-
 L = psflearninglib()
-L.param = io.param.load('../config/config_insitu_tetrapod.yaml').Params
+L.param = io.param.load('../config/config_insitu_M4.yaml').Params
 
-#psffile = maindatadir + r'\insitu data\from Yiming\In-situ PSF learing data\DMO1.2umNPC\PSF_DMO1.2_+-1um_10nm_2/psfmodel_LL_zernike_single.h5'
-psffile = maindatadir + r'\insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC\PSF_DMO6_alpha30_+-3umstep50nm_5/psfmodel_LL_zernike_single.h5'
+#psffile = maindatadir+'211207_SL_bead_3D_M2/40nm_bead_50nm/psfmodel_voxel_single.h5'
+#psffile = maindatadir + r'\insitu data\210122_Ulf_1C3D_M2\beadstacks/psfmodel_voxel_single.h5'
+psffile =r'C:\Users\Sheng\Documents\MATLAB\data\EMBL\from Aline\beads\same\InSample_bead_800nL_freshImBuffer\Pos_psfmodel_zernike_vector_single.h5'
 f0,p0 = io.h5.load(psffile)
+
 
 I_init=f0.res.I_model
 bead_data = f0.rois.psf_data
 
-#%%
 
-L.param.datapath = maindatadir+r'insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC/'
+#%%
+L.param.datapath = r'C:\Users\Sheng\Documents\MATLAB\data\EMBL\from Aline/'
+
+L.param.subfolder = 'Pos2'
 L.param.keyword = 'Default.'
+
 images = L.load_data()
+
 L.getpsfclass()
 
 #%%
+
 dataobj = L.prep_data(images)
 
 #%%
-#L.param.option.model.init_pupil_file = psffile
-L.param.option.insitu.zernike_index=[12]
-L.param.option.insitu.zernike_coeff=[-1.5]
-L.param.loss_weight.smooth = 0.0001
 
+L.param.option.insitu.zernike_index=[5]
+L.param.option.insitu.zernike_coeff=[-0.5]
+L.param.loss_weight.smooth = 0.01
 psfobj,fitter = L.learn_psf(dataobj,time=0)
 
 #%%
-L.param.savename = L.param.datapath + 'psfmodel_'
+L.param.savename = L.param.datapath + 'psfmodel_z_[5]_zs1'
 resfile = L.save_result(psfobj,dataobj,fitter)
+
 
 #%%
 f,p = io.h5.load(resfile)
@@ -86,14 +93,15 @@ if hasattr(f.res,'zernike_coeff'):
 
     pupil_mag = np.sum(Zk*f.res.zernike_coeff[0].reshape((-1,1,1)),axis=0)*aperture
     pupil_phase = np.sum(Zk[4:]*f.res.zernike_coeff[1][4:].reshape((-1,1,1)),axis=0)*aperture
-
-    
+    plt.plot(f.res.zernike_coeff.transpose(),'.-')
+    plt.legend(['magnitude','phase'])
+    plt.xlabel('zernike polynomial')
+    plt.ylabel('coefficient')
+    plt.show()
 
 else:
     pupil_mag = np.abs(f.res.pupil)
     pupil_phase = np.angle(f.res.pupil)
-    #pupil_phase = f.res.pupil_real[0]
-    #pupil_phase = f.res.pupil_real[1]*aperture
 ax = fig.add_subplot(2,2,3)
 
 plt.imshow(pupil_mag)
@@ -103,11 +111,8 @@ ax = fig.add_subplot(2,2,4)
 plt.imshow(pupil_phase)
 plt.title('pupil phase')
 plt.show()
-if hasattr(f.res,'zernike_coeff'):
-    plt.plot(f.res.zernike_coeff.transpose(),'.-')
-    plt.legend(['magnitude','phase'])
-    plt.xlabel('zernike polynomial')
-    plt.ylabel('coefficient')
+#
+
 
 #%%
 #plt.imshow(Zk[12]*aperture,cmap='viridis')
@@ -118,7 +123,7 @@ plt.xlabel('frames')
 plt.ylabel('learned z (nm)')
 
 # %%
-resfile1 = r'E:\EMBL files\data for PSF learning\insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC\psfmodel__insitu_pupil_single.h5'
+resfile1 = r'C:\Users\Sheng\Documents\MATLAB\data\EMBL\from Aline\Pos1_Nup96-SNAP-AF647_638i100_UVi50_3D_30ms_noIdx_Loc_1\psfmodel_z_[5]_zs1_insitu_single.h5'
 f1,p1 = io.h5.load(resfile1)
 #I_model = f1.res.I_model
 

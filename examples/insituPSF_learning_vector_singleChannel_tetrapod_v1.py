@@ -4,45 +4,36 @@ import matplotlib.pyplot as plt
 import numpy as np
 sys.path.append("..")
 from psflearning.psflearninglib import psflearninglib
-from psflearning.learning import localizationlib
 from psflearning import io
 
 maindatadir = io.param.load('../config/config_path.yaml').main_data_dir
 
-#%% load parameters
+#% load parameters
 
 L = psflearninglib()
-L.param = io.param.load('../config/config_insitu_tetrapod.yaml').Params
-
-#psffile = maindatadir + r'\insitu data\from Yiming\In-situ PSF learing data\DMO1.2umNPC\PSF_DMO1.2_+-1um_10nm_2/psfmodel_LL_zernike_single.h5'
-psffile = maindatadir + r'\insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC\PSF_DMO6_alpha30_+-3umstep50nm_5/psfmodel_LL_zernike_single.h5'
+L.param = io.param.load('../config/config_insitu_tetrapod_yoav.yaml').Params
+#% load bead model
+psffile = maindatadir + r'\insitu data\from Yoav\3D STORM TP\bead zstack\Tetra_psfmodel_pupil_vector_single.h5'
 f0,p0 = io.h5.load(psffile)
 
 I_init=f0.res.I_model
-bead_data = f0.rois.psf_data
 
-#%%
+#%
 
-L.param.datapath = maindatadir+r'insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC/'
-L.param.keyword = 'Default.'
+#L.param.datapath = maindatadir+r'insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC/'
+L.param.datapath = maindatadir+r'insitu data\from Yoav\3D STORM TP\converted/'
 images = L.load_data()
 L.getpsfclass()
 
 #%%
+L.param.roi.peak_height = 0.3
 dataobj = L.prep_data(images)
-
-#%%
-#L.param.option.model.init_pupil_file = psffile
-L.param.option.insitu.zernike_index=[12]
-L.param.option.insitu.zernike_coeff=[-1.5]
-L.param.loss_weight.smooth = 0.0001
-
-psfobj,fitter = L.learn_psf(dataobj,time=0)
-
-#%%
-L.param.savename = L.param.datapath + 'psfmodel_'
-resfile = L.save_result(psfobj,dataobj,fitter)
-
+#%
+L.param.option.model.init_pupil_file = psffile
+L.param.loss_weight.smooth = 0.0
+L.param.savename = L.param.datapath + 'psfmodel_iter_f'
+resfile = L.iterlearn_psf(dataobj,iterationN=10,time=0)
+    
 #%%
 f,p = io.h5.load(resfile)
 
@@ -79,7 +70,7 @@ fig = plt.figure(figsize=[8,8])
 ax = fig.add_subplot(2,2,1)
 plt.imshow(I2[:,cc,:])
 plt.title('psf')
-aperture=np.float32(psfobj.aperture)
+aperture=np.float32(np.abs(f.res.pupil)>0)
 if hasattr(f.res,'zernike_coeff'):
     Zk = f.res.zernike_polynomial
 
@@ -118,7 +109,7 @@ plt.xlabel('frames')
 plt.ylabel('learned z (nm)')
 
 # %%
-resfile1 = r'E:\EMBL files\data for PSF learning\insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC\psfmodel__insitu_pupil_single.h5'
+resfile1 = r'E:\EMBL files\data for PSF learning\insitu data\from Yoav\3D STORM TP\converted\psfmodel_iter_insitu_single.h5'
 f1,p1 = io.h5.load(resfile1)
 #I_model = f1.res.I_model
 
