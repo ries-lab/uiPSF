@@ -13,7 +13,7 @@ maindatadir = io.param.load('../config/config_path.yaml').main_data_dir
 L = psflearninglib()
 L.param = io.param.load('../config/config_insitu_tetrapod_yoav.yaml').Params
 #%% load bead model
-psffile = maindatadir + r'\insitu data\from Yoav\3D STORM TP\bead zstack/Tetra_psfmodel_pupil_vector_single.h5'
+psffile = maindatadir + '/insitu data/from Yoav/3D STORM TP/bead zstack/Tetra_psfmodel_pupil_vector_single.h5'
 f0,p0 = io.h5.load(psffile)
 
 I_init=f0.res.I_model
@@ -21,7 +21,7 @@ bead_data = f0.rois.psf_data
 
 #%%
 
-L.param.datapath = maindatadir+r'insitu data\from Yoav\3D STORM TP\converted/'
+L.param.datapath = maindatadir+'insitu data/from Yoav/3D STORM TP/converted/'
 L.param.keyword = 'data*'
 images = L.load_data()
 L.getpsfclass()
@@ -136,7 +136,7 @@ plt.xlabel('frames')
 plt.ylabel('learned z (nm)')
 
 # %%
-resfile1 = r'E:\EMBL files\data for PSF learning\insitu data\from Yiming\In-situ PSF learing data\DMO6umNPC\psfmodel__insitu_pupil_single.h5'
+resfile1 = r'E:/EMBL files/data for PSF learning/insitu data/from Yiming/In-situ PSF learing data/DMO6umNPC/psfmodel__insitu_pupil_single.h5'
 f1,p1 = io.h5.load(resfile1)
 #I_model = f1.res.I_model
 

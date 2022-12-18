@@ -18,9 +18,12 @@ Paths:
         ast: ../source/mleFit_LM_dylib/libCPUmleFit_LM.dylib
         fpi: ../source/mleFit_LM_dylib/libCPUmleFit_LM_4Pi.dylib
     linux:
-      cpu: dummy_linux.so
+      cpu: 
+        astM: ../source/mleFit_LM_so/libCPUmleFit_LM_MultiChannel.so
+        ast: ../source/mleFit_LM_so/libCPUmleFit_LM.so
+        fpi: ../source/mleFit_LM_so/libCPUmleFit_LM_4Pi.so
       cuda:
   
 main_data_dir:
-  E:/EMBL files/data for PSF learning/ # main folder to your data, it is only useful if all your data are saved in one location, see example file
-
+  #E:/EMBL files/data for PSF learning/ # main folder to your data, it is only useful if all your data are saved in one location, see example file
+  /home/sheng/mnt/e/EMBL files/data for PSF learning/
