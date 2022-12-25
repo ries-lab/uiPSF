@@ -59,7 +59,7 @@ class PSFZernikeBased_vector(PSFInterface):
             self.n_max_mag = 100
      
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
-        self.weight = np.array([np.median(init_intensities)*10, 10, 0.1, 0.2, 0.2],dtype=np.float32)
+        self.weight = np.array([np.median(init_intensities)*10, 100, 0.1, 0.2, 0.2],dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
 
         init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
@@ -117,14 +117,14 @@ class PSFZernikeBased_vector(PSFInterface):
         phiz = 1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
         if pos.shape[1]>3:
             phixy = 1j*2*np.pi*self.ky*pos[:,2]+1j*2*np.pi*self.kx*pos[:,3]
-            IMMphase = 1j*2*np.pi*(self.kz_med*pos[:,1]-self.kz*pos[:,1]*self.nimm/self.nmed)
+            phiz = 1j*2*np.pi*(self.kz_med*pos[:,1]-self.kz*(pos[:,0]-self.Zrange))
         else:
             phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
-            IMMphase = 0.0
+            #IMMphase = 0.0
 
         I_res = 0.0
         for h in self.dipole_field:
-            PupilFunction = pupil*tf.exp(phiz+phixy+IMMphase)*h
+            PupilFunction = pupil*tf.exp(phiz+phixy)*h
             IntermediateImage = tf.transpose(im.cztfunc(PupilFunction,self.paramx),perm=(0,1,3,2))
             psfA = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,1,3,2))        
             I_res += psfA*tf.math.conj(psfA)*self.normf
@@ -201,9 +201,6 @@ class PSFZernikeBased_vector(PSFInterface):
             I_res += psfA*tf.math.conj(psfA)*self.normf
 
         I_model = np.real(I_res)
-        normf = np.max(np.sum(I_model[2:-2],axis=(-1,-2)))
-        pupil = pupil/normf
-        I_model = I_model/normf
 
         #filter2 = tf.exp(-2*sigma*sigma*self.kspace)
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)

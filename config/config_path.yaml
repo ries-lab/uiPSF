@@ -25,5 +25,5 @@ Paths:
       cuda:
   
 main_data_dir:
-  #E:/EMBL files/data for PSF learning/ # main folder to your data, it is only useful if all your data are saved in one location, see example file
-  /home/sheng/mnt/e/EMBL files/data for PSF learning/
+  E:/EMBL files/data for PSF learning/ # main folder to your data, it is only useful if all your data are saved in one location, see example file
+  #/home/sheng/mnt/e/EMBL files/data for PSF learning/

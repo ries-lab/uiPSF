@@ -64,7 +64,7 @@ class PSFPupilBased(PSFInterface):
         self.calpupilfield('scalar')
         self.const_mag = options.model.const_pupilmag
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
-        self.weight = np.array([np.median(init_intensities)*10, 10, 0.1, 10, 10],dtype=np.float32)
+        self.weight = np.array([np.median(init_intensities), 10, 0.1, 10, 10],dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
 
         init_pupil = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
@@ -116,12 +116,12 @@ class PSFPupilBased(PSFInterface):
         phiz = 1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
         if pos.shape[1]>3:
             phixy = 1j*2*np.pi*self.ky*pos[:,2]+1j*2*np.pi*self.kx*pos[:,3]
-            IMMphase = 1j*2*np.pi*(self.kz_med*pos[:,1]-self.kz*pos[:,1]*self.nimm/self.nmed)
+            phiz = 1j*2*np.pi*(self.kz_med*pos[:,1]-self.kz*(pos[:,0]-self.Zrange))
         else:
             phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
-            IMMphase = 0.0
+            #IMMphase = 0.0
 
-        PupilFunction = pupil*tf.exp(phiz+phixy+IMMphase)
+        PupilFunction = pupil*tf.exp(phiz+phixy)
         IntermediateImage = tf.transpose(im.cztfunc(PupilFunction,self.paramx),perm=(0,1,3,2))
         I_res = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,1,3,2))
 
@@ -211,12 +211,14 @@ class PSFPupilBased(PSFInterface):
         original_shape = images.shape[-3:]
         Nbead = centers.shape[0]
         if positions.shape[1]>3:
-            centers_with_z = np.concatenate((np.full((Nbead, 1), z_center),np.zeros((Nbead,1)), centers[:,-2:]), axis=1)
+            global_positions = np.swapaxes(np.vstack((positions[:,0]+z_center,positions[:,1],centers[:,-2]-positions[:,-2],centers[:,-1]-positions[:,-1])),1,0)
+            #centers_with_z = np.concatenate((np.full((Nbead, 1), z_center),np.zeros((Nbead,1)), centers[:,-2:]), axis=1)
         else:
-            centers_with_z = np.concatenate((np.full((Nbead, 1), z_center), centers[:,-2:]), axis=1)
+            global_positions = np.swapaxes(np.vstack((positions[:,0]+z_center,centers[:,-2]-positions[:,-2],centers[:,-1]-positions[:,-1])),1,0)
+            #centers_with_z = np.concatenate((np.full((Nbead, 1), z_center), centers[:,-2:]), axis=1)
 
         # use modulo operator to get rid of periodicity from FFT shifting
-        global_positions = centers_with_z - positions
+        #global_positions = centers_with_z - positions
              
         # make sure everything has correct dtype
         # this is probably not needed anymore (see Fitter)

@@ -4,8 +4,8 @@
 Params:
   # ------data specific parameters, should be updated for different data
   datapath: ''                  # full path to your data
-  keyword: bead                 # keyword for your data file, used for automatic finding files with the same keyword
-  savename: psfmodel            # full path to your result foder/filename
+  keyword: Pos0.                 # keyword for your data file, used for automatic finding files with the same keyword
+  savename: test            # full path to your result foder/filename
   subfolder: ""                 # keyword for subfolder name if each bead data is saved in a individual folder
   format: .tif                  # .mat, .tif, .czi
   stage_mov_dir: normal         # normal, reverse: normal direction is where stage move towards the object when taking a z-stack bead data
@@ -52,22 +52,24 @@ Params:
         cov: 1.524
       NA: 1.35
     insitu:
-      stage_pos: 1.0               # 0 at the coverslip, positive when move towards the coverslip
+      stage_pos: 1              # 0 at the coverslip, positive when move towards the coverslip
       min_photon: 0.4              # quantile for rejecting low photon emitters
       partition_data: true
-      partition_size: [11,200]     # number of z segments, maximum number of emitter per segment
-      zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
-      zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 
-      z_range: 2.0                 # unit: micron, z range of insitu psf model
-      zkorder_rank: L             # L, H: searching range of zernike coefficient (4,21), (21,45)
-      var_stagepos: true
+      partition_size: [21,100]     # number of z segments, maximum number of emitter per segment
+      zernike_index: []           # for initial pupil, a vector of any size, if [], search for optimal zernike term
+      zernike_coeff: []         # for initial pupil, value corresponding to the zernike index 
+      z_range: 2.4                # unit: micron, z range of insitu psf model
+      zkorder_rank: H             # L, H: searching range of zernike coefficient (4,21), (21,45)
+      var_stagepos: false
       repeat: 2
-  fpi:
+    fpi:
       link_zernikecoeff: true
     model:
       pupilsize: 64                # unit: pixel
       n_max: 8                     # maximum zernike order
-      zernike_nl: []
+      zernike_nl: [[2,-2],[2,2],[3,-1],[3,1],[4,0],[3,-3],[3,3],
+                  [4,-2],[4,2],[5,-1],[5,1],[6,0],[4,-4],[4,4],
+                  [5,-3],[5,3],[6,-2],[6,2],[7,1],[7,-1],[8,0]]
       blur_sigma: 0.5              # unit: pixel
       with_apoid: true
       const_pupilmag: true
@@ -105,6 +107,6 @@ Params:
   iteration: 200                 # number of iterations for learning
   varname: ""                    # only for simulated data from matlab, the variable name for the data
   filelist: []                   # user can also give a list of data files, instead of giving the keyword or subfolder, data loading will skip automatic populate filelist 
-  swaptif: true                  # permute x,y dimension of tif file
+  swaptif: false                  # permute x,y dimension of tif file
 
   

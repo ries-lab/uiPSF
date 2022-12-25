@@ -23,8 +23,7 @@ L.getpsfclass()
 dataobj = L.prep_data(images)
 
 #%%
-iterN = L.param.option.insitu.repeat
-resfile = L.iterlearn_psf(dataobj,iterationN=iterN,time=0)
+resfile = L.iterlearn_psf(dataobj,time=0)
 #%%
 #psfobj,fitter = L.learn_psf(dataobj,time=0)
 #resfile = L.save_result(psfobj,dataobj,fitter)
@@ -119,3 +118,5 @@ plt.show()
 
 
 
+
+# %%

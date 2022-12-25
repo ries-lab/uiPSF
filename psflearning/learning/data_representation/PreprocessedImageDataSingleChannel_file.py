@@ -181,8 +181,8 @@ class PreprocessedImageDataSingleChannel(PreprocessedImageDataInterface):
         if hasattr(self,'skew_const'):
             if self.skew_const:
 
-                roisize_x = np.int32(roi_size[-1]+Nz*np.abs(self.skew_const[-1]+1))
-                roisize_y = np.int32(roi_size[-2]+Nz*np.abs(self.skew_const[-2]+1))
+                roisize_x = np.int32(roi_size[-1]+Nz*np.abs(self.skew_const[-1])+1)
+                roisize_y = np.int32(roi_size[-2]+Nz*np.abs(self.skew_const[-2])+1)
                 if len(roi_size)==3:
                     roi_shape = [roi_size[0],roisize_y,roisize_x]
                 else:

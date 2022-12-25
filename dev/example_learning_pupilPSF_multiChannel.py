@@ -131,7 +131,7 @@ aperture=np.float32(psfobj.sub_psfs[0].aperture)
 fig = plt.figure(figsize=[4*Nchannel,4])
 for i in range(0,Nchannel):
     ax = fig.add_subplot(1,Nchannel,i+1)
-    pupil_phase = np.angle(res_dict['channel'+str(i)]['pupil'])*aperture
+    pupil_phase = np.angle(f.res['channel'+str(i)].pupil)
     plt.imshow(pupil_phase)
     plt.axis('off')
     plt.title('pupil phase' + str(i))
@@ -140,7 +140,7 @@ plt.show()
 fig = plt.figure(figsize=[4*Nchannel,4])
 for i in range(0,Nchannel):
     ax = fig.add_subplot(1,Nchannel,i+1)
-    pupil_mag = np.abs(res_dict['channel'+str(i)]['pupil'])*aperture
+    pupil_mag = np.abs(f.res['channel'+str(i)].pupil)*aperture
     plt.imshow(pupil_mag)
     plt.axis('off')
     plt.title('pupil magnitude' + str(i))

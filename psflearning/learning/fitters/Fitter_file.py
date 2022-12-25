@@ -308,7 +308,7 @@ class Fitter(FitterInterface):
         #I_model_all = res_dict['I_model_all']
         I_model_all = self.forward_images
         psf_data = self.rois
-        pz = np.array([self.data.pixelsize_z])
+        pz = self.data.pixelsize_z
         if len(psf_data.shape)>3:
             Nz = psf_data.shape[-3]
         else:

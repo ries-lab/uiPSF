@@ -59,7 +59,7 @@ class PSFZernikeBased(PSFInterface):
      
 
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
-        self.weight = np.array([np.median(init_intensities)*10, 10, 0.1, 0.2, 0.2],dtype=np.float32)
+        self.weight = np.array([np.median(init_intensities)*10, 100, 0.1, 0.2, 0.2],dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
 
         init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
@@ -111,12 +111,12 @@ class PSFZernikeBased(PSFInterface):
         phiz = 1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
         if pos.shape[1]>3:
             phixy = 1j*2*np.pi*self.ky*pos[:,2]+1j*2*np.pi*self.kx*pos[:,3]
-            IMMphase = 1j*2*np.pi*(self.kz_med*pos[:,1]-self.kz*pos[:,1]*self.nimm/self.nmed)
+            phiz = 1j*2*np.pi*(self.kz_med*pos[:,1]-self.kz*(pos[:,0]-self.Zrange))
         else:
             phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
-            IMMphase = 0.0
+            
 
-        PupilFunction = pupil*tf.exp(phiz+phixy+IMMphase)
+        PupilFunction = pupil*tf.exp(phiz+phixy)
         IntermediateImage = tf.transpose(im.cztfunc(PupilFunction,self.paramx),perm=(0,1,3,2))
         I_res = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,1,3,2))
         

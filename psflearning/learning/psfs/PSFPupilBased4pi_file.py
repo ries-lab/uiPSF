@@ -52,16 +52,16 @@ class PSFPupilBased4pi(PSFInterface):
         N = rois.shape[0]
         Nz = self.data.bead_kernel.shape[0]
         Lx = rois.shape[-1]
-        xsz =self.options['pupilsize']
+        xsz =self.options.model.pupilsize
         self.calpupilfield('scalar')
-        self.const_mag = self.options['const_pupilmag']
+        self.const_mag = self.options.model.const_pupilmag
 
         #if self.options['varsigma']:
         #    sigma = np.ones((Nz,1,1))*self.options['gauss_filter_sigma']*np.pi
         #else:
         #    sigma = np.ones((1,))*self.options['gauss_filter_sigma']*np.pi
         
-        sigma = np.ones((2,))*self.options['gauss_filter_sigma']*np.pi
+        sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
 
         Zphase = tf.cast(2*np.pi*nip.zz((Nz,Lx,Lx)),tf.float32)
@@ -72,7 +72,7 @@ class PSFPupilBased4pi(PSFInterface):
         init_pupil1 = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
         init_pupil2 = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
         
-        phase_dm = self.options['phase_dm']
+        phase_dm = self.options.fpi.phase_dm
         phase0 = np.reshape(np.array(phase_dm),(len(phase_dm),1,1,1,1)).astype(np.float32)
         #phase0 = np.reshape(np.array([0])*np.pi,(1,1,1,1,1)).astype(np.float32)
         

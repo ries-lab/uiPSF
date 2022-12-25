@@ -393,7 +393,10 @@ class L_BFGS_B(OptimizerABC):
             loss = loss + loss1*w1   
             grad1 = tape.gradient(loss1, var1)
 
-        
+            for k in range(Np):
+                if grad1[k] is None:
+                    grad1[k] = var1[k]*0
+                    
             for k in range(Np):
                 if self.shapes[k][0]==Nfit:
                     if grad[k] is None:
@@ -402,6 +405,7 @@ class L_BFGS_B(OptimizerABC):
                         grad[k] = tf.concat((grad[k],grad1[k]),axis=0)
                 else:
                     grad[k] = grad[k]+grad1[k]*w1
+
 
         pbar.postfix[-1]['loss'] = loss
         pbar.postfix[-1]['time'] = start_time +pbar._time()-pbar.start_t

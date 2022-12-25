@@ -145,8 +145,8 @@ def mse_pupil_4pi(model,data,variables=None,mu=None,w=None):
     mse_norm1 = tf.reduce_mean(tf.square(mydiff)) / tf.reduce_mean(data)     
     mse_norm2 = tf.reduce_mean(tf.reduce_sum(tf.square(mydiff),axis=(-3,-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-3,-2,-1)))/data.shape[-3]*200
 
-    LL = (model-data*tf.math.log(model))
-    #LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
+    #LL = (model-data*tf.math.log(model))
+    LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
 
     LL = tf.reduce_mean(LL[tf.math.is_finite(LL)]) 
 
@@ -183,8 +183,8 @@ def mse_real_zernike(model,data,variables=None,mu=None,w=None):
     mse_norm1 = tf.reduce_mean(tf.square(mydiff)) / tf.reduce_mean(data)     
     mse_norm2 = tf.reduce_mean(tf.reduce_sum(tf.square(mydiff),axis=(-3,-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-3,-2,-1)))/data.shape[-3]*200
 
-    LL = (model-data*tf.math.log(model))
-    #LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
+    #LL = (model-data*tf.math.log(model))
+    LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
 
     LL = tf.reduce_mean(LL[tf.math.is_finite(LL)])
 
@@ -211,8 +211,8 @@ def mse_zernike_4pi(model,data,variables=None,mu=None,w=None):
     mse_norm1 = tf.reduce_mean(tf.square(mydiff)) / tf.reduce_mean(data)     
     mse_norm2 = tf.reduce_mean(tf.reduce_sum(tf.square(mydiff),axis=(-3,-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-3,-2,-1)))/data.shape[-3]*200
 
-    LL = (model-data*tf.math.log(model))
-    #LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
+    #LL = (model-data*tf.math.log(model))
+    LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
 
     LL = tf.reduce_mean(LL[tf.math.is_finite(LL)]) 
     bg = variables[1]
@@ -245,8 +245,8 @@ def mse_real_zernike_FD(model,data,variables=None,mu=None,w=None):
     mse_norm1 = tf.reduce_mean(tf.square(mydiff)) / tf.reduce_mean(data)     
     mse_norm2 = tf.reduce_mean(tf.reduce_sum(tf.square(mydiff),axis=(-3,-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-3,-2,-1)))/data.shape[-3]*200
 
-    LL = (model-data*tf.math.log(model))
-    #LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
+    #LL = (model-data*tf.math.log(model))
+    LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
 
     LL = tf.reduce_mean(LL[tf.math.is_finite(LL)])
 

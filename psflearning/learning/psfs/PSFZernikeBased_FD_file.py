@@ -54,12 +54,12 @@ class PSFZernikeBased_FD(PSFInterface):
         yy1, xx1 = tf.meshgrid(tf.linspace(0,imsz[-2],imsz[-2]//div), tf.linspace(0,imsz[-1],imsz[-1]//div),indexing='ij')
 
         self.calpupilfield('scalar')
-        if self.options['const_pupilmag']:
+        if self.options.model.const_pupilmag:
             self.n_max_mag = 0
         else:
             self.n_max_mag = 100
         
-        sigma = np.ones((2,))*self.options['gauss_filter_sigma']*np.pi
+        sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
 
         
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
@@ -122,7 +122,7 @@ class PSFZernikeBased_FD(PSFInterface):
         Zcoeff2 = tf.transpose(tf.stack(Zcoeff2),perm=(1,0))
         Zcoeff2 = tf.reshape(Zcoeff2,Zcoeff2.shape+(1,1))
 
-        if self.options['symmetric_mag']:
+        if self.options.model.symmetric_mag:
             pupil_mag = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff1,indices=c1,axis=1),axis=1,keepdims=True)
         else:
             pupil_mag = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeff1[:,0:Nk],axis=1,keepdims=True))

@@ -51,7 +51,7 @@ class PSFVolumeBased4pi(PSFInterface):
         self.weight = np.array([np.quantile(init_intensities,0.1), 20, 0.1, 0.1],dtype=np.float32)
         I1 = np.zeros(I_data[0].shape,dtype=np.float32)+0.002 / self.weight[3]
         A1 = np.ones(I1.shape, dtype=np.float32)*(1+1j)*0.002/2/np.sqrt(2)/self.weight[3]    
-        phase_dm = self.options['phase_dm']
+        phase_dm = self.options.fpi.phase_dm
         phase = np.reshape(np.array(phase_dm)*-1,(len(phase_dm),1,1,1,1)).astype(np.float32)
         #phase = np.reshape(np.array([2/3,0,-2/3])*np.pi,(3,1,1,1,1)).astype(np.float32)
         #phase = np.reshape(np.array([0])*np.pi,(1,1,1,1,1)).astype(np.float32)

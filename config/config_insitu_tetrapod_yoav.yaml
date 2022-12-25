@@ -3,10 +3,10 @@
 # that would be reasonable to set to the repo dir
 Params:
   # ------data specific parameters, should be updated for different data
-  datapath: ''                  # full path to your data
+  datapath: /insitu data/from Yoav/3D STORM TP/converted/                  # full path to your data
   keyword: data                 # keyword for your data file, used for automatic finding files with the same keyword
-  savename: psfmodel            # full path to your result foder/filename
-  subfolder: ""                 # keyword for subfolder name if each bead data is saved in a individual folder
+  savename: test            # full path to your result foder/filename
+  subfolder: ''                 # keyword for subfolder name if each bead data is saved in a individual folder
   format: .mat                  # .mat, .tif, .czi
   stage_mov_dir: normal         # normal, reverse: normal direction is where stage move towards the object when taking a z-stack bead data
   gain: 0.47
@@ -61,7 +61,7 @@ Params:
       z_range: 4.0                 # unit: micron, z range of insitu psf model
       zkorder_rank: L             # L, H: searching range of zernike coefficient (4,21), (21,45)    
       var_stagepos: true
-      repeat: 2
+      repeat: 10
     fpi:
       link_zernikecoeff: true
     model:
@@ -73,7 +73,7 @@ Params:
       const_pupilmag: true
       symmetric_mag: true
       with_IMM: false
-      init_pupil_file: ""
+      init_pupil_file: ''
   
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
   PSFtype: insitu_pupil                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu

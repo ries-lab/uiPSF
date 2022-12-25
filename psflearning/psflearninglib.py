@@ -426,10 +426,11 @@ class psflearninglib:
         self.loc_FD = loc_FD
         return loc_FD
 
-    def iterlearn_psf(self,dataobj,iterationN=5,time=None):
+    def iterlearn_psf(self,dataobj,time=None):
         min_photon = self.param.option.insitu.min_photon
+        iterN = self.param.option.insitu.repeat
         pz = self.param.pixel_size.z
-        for nn in range(0,iterationN):
+        for nn in range(0,iterN):
             psfobj,fitter = self.learn_psf(dataobj,time=time)
             resfile = self.save_result(psfobj,dataobj,fitter)
             self.param.option.model.init_pupil_file = resfile

@@ -51,7 +51,7 @@ class PSFZernikeBased4pi(PSFInterface):
         Nz = self.data.bead_kernel.shape[0]
         Lx = rois.shape[-1]
         self.calpupilfield('scalar')
-        if self.options['const_pupilmag']:
+        if self.options.model.const_pupilmag:
             self.n_max_mag = 0
         else:
             self.n_max_mag = 100
@@ -61,7 +61,7 @@ class PSFZernikeBased4pi(PSFInterface):
 #        else:
 #            sigma = np.ones((1,))*self.options['gauss_filter_sigma']*np.pi
 
-        sigma = np.ones((2,))*self.options['gauss_filter_sigma']*np.pi
+        sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
 
         Zphase =    tf.cast(2*np.pi*nip.zz((Nz,Lx,Lx)),tf.float32)
@@ -75,7 +75,7 @@ class PSFZernikeBased4pi(PSFInterface):
         init_Zcoeff_phase = np.zeros((2,self.Zk.shape[0],1,1))
         
         
-        phase_dm = self.options['phase_dm']
+        phase_dm = self.options.fpi.phase_dm
         phase0 = np.reshape(np.array(phase_dm),(len(phase_dm),1,1,1,1)).astype(np.float32)
         #phase0 = np.reshape(np.array([0])*np.pi,(1,1,1,1,1)).astype(np.float32)
         
@@ -119,7 +119,7 @@ class PSFZernikeBased4pi(PSFInterface):
         Nk = np.min(((n_max+1)*(n_max+2)//2,self.Zk.shape[0]))
         mask = c1<Nk
         c1 = c1[mask]
-        if self.options['symmetric_mag']:
+        if self.options.model.symmetric_mag:
         #zcoeffphase = Zcoeffphase[1]*self.signm+Zcoeffphase[0]
             pupil_mag1 = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeffmag[0],indices=c1)*self.weight[4],axis=0))
             pupil_mag2 = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeffmag[1],indices=c1)*self.weight[4],axis=0))

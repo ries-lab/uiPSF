@@ -2,26 +2,23 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-
-
 sys.path.append("..")
 from psflearning.psflearninglib import psflearninglib
 from psflearning import io
 
 maindatadir = io.param.load('../config/config_path.yaml').main_data_dir
+
 #%% load parameters
 L = psflearninglib()
-L.param = io.param.load('../config/config_zernike_M2.yaml').Params
-
+L.param = io.param.load('../config/config_voxel_LLS.yaml').Params
+L.param.datapath = maindatadir + L.param.datapath
+L.param.savename = L.param.datapath + L.param.savename
 images = L.load_data()
 
 #%%
 L.getpsfclass()
-
 dataobj = L.prep_data(images)
-
 psfobj,fitter = L.learn_psf(dataobj,time=0)
-
 resfile = L.save_result(psfobj,dataobj,fitter)
 
 # %% show results
@@ -41,23 +38,27 @@ plt.plot(pos[:,0])
 plt.title('z')
 ax = fig.add_subplot(2,4,5)
 plt.plot(f.res.intensity.transpose())
-plt.title('phton')
+plt.title('photon')
 ax = fig.add_subplot(2,4,6)
 plt.plot(f.res.bg)
 plt.title('background')
+ax = fig.add_subplot(2,4,7)
+plt.plot(f.res.drift_rate)
+plt.title('drift')
 
 #
-fig = plt.figure(figsize=[12,6])
-pupil = f.res.pupil
+if hasattr(f.res,'pupil'):
+    fig = plt.figure(figsize=[12,6])
+    pupil = f.res.pupil
 
-ax = fig.add_subplot(1,2,1)
+    ax = fig.add_subplot(1,2,1)
 
-plt.imshow(np.abs(pupil))
-plt.title('pupil magnitude')
-ax = fig.add_subplot(1,2,2)
+    plt.imshow(np.abs(pupil))
+    plt.title('pupil magnitude')
+    ax = fig.add_subplot(1,2,2)
 
-plt.imshow(np.angle(pupil))
-plt.title('pupil phase')
+    plt.imshow(np.angle(pupil))
+    plt.title('pupil phase')
 
 #
 if hasattr(f.res,'zernike_coeff'):
@@ -84,9 +85,6 @@ if hasattr(f.res,'zernike_coeff'):
     ax = fig.add_subplot(1,2,2)
     plt.imshow(pupil_phase)
     #plt.colorbar(orientation='vertical')
-
-
-
 
 # %%
 psf_data = f.rois.psf_data
@@ -127,9 +125,4 @@ plt.show()
 
 
 
-
-
-
-
-
-
+# %%
