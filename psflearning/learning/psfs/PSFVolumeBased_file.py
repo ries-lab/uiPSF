@@ -72,8 +72,10 @@ class PSFVolumeBased(PSFInterface):
 
         pos, backgrounds, intensities, I_model, gxy = variables
 
-        I_blur = im.ift3d(im.ft3d(I_model*self.weight[3])*self.bead_kernel)
-        I_otfs = im.ft3d(I_blur)*tf.complex(intensities*0.0+1.0,0.0)
+        #I_blur = im.ift3d(im.ft3d(I_model*self.weight[3])*self.bead_kernel)
+        I_otfs = im.ft3d(I_model*self.weight[3])*self.bead_kernel
+        #I_otfs = im.ft3d(I_blur)*tf.complex(intensities*0.0+1.0,0.0)
+        I_otfs = I_otfs*tf.complex(intensities*0.0+1.0,0.0)
         I_res = im.ift3d(self.applyPhaseRamp(I_otfs,pos))*tf.complex(intensities*self.weight[0],0.0)  
 
         psf_fit = tf.math.real(I_res)
