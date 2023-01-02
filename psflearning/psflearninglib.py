@@ -29,6 +29,7 @@ from tkinter import EXCEPTION, messagebox as mbox
 from .learning import ( PreprocessedImageDataSingleChannel,
                         PreprocessedImageDataMultiChannel,
                         PreprocessedImageDataSingleChannel_smlm,
+                        PreprocessedImageDataMultiChannel_smlm,
                         Fitter,
                         PSFVolumeBased,
                         PSFZernikeBased_vector,
@@ -40,6 +41,7 @@ from .learning import ( PreprocessedImageDataSingleChannel,
                         PSFPupilBased4pi,
                         PSFZernikeBased4pi,
                         PSFMultiChannel,
+                        PSFMultiChannel_smlm,
                         PSFMultiChannel4pi,
                         PSFZernikeBased_vector_smlm,
                         PSFPupilBased_vector_smlm,
@@ -106,7 +108,10 @@ class psflearninglib:
             psfmulticlass = None
         elif channeltype == 'multi':
             psfclass = PSF_DICT[PSFtype]
-            psfmulticlass = PSFMultiChannel
+            if (PSFtype == 'insitu_zernike') or (PSFtype == 'insitu_zernike'):
+                psfmulticlass = PSFMultiChannel_smlm
+            else:
+                psfmulticlass = PSFMultiChannel
             lossfunmulti = mse_real_All
         elif channeltype == '4pi':
             psfclass = PSF_DICT_4pi[PSFtype]
@@ -207,7 +212,17 @@ class psflearninglib:
                         dat.append(datai)
                     dat = np.squeeze(np.stack(dat))
                 elif format == '.tif':
-                    dat = np.squeeze(io.imread(filename).astype(np.float32))
+                    if datatype == 'smlm':
+                        dat = []
+                        fID = Image.open(filename)
+                        #fmax = fID.n_frames 
+                        
+                        for ii in range(framerange[0],framerange[1]):
+                            fID.seek(ii)
+                            dat.append(np.asarray(fID))
+                        dat = np.stack(dat).astype(np.float32)
+                    else:
+                        dat = np.squeeze(io.imread(filename).astype(np.float32))
                 else:
                     raise TypeError('supported data format (multi channel) is '+'.mat,'+'.tif.')
                 if len(dat.shape)<4:
@@ -247,7 +262,10 @@ class psflearninglib:
             images = imagesall
 
         if (PSFtype == 'insitu_zernike') or (PSFtype == 'insitu_pupil'):
-            images = images.reshape(-1,images.shape[-2],images.shape[-1])
+            if channeltype == 'multi':
+                images = images.reshape(images.shape[0],-1,images.shape[-2],images.shape[-1])
+            else:
+                images = images.reshape(-1,images.shape[-2],images.shape[-1])
         
         
         if param.swaptif:
@@ -309,7 +327,7 @@ class psflearninglib:
                 dataobj = PreprocessedImageDataMultiChannel(images, PreprocessedImageDataSingleChannel, is4pi=True)        
         elif channeltype == 'multi':
             if (PSFtype == 'insitu_zernike') or (PSFtype == 'insitu_pupil'):
-                dataobj = PreprocessedImageDataMultiChannel(images, PreprocessedImageDataSingleChannel_smlm)
+                dataobj = PreprocessedImageDataMultiChannel_smlm(images, PreprocessedImageDataSingleChannel_smlm)
             else:
                 dataobj = PreprocessedImageDataMultiChannel(images, PreprocessedImageDataSingleChannel)
         
@@ -340,8 +358,6 @@ class psflearninglib:
     def learn_psf(self,dataobj,time=None):
         param = self.param
         rej_threshold = list(param.rej_threshold.values())
-        estdrift = param.estimate_drift
-        varphoton = param.var_photon
         maxiter = param.iteration
         w = list(param.loss_weight.values())
         usecuda = param.usecuda
@@ -353,22 +369,32 @@ class psflearninglib:
         batchsize = param.batch_size
         pupilfile = optionparam.model.init_pupil_file
         if self.psf_class_multi is None:
-            if (PSFtype == 'insitu_zernike') or (PSFtype == 'insitu_pupil'):
-                psfobj = self.psf_class(options=optionparam)
-            else:
-                psfobj = self.psf_class(estdrift=estdrift,varphoton=varphoton,options=optionparam)
+            psfobj = self.psf_class(options=optionparam)
         else:
             optimizer_single = L_BFGS_B(maxiter=50)
             optimizer_single.batch_size = batchsize
-            psfobj = self.psf_class_multi(self.psf_class,optimizer_single,estdrift=estdrift,varphoton=varphoton,options=optionparam,loss_weight=w)
+            psfobj = self.psf_class_multi(self.psf_class,optimizer_single,options=optionparam,loss_weight=w)
 
         if pupilfile:
             f = h5.File(pupilfile, 'r')
-            try:
-                psfobj.initpupil = np.array(f['res']['pupil'])
-            except:
-                pass
-            psfobj.initpsf = np.array(f['res']['I_model']).astype(np.float32)
+            if channeltype == 'single':
+                try:
+                    psfobj.initpupil = np.array(f['res']['pupil'])
+                except:
+                    pass
+                psfobj.initpsf = np.array(f['res']['I_model']).astype(np.float32)
+            else:
+                Nchannels = len(dataobj.channels)
+                psfobj.initpupil = [None]*Nchannels
+                psfobj.initpsf = [None]*Nchannels
+                for k in range(0,Nchannels):
+                    try:
+                        psfobj.initpupil[k] = np.array(f['res']['channel'+str(k)]['pupil'])
+                    except:
+                        pass
+                    psfobj.initpsf[k] = np.array(f['res']['channel'+str(k)]['I_model']).astype(np.float32)
+
+
         optimizer = L_BFGS_B(maxiter=maxiter)
         optimizer.batch_size = batchsize
         if self.loss_fun_multi:
@@ -432,6 +458,7 @@ class psflearninglib:
         min_photon = self.param.option.insitu.min_photon
         iterN = self.param.option.insitu.repeat
         pz = self.param.pixel_size.z
+        channeltype = self.param.channeltype
         for nn in range(0,iterN):
             psfobj,fitter = self.learn_psf(dataobj,time=time)
             resfile = self.save_result(psfobj,dataobj,fitter)
@@ -439,18 +466,33 @@ class psflearninglib:
             self.param.option.insitu.min_photon = max([min_photon-nn*0.1,0.4])
             res = psfobj.res2dict(self.learning_result)
             dataobj.resetdata()
-                        
-            self.param.option.insitu.stage_pos = float(res['stagepos'])
-            I_model = res['I_model']
-            Nz = I_model.shape[0]
-            zind = range(0,Nz,4)
-            if self.param.plotall:
-                fig = plt.figure(figsize=[3*len(zind),3])
-                for i,id in enumerate(zind):
-                    ax = fig.add_subplot(1,len(zind),i+1)
-                    plt.imshow(I_model[id],cmap='twilight')
-                    plt.axis('off')
-                plt.show()
+            if channeltype == 'single':
+                self.param.option.insitu.stage_pos = float(res['stagepos'])
+                I_model = res['I_model']
+                Nz = I_model.shape[-3]
+                zind = range(0,Nz,4)
+                if self.param.plotall:
+                    fig = plt.figure(figsize=[3*len(zind),3])
+                    for i,id in enumerate(zind):
+                        ax = fig.add_subplot(1,len(zind),i+1)
+                        plt.imshow(I_model[id],cmap='twilight')
+                        plt.axis('off')
+                    plt.show()
+            else:
+                self.param.option.insitu.stage_pos = float(res['channel0']['stagepos'])
+                if self.param.plotall:
+                    for j in range(0,len(dataobj.channels)):
+                        I_model = res['channel'+str(j)]['I_model']
+                        Nz = I_model.shape[-3]
+                        zind = range(0,Nz,4)
+                    
+                        fig = plt.figure(figsize=[3*len(zind),3])
+                        for i,id in enumerate(zind):
+                            ax = fig.add_subplot(1,len(zind),i+1)
+                            plt.imshow(I_model[id],cmap='twilight')
+                            plt.axis('off')
+                    plt.show()
+
         
         return resfile
 

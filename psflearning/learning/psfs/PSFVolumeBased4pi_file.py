@@ -11,7 +11,7 @@ from .. import utilities as im
 from .. import imagetools as nip
 
 class PSFVolumeBased4pi(PSFInterface):
-    def __init__(self, max_iter: int=None, estdrift=False, varphoton=False,options=None) -> None:
+    def __init__(self, max_iter: int=None,options=None) -> None:
         
         self.parameters = None
         self.updateflag = None
@@ -20,8 +20,6 @@ class PSFVolumeBased4pi(PSFInterface):
         self.zT = None
         self.bead_kernel = None
         self.default_loss_func = mse_real_4pi
-        self.estdrift = estdrift
-        self.varphoton = varphoton
         self.options = options
         if max_iter is None:
             self.max_iter = 10
@@ -68,7 +66,7 @@ class PSFVolumeBased4pi(PSFInterface):
  
 
 
-        if self.varphoton:
+        if self.options.model.var_photon:
             init_Intensity = gI/self.weight[0]
         else:
             init_Intensity = init_intensities / self.weight[0]
@@ -112,7 +110,7 @@ class PSFVolumeBased4pi(PSFInterface):
         psf_otfs = im.ft3d(psf0)*tf.expand_dims(tf.expand_dims(self.bead_kernel,axis=0),axis=0)
         psfmodel = tf.math.real(im.ift3d(psf_otfs)) * intensity_abs + bg*self.weight[1]
 
-        if self.estdrift:
+        if self.options.model.estimate_drift:
             psf_fit = tf.transpose(psfmodel,perm=[1,2,0,3,4]) 
             psfsize = im.shapevec(I_model)
             Nz = psfsize[0]

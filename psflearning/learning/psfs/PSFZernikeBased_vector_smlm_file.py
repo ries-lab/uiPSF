@@ -23,6 +23,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         self.bead_kernel = None
         self.options = options
         self.default_loss_func = mse_real_zernike_smlm
+        self.pos_weight = 1
         return
 
     def calc_initials(self, data: PreprocessedImageDataInterface, start_time=None):
@@ -95,7 +96,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
         self.weight = np.array([np.median(init_intensities)*10, 100, 20, 0.2, 0.2, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
-        
+        self.pos_weight = self.weight[2]
         init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
         init_Zcoeff[:,0,0,0] = [1,0]/self.weight[4]
         init_backgrounds[init_backgrounds<0.1] = 0.1

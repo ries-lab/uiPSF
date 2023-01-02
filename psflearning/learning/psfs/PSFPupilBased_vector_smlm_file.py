@@ -23,6 +23,8 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         self.bead_kernel = None
         self.options = options
         self.default_loss_func = mse_real_pupil_smlm
+        self.pos_weight = 1
+
         return
 
     def calc_initials(self, data: PreprocessedImageDataInterface, start_time=None):
@@ -91,7 +93,8 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
         self.weight = np.array([np.median(init_intensities), 10, 20, 10, 10, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
-        
+        self.pos_weight = self.weight[2]
+
         init_pupil = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
 
         init_backgrounds[init_backgrounds<0.1] = 0.1

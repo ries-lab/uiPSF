@@ -62,7 +62,7 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
 
         return
 
-    def find_rois(self, roi_size, gaus_sigma, min_border_dist, max_threshold, max_kernel,FOV=None, min_center_dist=None):
+    def find_rois(self, roi_size, gaus_sigma, min_border_dist, max_threshold, max_kernel,FOV=None, min_center_dist=None,max_bead_number=None):
         """
         Cuts out rois around local maxima.
         """
@@ -99,8 +99,9 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         self.centers = np.concatenate(all_centers).astype(np.int32)
         self.frames = np.array(frames).astype(np.int32)
         self.rois_available = True
-        #self.centers_all = np.concatenate(all_centers).astype(np.int32)
+        self.centers_all = np.concatenate(all_centers).astype(np.int32)
         self.alldata = dict(rois=self.rois,centers=self.centers,frames=self.frames)
+        self.offset = np.min((np.quantile(self.rois,1e-3),0))
         return
     
     def resetdata(self):
@@ -183,7 +184,7 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
             new_rois.append(nip.multiROIExtract(self.images[frame], [centers[i]], roi_shape))
 
         # convert to numpy arrays and make sure everything has correct dtypes
-        self.rois = np.concatenate(new_rois).astype(np.float32)
+        self.rois = np.concatenate(new_rois).astype(np.float32)-self.offset
         self.centers = centers.astype(np.int32)
         self.frames = frames.astype(np.int32)
         self.rois_available = True
@@ -216,6 +217,7 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         #offset = np.min(rois)-1e-6
         self.rois = rois-offset
         self.centers_all = cor
+        self.offset = offset
         if plot:
             plt.figure(figsize=[6,6])
             plt.plot(cor[:,-1],cor[:,-2],'o',markersize = 8,markerfacecolor='none')

@@ -74,7 +74,9 @@ Params:
       symmetric_mag: true          # pupil magnitude is circular symmetric
       with_IMM: false
       init_pupil_file: ""
-  
+      estimate_drift: false
+      var_photon: false
+
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
   PSFtype: insitu_zernike                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
   channeltype: single            # single, multi, 4pi
@@ -98,8 +100,6 @@ Params:
   
   usecuda: true                  # for spline localization
   plotall: false
-  estimate_drift: false
-  var_photon: false
   ref_channel: 0                 # index of the reference channel, for multi-channel system
   batch_size: 2000               # maximum number of beads or emitters to be optimized at one time
   iteration: 200                 # number of iterations for learning

@@ -379,12 +379,21 @@ class L_BFGS_B(OptimizerABC):
         var1 = [None]*Np
         for i in range(len(ind)-1):
             for k in range(Np):
-                if self.shapes[k][0]==Nfit:
-                    var1[k] = variables[k][ind[i]:ind[i+1]]
+                if (Nfit) in self.shapes[k]:
+                    if self.shapes[k].index(Nfit)==0:
+                        var1[k] = variables[k][ind[i]:ind[i+1]]
+                    if self.shapes[k].index(Nfit)==1:
+                        var1[k] = variables[k][:,ind[i]:ind[i+1]]
+                    else:
+                        var1[k] = variables[k]
+                        if i == 0:
+                            grad[k] = 0.0
                 else:
                     var1[k] = variables[k]
                     if i == 0:
                         grad[k] = 0.0
+
+                    
 
             with tf.GradientTape() as tape:
                 tape.watch(var1)
@@ -398,11 +407,11 @@ class L_BFGS_B(OptimizerABC):
                     grad1[k] = var1[k]*0
                     
             for k in range(Np):
-                if self.shapes[k][0]==Nfit:
+                if (Nfit) in self.shapes[k]:
                     if grad[k] is None:
                         grad[k] = grad1[k]
                     else:
-                        grad[k] = tf.concat((grad[k],grad1[k]),axis=0)
+                        grad[k] = tf.concat((grad[k],grad1[k]),axis=self.shapes[k].index(Nfit))
                 else:
                     grad[k] = grad[k]+grad1[k]*w1
 

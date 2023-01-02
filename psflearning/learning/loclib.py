@@ -112,12 +112,15 @@ class localizationlib:
 
 
 
-    def loc_ast_dual(self,psf_data,I_model,pixelsize_z,cor,imgcenter,T,initz=None,plot=True, start_time = None):
+    def loc_ast_dual(self,psf_data,I_model,pixelsize_z,cor,imgcenter,T,initz=None,plot=True, start_time = 0):
 
         rsz = psf_data.shape[-1]
         Nbead = cor.shape[1]
         Nchannel = cor.shape[0]
-        Nz = psf_data.shape[-3]
+        if len(psf_data.shape)>4:
+            Nz = psf_data.shape[-3]
+        else:
+            Nz = 1
         Nfit = Nbead*Nz
         Nparam = 5
         offset = np.min(I_model)
@@ -162,7 +165,8 @@ class localizationlib:
         
         ccz = Iall.shape[-3]//2
         if initz is None:
-            initz = np.linspace(-Nz*pixelsize_z/2,Nz*pixelsize_z/2,np.int32(Nz*pixelsize_z/0.5))*0.8/pixelsize_z+ccz
+            Nzm = Imd.shape[-3]
+            initz = np.linspace(-Nzm*pixelsize_z/2,Nzm*pixelsize_z/2,np.int32(Nzm*pixelsize_z/0.5))*0.8/pixelsize_z+ccz
         else:
             initz = np.array(initz)*0.5/pixelsize_z+ccz
         zstart = np.repeat(np.expand_dims(initz,axis=1),Nfit,axis=1).astype(np.float32)
@@ -196,25 +200,31 @@ class localizationlib:
         pbar.close()
 
         zf = P[2].reshape((Nbead,Nz))
-        zg = np.linspace(0,Nz-1,Nz)
-        zf = zf-np.median(zf-zg,axis=1,keepdims=True)
-        zdiff = zf-zg
-
         xf = P[1].reshape((Nbead,Nz))
-        xf = xf-np.median(xf,axis=1,keepdims=True)
-
         yf = P[0].reshape((Nbead,Nz))
-        yf = yf-np.median(yf,axis=1,keepdims=True)
 
-
-        if Nz>4:
-            zind = range(2,Nz-2,1)
+        zg = np.linspace(0,Nz-1,Nz)
+        if Nz>1:
+            zf = zf-np.median(zf-zg,axis=1,keepdims=True)
+            zdiff = zf-zg
+            xf = xf-np.median(xf,axis=1,keepdims=True)
+            yf = yf-np.median(yf,axis=1,keepdims=True)
+            if Nz>4:
+                zind = range(2,Nz-2,1)
+            else:
+                zind = range(0,Nz,1)
+            zdiff = zdiff-np.mean(zdiff[:,zind],axis=1,keepdims=True)
+            msez = np.mean(np.square((np.median(zf-zg,axis=0)-(zf-zg))[:,zind]),axis=1)
         else:
-            zind = range(0,Nz,1)
-      
-        zdiff = zdiff-np.mean(zdiff[:,zind],axis=1,keepdims=True)
-        msez = np.mean(np.square((np.median(zf-zg,axis=0)-(zf-zg))[:,zind]),axis=1)
-        msezRatio =msez/np.median(msez)
+            zdiff = zf
+            msez = np.array([1.0])
+
+
+        if Nbead == 1:
+            msezRatio = np.array([1.0])
+        else:
+            msezRatio =msez/np.median(msez)
+
         if plot:
             fig = plt.figure(figsize=[12,6])
             ax = fig.add_subplot(1,2,1)

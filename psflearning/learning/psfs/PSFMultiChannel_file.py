@@ -11,15 +11,13 @@ from ..fitters.Fitter_file import Fitter
 from ..optimizers import OptimizerABC, L_BFGS_B
 
 class PSFMultiChannel(PSFInterface):
-    def __init__(self, psftype: Type[PSFInterface], init_optimizer: OptimizerABC=None, estdrift=False, varphoton=False, options = None,loss_weight=None) -> None:
+    def __init__(self, psftype: Type[PSFInterface], init_optimizer: OptimizerABC=None, options = None,loss_weight=None) -> None:
         self.parameters = None
         self.updateflag = None        
         self.psftype = psftype
         self.sub_psfs = [] # each element is an instance of psftype
         self.data = None
         self.weight = None
-        self.estdrift = estdrift
-        self.varphoton = varphoton
         self.loss_weight = loss_weight
         self.options = options
         self.init_trafos = None
@@ -41,7 +39,9 @@ class PSFMultiChannel(PSFInterface):
         self.sub_psfs = [None]*num_channels
         self.imgcenter = np.hstack((np.array(images[0].shape[-2:])/2,0)).astype(np.float32)
         # choose first channel as reference and run first round of optimization
-        ref_psf = self.psftype(estdrift=self.estdrift,varphoton=self.varphoton, options = self.options)
+        ref_psf = self.psftype(options = self.options)
+        if hasattr(self,'initpsf'):
+            ref_psf.initpsf = self.initpsf[0]
         self.sub_psfs[0] = ref_psf
         fitter_ref_channel = Fitter(self.data.get_channel(0), ref_psf,self.init_optimizer, ref_psf.default_loss_func,loss_weight=self.loss_weight) # TODO: redesign multiData        
         res_ref, toc = fitter_ref_channel.learn_psf(start_time=start_time)
@@ -61,13 +61,15 @@ class PSFMultiChannel(PSFInterface):
         # do everything for the other channels and put initial values in corresponding array
         for i in range(1, num_channels):
             # run first round of optimization
-            current_psf = self.psftype(estdrift=self.estdrift,varphoton=self.varphoton, options = self.options)
+            current_psf = self.psftype(options = self.options)
+            if hasattr(self,'initpsf'):
+                current_psf.initpsf = self.initpsf[i]
             self.sub_psfs[i] = current_psf
             fitter_current_channel = Fitter(self.data.get_channel(i), current_psf, self.init_optimizer,current_psf.default_loss_func,loss_weight=self.loss_weight)
             res_cur,toc = fitter_current_channel.learn_psf(start_time=toc)
             current_pos = res_cur[0]
             # calculate transformation
-            current_pos_yx1 = np.concatenate((current_pos[:, 1:], np.ones((current_pos.shape[0], 1))), axis=1)            
+            current_pos_yx1 = np.concatenate((current_pos[:, 1:], np.ones((current_pos.shape[0], 1))), axis=1) 
             current_trafo = np.linalg.lstsq(ref_pos_yx1-self.imgcenter, current_pos_yx1-self.imgcenter, rcond=None)[0]
 
             #relative_shift = np.mean(centers[0],axis=0)-self.imgcenter[:-1]
@@ -100,6 +102,8 @@ class PSFMultiChannel(PSFInterface):
         param.append(self.init_trafos)
         self.weight = np.ones((len(param)))
         self.weight[-1] = 1e-3
+        if hasattr(self.sub_psfs[0],'pos_weight'):
+            self.weight[0] = self.sub_psfs[0].pos_weight
         param[-1] = param[-1]/self.weight[-1]
         return param, toc
 
@@ -108,7 +112,7 @@ class PSFMultiChannel(PSFInterface):
         """
         Calculate forward images from the current guess of the variables.
         """        
-        init_pos_ref = variables[0]
+        init_pos_ref = variables[0]*self.weight[0]
         trafos = variables[-1]*self.weight[-1]
 
         # calc positions from pos in ref channel and trafos
@@ -117,7 +121,7 @@ class PSFMultiChannel(PSFInterface):
         # use calc_forward_images of every sub_psf and stack at the end
         forward_images = [None] * len(self.sub_psfs) # needed since tf.function does not support .append()
         for i, sub_psf in enumerate(self.sub_psfs):
-            pos = positions[i]       
+            pos = positions[i]/self.weight[0]       
             #link pos, intensity, phase
             #sub_variables = [pos, variables[1][i], variables[2][0], variables[3][i],variables[4][0]]
             sub_variables = [pos, variables[1][i], variables[2][0]]
@@ -130,9 +134,10 @@ class PSFMultiChannel(PSFInterface):
 
     def calc_positions_from_trafos(self, init_subpixel_pos_ref_channel, trafos):
         # calculate positions from position in ref channel and transformation
-        cor_target = tf.linalg.matmul(self.cor_ref_channel-self.imgcenter, trafos)[..., :-1]
+        
+        cor_target = tf.linalg.matmul(self.cor_ref_channel[:,self.ind[0]:self.ind[1]]-self.imgcenter, trafos)[..., :-1]
 
-        diffs = tf.math.subtract(self.cor_other_channels-self.imgcenter[:-1],cor_target)
+        diffs = tf.math.subtract(self.cor_other_channels[:,self.ind[0]:self.ind[1]]-self.imgcenter[:-1],cor_target)
         pos_other_channels = init_subpixel_pos_ref_channel + tf.concat((tf.zeros(diffs.shape[:-1] + (1,)), diffs), axis=2)
         positions = tf.concat((tf.expand_dims(init_subpixel_pos_ref_channel, axis=0), pos_other_channels), axis=0)
 
@@ -147,8 +152,9 @@ class PSFMultiChannel(PSFInterface):
         res = variables.copy()
         res[-1] = variables[-1]*self.weight[-1]
         res[2] = variables[2]
-        init_subpixel_pos_ref_channel = res[0]
+        init_subpixel_pos_ref_channel = res[0]*self.weight[0]
         trafos = res[-1]
+        self.ind = [0,res[0].shape[0]]
         # calc positions from pos in ref channel and trafos
         positions = self.calc_positions_from_trafos(init_subpixel_pos_ref_channel, trafos)
         
@@ -159,7 +165,7 @@ class PSFMultiChannel(PSFInterface):
         # just call postprocess of every sub_psf and stack results at the end
         results = []
         for i, sub_psf in enumerate(self.sub_psfs):
-            sub_variables = [positions[i]]
+            sub_variables = [positions[i]/self.weight[0]]
             for k in range(1,len(variables)-1):
                 sub_variables.append(res[k][i])
             results.append(sub_psf.postprocess(sub_variables)[:-1])

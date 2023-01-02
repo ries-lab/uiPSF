@@ -12,11 +12,9 @@ class PSFVolumeBased(PSFInterface):
     PSF class that uses a 3D volume to describe the PSF.
     Should only be used with single-channel data.
     """
-    def __init__(self, estdrift=False, varphoton=False, options = None) -> None:
+    def __init__(self, options = None) -> None:
         self.parameters = None
         self.data = None
-        self.estdrift = estdrift
-        self.varphoton = varphoton
         self.bead_kernel = None
         self.options = options
         self.default_loss_func = mse_real
@@ -54,7 +52,7 @@ class PSFVolumeBased(PSFInterface):
         gxy = np.zeros((N,2),dtype=np.float32) 
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities
         
-        if self.varphoton:
+        if self.options.model.var_photon:
             init_Intensity = gI/self.weight[0]
         else:
             init_Intensity = init_intensities / self.weight[0]
@@ -79,7 +77,7 @@ class PSFVolumeBased(PSFInterface):
         I_res = im.ift3d(self.applyPhaseRamp(I_otfs,pos))*tf.complex(intensities*self.weight[0],0.0)  
 
         psf_fit = tf.math.real(I_res)
-        if self.estdrift:
+        if self.options.model.estimate_drift:
             psfsize = im.shapevec(I_model)
             Nz = psfsize[0]
             zv = np.expand_dims(np.linspace(0,Nz-1,Nz,dtype=np.float32)-Nz/2,axis=-1)

@@ -11,7 +11,7 @@ from .. import utilities as im
 from .. import imagetools as nip
 
 class PSFZernikeBased4pi(PSFInterface):
-    def __init__(self, max_iter: int=None, estdrift=False, varphoton=False,options=None) -> None:
+    def __init__(self, max_iter: int=None,options=None) -> None:
         
         self.parameters = None
         self.updateflag = None
@@ -21,8 +21,6 @@ class PSFZernikeBased4pi(PSFInterface):
         self.dphase = None
         self.bead_kernel = None
         self.default_loss_func = mse_zernike_4pi
-        self.estdrift = estdrift
-        self.varphoton = varphoton
         self.options = options
         if max_iter is None:
             self.max_iter = 10
@@ -86,7 +84,7 @@ class PSFZernikeBased4pi(PSFInterface):
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities
         alpha = np.array([0.8])/self.weight[5]
         init_pos_shift = np.zeros(init_positions.shape)
-        if self.varphoton:
+        if self.options.model.var_photon:
             init_Intensity = gI/self.weight[0]
         else:
             init_Intensity = init_intensities / self.weight[0]
@@ -176,7 +174,7 @@ class PSFZernikeBased4pi(PSFInterface):
         psf_fit = psf_fit[:,:,st:Nz-st]
                 
 
-        if self.estdrift:
+        if self.options.model.estimate_drift:
             psf_fit = tf.transpose(psf_fit,[1,2,0,3,4])
             Nz = psf_fit.shape[-3]
             

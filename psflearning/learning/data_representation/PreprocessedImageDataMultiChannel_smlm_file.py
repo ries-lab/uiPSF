@@ -5,7 +5,7 @@ from typing import Type
 
 from .PreprocessedImageDataInterface_file import PreprocessedImageDataInterface
 
-class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
+class PreprocessedImageDataMultiChannel_smlm(PreprocessedImageDataInterface):
     """
     Class that handles preprocessed data for multi-channel case.
     Provides access to images data (rois, centers, etc.) for fitter and psf classes.
@@ -84,6 +84,12 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
         Returns the object holding the data for the channel with index 'channel'.
         """
         return self.channels[channel]
+    
+    def resetdata(self):
+        for channel in self.channels:
+            channel.resetdata()
+        _ = self.pair_coordinates()
+        
 
     def get_min_border_dist(self):
         """
@@ -103,6 +109,7 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
         ref_fid = file_idxs[0][mask]
         pair_pos = [None]*self.numofchannel
         pair_file_id = [None]*self.numofchannel
+        pair_pos_id = [None]*self.numofchannel
         for i in range(0,self.numofchannel):
             tar_pos = centers[i]
             tar_fid = file_idxs[i]
@@ -131,12 +138,16 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
             ref_pos = ref_pos[pairs_ref_pos_id]
             pair_pos[i] = tar_pos[pairs_tar_pos_id]
             pair_file_id[i] = tar_fid[pairs_tar_pos_id]
+            pair_pos_id[i] = np.array(pairs_tar_pos_id)
             for j in range(0,i):
                 pair_pos[j] = pair_pos[j][pairs_ref_pos_id]
                 pair_file_id[j] = pair_file_id[j][pairs_ref_pos_id]
+                pair_pos_id[j] = pair_pos_id[j][pairs_ref_pos_id]
 
         for i in range(0,self.numofchannel):
             self.cut_new_rois(i, pair_pos[i], pair_file_id[i])
+
+        return pair_pos_id
 
     def process(self,roi_size, gaus_sigma, min_border_dist, max_threshold, max_kernel,pixelsize_x,pixelsize_z,bead_radius, 
                 min_center_dist=None,FOV=None, modulation_period=None, padPSF=True, plot=True,pixelsize_y=None, isVolume = True,skew_const=None, max_bead_number=None):
@@ -147,12 +158,12 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
             print(f"rois shape channel {i}: {rois[i].shape}")
 
         # find channel shift
-        self.find_channel_shift_cor(plot=False)
+        self.find_channel_shift_img()
         
         _, _, centers, _ = self.get_image_data()
         self.centers_all = centers
         # pair coordinates
-        self.pair_coordinates()
+        _ = self.pair_coordinates()
         _, rois, centers, _ = self.get_image_data()
         cor0 = centers[0]
         pv = self.shiftxy[1:]
@@ -172,7 +183,7 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
         offset = np.min((np.quantile(rois,1e-3),0))
         for i in range(len(self.channels)):    
             self.channels[i].rois = rois[i]-offset
-
+            self.channels[i].offset = offset
         # pad rois along z dimension
         _, rois, _, _ = self.get_image_data()
         if padPSF:
@@ -204,11 +215,13 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
 
     def find_channel_shift_img(self):
         imgs, _, centers, _ = self.get_image_data()
-        img0 = np.sum(np.max(imgs[0],axis = 1),axis=0)  
+        img0 = np.max(imgs[0],axis = 0)
+        img0 /= np.max(img0)
         shiftxy = []
         for img in imgs:
       
-            img1 = np.sum(np.max(img,axis = 1),axis=0)
+            img1 = np.max(img,axis = 0)
+            img1 /= np.max(img1)
             cor_img_ft = np.fft.fft2(img0) * np.conj(np.fft.fft2(img1))
             cor_img_ft = sp.ndimage.fourier_gaussian(cor_img_ft, sigma=2.)
             cor_img =  np.real(np.fft.fftshift(np.fft.ifft2(cor_img_ft)))

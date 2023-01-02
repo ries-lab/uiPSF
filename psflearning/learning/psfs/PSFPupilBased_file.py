@@ -20,11 +20,9 @@ class PSFPupilBased(PSFInterface):
     PSF class that uses a 3D volume to describe the PSF.
     Should only be used with single-channel data.
     """
-    def __init__(self, estdrift=False, varphoton=False,options=None) -> None:
+    def __init__(self,options=None) -> None:
         self.parameters = None
         self.data = None
-        self.estdrift = estdrift
-        self.varphoton = varphoton
         self.Zphase = None
         self.zT = None
         self.bead_kernel = None
@@ -77,7 +75,7 @@ class PSFPupilBased(PSFInterface):
         #gI[:,0:st] = np.abs(np.min(init_intensitiesL[:,0]))
         #gI[:,-st:] = np.abs(np.min(init_intensitiesL[:,-1]))
         
-        if self.varphoton:
+        if options.model.var_photon:
             init_Intensity = gI/self.weight[0]
         else:
             init_Intensity = init_intensities / self.weight[0]
@@ -140,7 +138,7 @@ class PSFPupilBased(PSFInterface):
         st = (self.bead_kernel.shape[0]-self.data.rois[0].shape[-3])//2
         psf_fit = psf_fit[:,st:Nz-st]
 
-        if self.estdrift:
+        if self.options.model.estimate_drift:
             
             Nz = psf_fit.shape[-3]
             zv = np.expand_dims(np.linspace(0,Nz-1,Nz,dtype=np.float32)-Nz/2,axis=-1)
