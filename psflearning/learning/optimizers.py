@@ -382,7 +382,7 @@ class L_BFGS_B(OptimizerABC):
                 if (Nfit) in self.shapes[k]:
                     if self.shapes[k].index(Nfit)==0:
                         var1[k] = variables[k][ind[i]:ind[i+1]]
-                    if self.shapes[k].index(Nfit)==1:
+                    elif self.shapes[k].index(Nfit)==1:
                         var1[k] = variables[k][:,ind[i]:ind[i+1]]
                     else:
                         var1[k] = variables[k]

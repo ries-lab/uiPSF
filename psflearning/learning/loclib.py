@@ -112,7 +112,7 @@ class localizationlib:
 
 
 
-    def loc_ast_dual(self,psf_data,I_model,pixelsize_z,cor,imgcenter,T,initz=None,plot=True, start_time = 0):
+    def loc_ast_dual(self,psf_data,I_model,pixelsize_z,cor,imgcenter,T,initz=None,plot=False, start_time = 0):
 
         rsz = psf_data.shape[-1]
         Nbead = cor.shape[1]
@@ -225,7 +225,7 @@ class localizationlib:
         else:
             msezRatio =msez/np.median(msez)
 
-        if plot:
+        if plot & (Nz>1):
             fig = plt.figure(figsize=[12,6])
             ax = fig.add_subplot(1,2,1)
             plt.plot(zf.transpose(),color=(0.6,0.6,0.6))
@@ -242,7 +242,7 @@ class localizationlib:
         return P, CRLB, LL, Iall, msezRatio,toc, loc_dict
 
 
-    def loc_4pi(self,psf_data,I_model,A_model,pixelsize_z,cor,imgcenter,T,zT,initz=None,initphi=None,plot=True,start_time=None):
+    def loc_4pi(self,psf_data,I_model,A_model,pixelsize_z,cor,imgcenter,T,zT,initz=None,initphi=None,plot=False,start_time=None):
         rsz = psf_data.shape[-1]
         Nbead = cor.shape[1]
         Nchannel = cor.shape[0]
@@ -390,7 +390,7 @@ class localizationlib:
    
 
         msezRatio =msez/np.median(msez)
-        if plot:
+        if plot & (Nz>1):
             fig = plt.figure(figsize=[12,6])
             ax = fig.add_subplot(2,2,1)
             plt.plot(zf.transpose(),color=(0.6,0.6,0.6))
@@ -417,7 +417,7 @@ class localizationlib:
         return P, CRLB, LL, IABall, msezRatio, toc, loc_dict
 
 
-    def loc_ast(self,psf_data,I_model,pixelsize_z,initz=None,plot=True,start_time=0):
+    def loc_ast(self,psf_data,I_model,pixelsize_z,initz=None,plot=False,start_time=0):
         rsz = psf_data.shape[-1]
         Nbead = psf_data.shape[0]
         if len(psf_data.shape)>3:

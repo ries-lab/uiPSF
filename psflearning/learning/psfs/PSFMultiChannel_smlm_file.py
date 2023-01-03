@@ -9,6 +9,7 @@ from .PSFInterface_file import PSFInterface
 from ..data_representation.PreprocessedImageDataInterface_file import PreprocessedImageDataInterface
 from ..fitters.Fitter_file import Fitter
 from ..optimizers import OptimizerABC, L_BFGS_B
+from ..loclib import localizationlib
 
 class PSFMultiChannel_smlm(PSFInterface):
     def __init__(self, psftype: Type[PSFInterface], init_optimizer: OptimizerABC=None, options = None,loss_weight=None) -> None:
@@ -39,7 +40,10 @@ class PSFMultiChannel_smlm(PSFInterface):
         self.sub_psfs = [None]*num_channels
         self.imgcenter = np.hstack((np.array(images[0].shape[-2:])/2,0)).astype(np.float32)
         # choose first channel as reference and run first round of optimization
-        ref_psf = self.psftype(options = self.options)
+        options = self.options.copy()
+        options.insitu.partition_data = False
+        partition_data = self.options.insitu.partition_data
+        ref_psf = self.psftype(options = options)
         if hasattr(self,'initpsf'):
             ref_psf.initpsf = self.initpsf[0]
         self.sub_psfs[0] = ref_psf
@@ -58,10 +62,11 @@ class PSFMultiChannel_smlm(PSFInterface):
         #init_subpixel_pos_ref_channel = np.concatenate((ref_zpos, centers[0]-ref_pos[:, 1:]), axis=1)
   
         init_params = [res_ref[-1]]
+        I_init = [res_ref[3]]
         # do everything for the other channels and put initial values in corresponding array
         for i in range(1, num_channels):
             # run first round of optimization
-            current_psf = self.psftype(options = self.options)
+            current_psf = self.psftype(options = options)
             if hasattr(self,'initpsf'):
                 current_psf.initpsf = self.initpsf[i]
             self.sub_psfs[i] = current_psf
@@ -79,14 +84,29 @@ class PSFMultiChannel_smlm(PSFInterface):
             self.sub_psfs[i].weight = self.sub_psfs[0].weight
             init_params.append(res_cur[-1])
             init_trafos.append(current_trafo)
+            I_init.append(res_cur[3]*np.median(res_cur[2][pair_id[i]]/res_ref[2][pair_id[0]]))
             for j in range(0,i+1):
                 for k in range(0,3):
                     init_params[j][k] = init_params[j][k][pair_id[j]] # pos
 
 
         # get current status of image data
-        images, _, centers, _ = self.data.get_image_data()
+        images, rois, centers, _ = self.data.get_image_data()
         num_channels = len(images)
+        dll = localizationlib(usecuda=True)
+        cor = np.stack(centers)
+        imgcenter = self.imgcenter
+        T = np.stack(init_trafos)
+        data = np.stack(rois)
+        I_init = np.stack(I_init)
+        pixelsize_z = np.array(self.data.pixelsize_z)
+        locres = dll.loc_ast_dual(data,I_init,pixelsize_z,cor,imgcenter,T)
+        LL = locres[2]
+        initz = locres[-1]['z'].flatten() 
+        if partition_data:
+            initz, rois_id,_ = self.partitiondata(initz,LL)
+
+        _, _, centers, _ = self.data.get_image_data()
 
         # stack centers of ref channel num_channels-1 times for easier calc in calc_forward_images
         cor_ref = np.concatenate((centers[0], np.ones((centers[0].shape[0], 1))), axis=1)
@@ -96,12 +116,17 @@ class PSFMultiChannel_smlm(PSFInterface):
         self.cor_other_channels = np.stack(centers[1:]).astype(np.float32)
            
         self.init_trafos = np.stack(init_trafos).astype(np.float32)
-
+        if partition_data:
+            Nfit = LL.shape[0]
+            for j,vars in enumerate(init_params):
+                for k,var in enumerate(vars):
+                    if var.shape[0] == Nfit:
+                        init_params[j][k] = var[rois_id]
                     
         param = map(list, zip(*init_params)) # a way to tranpose the first two dimensions of a list of iterateables
         param = [np.stack(var) for var in param]
         param[0] = param[0][0]
-
+        
         #param.insert(0,init_subpixel_pos_ref_channel.astype(np.float32))
         param.append(self.init_trafos)
         self.weight = np.ones((len(param)))
@@ -109,6 +134,9 @@ class PSFMultiChannel_smlm(PSFInterface):
         if hasattr(self.sub_psfs[0],'pos_weight'):
             self.weight[0] = self.sub_psfs[0].pos_weight
         param[-1] = param[-1]/self.weight[-1]
+        if partition_data:
+            param[0][:,0] = initz/self.weight[0]
+        
         return param, toc
 
 
@@ -146,6 +174,36 @@ class PSFMultiChannel_smlm(PSFInterface):
         positions = tf.concat((tf.expand_dims(init_subpixel_pos_ref_channel, axis=0), pos_other_channels), axis=0)
 
         return positions
+
+    def partitiondata(self,zf,LL):
+        _, rois, centers, frames = self.data.get_image_data()
+        Nchannel = len(rois)
+        Nfit = LL.shape[0]
+        nbin = self.options.insitu.partition_size[0]
+        count,edge = np.histogram(zf,nbin)
+        ind = np.digitize(zf,edge)
+        Npsf = self.options.insitu.partition_size[1]
+        rois1_avg = []
+        rois_id = np.array(range(0,Nfit))
+        rois1_id = []
+        
+        for ii in range(1,nbin+1):
+            mask = (ind==ii)
+            im1 = rois[0][mask]
+            Nslice = np.min((Npsf,np.sum(mask)))            
+            #indsample = list(np.random.choice(im1.shape[0],Nslice,replace=False))
+            indsample = np.argsort(-LL[mask])[0:Nslice]
+            rois1 = im1[indsample]
+            rois1_avg.append(np.mean(rois1,axis=0))
+            rois1_id.append(rois_id[mask][indsample])
+        rois1_avg = np.stack(rois1_avg)
+        rois1_id = np.concatenate(rois1_id,axis=0)
+        zf1 = zf[rois1_id]
+        for k in range(0,Nchannel):
+            self.data.channels[k].rois = rois[k][rois1_id]
+            self.data.channels[k].centers = centers[k][rois1_id]
+            self.data.channels[k].frames = frames[k][rois1_id]
+        return zf1,rois1_id, rois1_avg
 
     def postprocess(self, variables):
         """

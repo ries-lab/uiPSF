@@ -52,7 +52,7 @@ psf_fit = f.rois.psf_fit
 Nchannel = psf_data.shape[0]
 
 
-#%%
+#%
 if hasattr(f.res.channel0,'pupil'):
     fig = plt.figure(figsize=[4*Nchannel,4])
     for i in range(0,Nchannel):
