@@ -74,7 +74,7 @@ Params:
       symmetric_mag: false          # pupil magnitude is circular symmetric
       with_IMM: false
       init_pupil_file: ""
-      estimate_drift: false
+      estimate_drift: true
       var_photon: false
 
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type

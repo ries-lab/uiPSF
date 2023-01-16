@@ -11,7 +11,7 @@ maindatadir = io.param.load('../config/config_path.yaml').main_data_dir
 
 #%% load parameters
 L = psflearninglib()
-L.param = io.param.load('../config/config_insitu_M4.yaml').Params
+L.param = io.param.load('../config/config_zernike_M4.yaml').Params
 #L.param.datapath = maindatadir + L.param.datapath
 L.param.savename = L.param.datapath + L.param.savename
 images = L.load_data()

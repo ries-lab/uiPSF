@@ -93,7 +93,7 @@ if hasattr(f.res,'zernike_coeff'):
 psf_data = f.rois.psf_data
 psf_fit = f.rois.psf_fit
 
-ind1 = 10
+ind1 = 0
 im1 = psf_data[ind1]
 im2 = psf_fit[ind1]
 Nz = im1.shape[0]
@@ -123,6 +123,22 @@ plt.plot(f.locres.loc.z[0]*0.0,'r')
 ax.set_ylabel('z bias (nm)')
 ax.set_ylim([-40,40])
 
+#%%
+Nz = f.locres.loc.z.shape[1]
+fig = plt.figure(figsize=[16,4])
+ax = fig.add_subplot(1,3,1)
+plt.plot(f.locres.loc_FD.x.transpose()*p.pixel_size.x*1e3,'k',alpha=0.1)
+plt.plot(f.locres.loc_FD.x[0]*0.0,'r')
+ax.set_ylabel('x bias (nm)')
+ax = fig.add_subplot(1,3,2)
+plt.plot(f.locres.loc_FD.y.transpose()*p.pixel_size.y*1e3,'k',alpha=0.1)
+plt.plot(f.locres.loc_FD.y[0]*0.0,'r')
+ax.set_ylabel('y bias (nm)')
+ax = fig.add_subplot(1,3,3)
+plt.plot(np.transpose(f.locres.loc_FD.z-np.linspace(0,Nz-1,Nz))*p.pixel_size.z*1e3,'k',alpha=0.1)
+plt.plot(f.locres.loc_FD.z[0]*0.0,'r')
+ax.set_ylabel('z bias (nm)')
+ax.set_ylim([-40,40])
 
 plt.show()
 

@@ -106,63 +106,30 @@ class PSFPupilBased(PSFInterface):
         else:
             pupil = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*pupil_mag*self.aperture*self.apoid
 
-
         Nz = self.Zrange.shape[0]
-
         pos = tf.complex(tf.reshape(pos,pos.shape+(1,1,1)),0.0)
-                
         phiz = 1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
         if pos.shape[1]>3:
             phixy = 1j*2*np.pi*self.ky*pos[:,2]+1j*2*np.pi*self.kx*pos[:,3]
             phiz = 1j*2*np.pi*(self.kz_med*pos[:,1]-self.kz*(pos[:,0]-self.Zrange))
         else:
             phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
-            #IMMphase = 0.0
 
         PupilFunction = pupil*tf.exp(phiz+phixy)
-        IntermediateImage = tf.transpose(im.cztfunc(PupilFunction,self.paramx),perm=(0,1,3,2))
-        I_res = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,1,3,2))
-
-        
+        I_res = im.cztfunc1(PupilFunction,self.paramxy)
         I_res = I_res*tf.math.conj(I_res)*self.normf
 
-        #filter2 = tf.exp(-2*sigma*sigma*self.kspace)
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
-
-        filter2 = filter2/tf.reduce_max(filter2)
-        filter2 = tf.complex(filter2,0.0)
-
-        I_blur = im.ift3d(im.ft3d(I_res)*self.bead_kernel*filter2)
+        filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
+        I_blur = im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2)
         psf_fit = tf.math.real(I_blur)*intensities*self.weight[0]
         
         st = (self.bead_kernel.shape[0]-self.data.rois[0].shape[-3])//2
         psf_fit = psf_fit[:,st:Nz-st]
 
         if self.options.model.estimate_drift:
-            
-            Nz = psf_fit.shape[-3]
-            zv = np.expand_dims(np.linspace(0,Nz-1,Nz,dtype=np.float32)-Nz/2,axis=-1)
-            if self.data.skew_const:
-                sk = np.array([self.data.skew_const],dtype=np.float32)
-                #gxy = gxy*0.0 + sk
-                gxy = gxy*self.weight[2]
-                otf2d = im.ft(psf_fit,axes=[-1,-2])
-                otf2dphase = otf2d[0:1]
-                for i,g in enumerate(gxy):
-                    dxy = -sk*zv+tf.round(sk*zv)                    
-                    tmp = self.applyPhaseRamp(otf2d[i],dxy)
-                    otf2dphase = tf.concat((otf2dphase,tf.expand_dims(tmp,axis=0)),axis=0)
-            else:
-                gxy = gxy*self.weight[2]
-                otf2d = im.ft(psf_fit,axes=[-1,-2])
-                otf2dphase = otf2d[0:1]
-                for i,g in enumerate(gxy):
-                    dxy = g*zv
-                    
-                    tmp = self.applyPhaseRamp(otf2d[i],dxy)
-                    otf2dphase = tf.concat((otf2dphase,tf.expand_dims(tmp,axis=0)),axis=0)
-
-            psf_shift = tf.math.real(im.ift(otf2dphase[1:],axes=[-1,-2]))
+            gxy = gxy*self.weight[2]
+            psf_shift = self.applyDrfit(psf_fit,gxy)
             forward_images = psf_shift + backgrounds*self.weight[1]
         else:
             forward_images = psf_fit + backgrounds*self.weight[1]
@@ -179,9 +146,6 @@ class PSFPupilBased(PSFInterface):
         """
         positions, backgrounds, intensities, pupilR,pupilI,sigma,gxy = variables
         z_center = (self.Zrange.shape[-3] - 1) // 2
-        #z_center = 0
-        #pupil =  tf.complex(pupilR,pupilI)*self.weight[3]
-        #pupil_mag = self.aperture/np.sqrt(np.sum(self.aperture))
         pupil_mag = tf.complex(pupilR*self.weight[4],0.0)
         if self.initpupil is not None:
             pupil = self.initpupil
@@ -191,36 +155,21 @@ class PSFPupilBased(PSFInterface):
         phiz = 1j*2*np.pi*self.kz*self.Zrange
         PupilFunction = pupil*tf.exp(phiz)
 
-        IntermediateImage = tf.transpose(im.cztfunc(PupilFunction,self.paramx),perm=(0,2,1))
-        I_res = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,2,1))        
+        I_res = im.cztfunc1(PupilFunction,self.paramxy)      
         I_res = I_res*tf.math.conj(I_res)*self.normf
     
         I_res = np.real(I_res)
-        #filter2 = tf.exp(-2*sigma*sigma*self.kspace)
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
-
-        filter2 = filter2/tf.reduce_max(filter2)
-        filter2 = tf.complex(filter2,0.0)
+        filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
         I_model = np.real(im.ift3d(im.ft3d(I_res)*filter2))
         I_model_bead = np.real(im.ift3d(im.ft3d(I_res)*self.bead_kernel*filter2))
 
-        # calculate global positions in images since positions variable just represents the positions in the rois
         images, _, centers, _ = self.data.get_image_data()
-        original_shape = images.shape[-3:]
-        Nbead = centers.shape[0]
         if positions.shape[1]>3:
             global_positions = np.swapaxes(np.vstack((positions[:,0]+z_center,positions[:,1],centers[:,-2]-positions[:,-2],centers[:,-1]-positions[:,-1])),1,0)
-            #centers_with_z = np.concatenate((np.full((Nbead, 1), z_center),np.zeros((Nbead,1)), centers[:,-2:]), axis=1)
         else:
             global_positions = np.swapaxes(np.vstack((positions[:,0]+z_center,centers[:,-2]-positions[:,-2],centers[:,-1]-positions[:,-1])),1,0)
-            #centers_with_z = np.concatenate((np.full((Nbead, 1), z_center), centers[:,-2:]), axis=1)
 
-        # use modulo operator to get rid of periodicity from FFT shifting
-        #global_positions = centers_with_z - positions
-             
-        # make sure everything has correct dtype
-        # this is probably not needed anymore (see Fitter)
-        # but just left since it does no harm
         return [global_positions.astype(np.float32),
                 backgrounds*self.weight[1], # already correct
                 intensities*self.weight[0], # already correct

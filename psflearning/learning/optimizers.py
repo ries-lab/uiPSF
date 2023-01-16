@@ -392,9 +392,7 @@ class L_BFGS_B(OptimizerABC):
                     var1[k] = variables[k]
                     if i == 0:
                         grad[k] = 0.0
-
                     
-
             with tf.GradientTape() as tape:
                 tape.watch(var1)
                 loss1 = self.objective(var1,ind[i:i+2])

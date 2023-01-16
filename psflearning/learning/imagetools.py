@@ -282,72 +282,6 @@ def ROIcoords(center,asize,ndim=None):
     return tuple(slices)
 
 
-def ramp1D(mysize=256, ramp_dim=-1, placement='center', freq=None, pixelsize=None):
-    """
-    creates a 1D-ramp along only one dimension. The trailing dimension sizes are all one.
-
-    This guarantees a fast performance for functions such as rr, since the broadcasting features of Phython are going to deal with the other dimensions.
-
-    standart size is 256
-    placement:
-        center: 0 is at center
-                if x is even, it has one more value in the positve:
-                    e.g. size_x = 100 -> goes from -50 to 49
-                         size_x = 101 -> goes from -50 to 50
-        negative : goes from negative size_x to 0
-        positive : goes from 0 size_x to positive
-        freq : if "ftfreq" is given, the Fourier-space frequency scale (roughly -0.5 to 0.5) is used.
-        int number: is the index where the center is!
-    """
-    if isinstance(mysize, np.ndarray):
-        mysize = mysize.shape
-    if freq != None and not placement == 'center':
-        raise ValueError(
-            "ramp1D: Illegal placement: (" + placement + "). (freq=" + freq + ") argument can only be used with (center) placement.")
-    if placement == 'negative':
-        miniramp = np.arange(-mysize + 1, 1, 1)
-    elif placement == 'positive' or placement == 'corner':
-        miniramp = np.arange(0, mysize, 1)
-    elif placement == 'center':
-        miniramp = np.arange(-mysize // 2 + np.mod(mysize, 2), mysize // 2 + np.mod(mysize, 2), 1)
-    elif (type(placement) == int or type(placement) == float):
-        miniramp = np.arange(0, mysize, 1) - placement
-    else:
-        try:
-            if np.issubdtype(placement.dtype, np.number):
-                miniramp = np.arange(0, mysize, 1) - placement
-            else:
-                raise ValueError(
-                    'ramp: unknown placement value. allowed are negative, positive, corner, and center or an offset value as an np.number')
-        except AttributeError:
-            print(placement)
-            raise ValueError(
-                'ramp: unknown placement value. allowed are negative, positive, placement, and center or an offset value as an np.number')
-    if freq == "ftfreq":
-        miniramp = miniramp / mysize
-    elif freq == "ftradfreq":
-        miniramp = miniramp * 2.0 * np.pi / mysize
-    elif freq == "fftfreq":
-        miniramp = np.fft.fftfreq(mysize) # , pixelsize
-    elif freq == "rfftfreq":
-        miniramp = np.fft.rfftfreq(mysize) # , pixelsize
-    elif freq == "fftradfreq":
-        miniramp = np.fft.fftfreq(mysize,1.0 / 2.0 / np.pi) # pixelsize
-    elif freq == "rfftradfreq":
-        miniramp = np.fft.rfftfreq(mysize, 1.0 / 2.0 / np.pi) # pixelsize
-    elif not freq == None:
-        raise ValueError(
-            "unknown option for freq. Valid options are ftfreq, ftradfreq, fftfreq, rfftfreq, fftradfreq and rfftradfreq.")
-    #        miniramp=miniramp*(np.pi/(mysize//2))
-
-    if ramp_dim > 0:
-        miniramp = expanddim(miniramp, ramp_dim + 1, trailing=False)  # expands to this dimension numbe by inserting trailing axes. Also converts to
-    elif ramp_dim < -1:
-        miniramp = expanddim(miniramp, -ramp_dim, trailing=True)  # expands to this dimension numbe by inserting prevailing axes. Also converts to
-    
-    return miniramp
-
-
 
 def expanddim(img, ndims, trailing=None):
     """
@@ -370,70 +304,6 @@ def expanddim(img, ndims, trailing=None):
 
     return res
 
-
-def zz(mysize=(256, 256), placement='center', freq=None, pixelsize=None):
-    """
-    creates a ramp in z direction
-    standart size is 256 X 256
-    placement:
-        center: 0 is at cetner
-                if y is even, it has one more value in the positve:
-                    e.g. size_y = 100 -> goes from -50 to 49
-        negative : goes from negative size_y to 0
-        positvie : goes from 0 size_y to positive
-    """
-    myplacement=placement
-    if (type(placement) is list) or (type(placement) is np.array):
-        myplacement = placement[-3]
-    return (ramp(mysize, -3, myplacement, pixelsize=pixelsize))
-
-def ramp(mysize=(256, 256), ramp_dim=-1, placement='center', freq=None, shift=False, rftdir=-1, pixelsize=None):
-    """
-    creates a ramp in the given direction direction
-    standard size is 256 X 256
-    placement:
-        center: 0 is at center
-                if x is even, it has one more value in the positve:
-                    e.g. size_x = 100 -> goes from -50 to 49
-                         size_x = 101 -> goes from -50 to 50
-        negative : goes from negative size_x to 0
-        positive : goes from 0 size_x to positive
-        freq : if "freq" is given, the Fourier-space frequency scale (roughly -0.5 to 0.5) is used.
-        int number: is the index where the center is!
-    """
-    mysize = unifysize(mysize)
-
-    ndims = len(mysize)
-    if ramp_dim >= ndims:
-        raise ValueError(
-            "ramp dimension (" + str(ramp_dim) + ") has to be smaller than number of available dimensions (" + str(
-                ndims) + ") specified by the size vector")
-    if (-ramp_dim) > ndims:
-        raise ValueError(
-            "negative ramp dimension has to be smaller or equal than number of available dimensions specified by the size vector")
-    if ramp_dim >= 0:
-        ramp_dim = ramp_dim - ndims  # 0 in a 2D image should become -2
-    if rftdir >= 0:  # WHAT IS THIS??? CK 16.03.2019
-        rftdir = rftdir - ndims  # 0 in a 2D image should become -2
-
-    if freq == "rfreq" and ramp_dim != rftdir:  # CAREFUL: The frequency-based methods have sometimes already been pre-shifted.
-        freq = "freq"
-        mysize[rftdir] = (mysize[rftdir] + 1) // 2
-
-    myramp = ramp1D(mysize[ramp_dim], ramp_dim, placement, freq, pixelsize)
-    mysize[ramp_dim] = myramp.shape[ramp_dim]  # since the rfreq option changes the size
-
-    #    if freq=="rfreq" and ramp_dim==rftdir:  # CAREFUL: The frequency-based methods have sometimes already been pre-shifted.
-    #            myramp =  np.fft.fftshift(myramp)
-    if freq == "freq" and not shift:  # CAREFUL: The frequency-based methods have sometimes already been pre-shifted.
-        myramp = np.fft.fftshift(myramp)
-
-    res = ones(mysize)
-    res *= myramp
-
-
-  
-    return res
 
 
 def unifysize(mysize):
@@ -490,28 +360,6 @@ def castdimvec(mysize, ndims=None, wanteddim=0):
     return newshape
 
 
-def FreqRamp1D(length,  k, d):  # cossqr is not better
-    """
-    creates a one-dimensional frequency ramp oriented along direction d. It can optionally be softerend at the transition region  to the nearest full pixel frequency to yield a smooth transition.
-    :param length: length of the image to generate
-    :param k: k-vector along this dimension
-    :param d: dimension to orient it in
-    :param relwidth: width of the transition region
-    :param smooth: flag. If True, rounding to the nearest integer pixel will be applied
-    :param func: transition function
-    :param cornerFourier: If True, the phase ramp will be computed for a Fourier-layout in the corner. This is important when applying it to unshifted Fourier-space
-    :return: the complex valued frequency ramp
-
-    Example:
-    import NanoImagingPack as nip
-    a = nip.FreqRamp1D(100, 10, 12.3, -1)
-    """
-
-    res = k
-
-    myramp = ramp1D(length, ramp_dim=d, freq='ftfreq')
-    return np.exp(1j * 2 * np.pi * res * myramp)
-
 
 
 def zeros(s, dtype=None, order='C',  ax=None):
@@ -531,3 +379,6 @@ def dimToPositive(dimpos,ndims):
 
     """
     return dimpos+(dimpos<0)*ndims *ndims 
+
+
+

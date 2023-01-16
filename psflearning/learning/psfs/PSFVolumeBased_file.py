@@ -28,25 +28,16 @@ class PSFVolumeBased(PSFInterface):
         _, rois, _, _ = self.data.get_image_data()
 
         init_positions = np.zeros((rois.shape[0], len(rois.shape)-1))
-
-        # beacuse of using nip init_backgrounds would be of type image
-        # I prefer it to be a numpy array --> use np.array
-        # TODO: or maybe just use scipy.ndimage.filters.gaussian_filter if it works similarly
         init_backgrounds = np.array(np.min(gaussian_filter(rois, [0, 2, 2, 2]), axis=(-3, -2, -1), keepdims=True))
-        #init_intensities = np.max(rois - init_backgrounds, axis=(-3, -2, -1), keepdims=True)
         init_intensities = np.sum(rois - init_backgrounds, axis=(-2, -1), keepdims=True)
         init_intensities = np.mean(init_intensities,axis=1,keepdims=True)
-        # TODO: instead of using first roi as initial guess, use average
-        roi_avg = np.mean((rois - init_backgrounds),axis=0)
         
         N = rois.shape[0]
         Nz = rois.shape[-3]
-        #init_psf_params = roi_avg/np.mean(init_intensities)
-        
+        self.calpupilfield('scalar',Nz)
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
         self.weight = np.array([np.quantile(init_intensities,0.1), 10, 0.1, 0.1],dtype=np.float32)
-        #np.quantile(init_intensities,0.1)
-        init_psf_params = np.zeros(rois[0].shape)+0.002/self.weight[3]
+        init_psf_model = np.zeros(rois[0].shape)+0.002/self.weight[3]
         init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         gxy = np.zeros((N,2),dtype=np.float32) 
@@ -59,7 +50,7 @@ class PSFVolumeBased(PSFInterface):
         return [init_positions.astype(np.float32),
                 init_backgrounds.astype(np.float32),
                 init_Intensity.astype(np.float32),
-                init_psf_params.astype(np.float32),
+                init_psf_model.astype(np.float32),
                 gxy],start_time
         
     def calc_forward_images(self, variables):
@@ -70,36 +61,15 @@ class PSFVolumeBased(PSFInterface):
 
         pos, backgrounds, intensities, I_model, gxy = variables
 
-        #I_blur = im.ift3d(im.ft3d(I_model*self.weight[3])*self.bead_kernel)
-        I_otfs = im.ft3d(I_model*self.weight[3])*self.bead_kernel
-        #I_otfs = im.ft3d(I_blur)*tf.complex(intensities*0.0+1.0,0.0)
-        I_otfs = I_otfs*tf.complex(intensities*0.0+1.0,0.0)
-        I_res = im.ift3d(self.applyPhaseRamp(I_otfs,pos))*tf.complex(intensities*self.weight[0],0.0)  
+        I_model = tf.complex(I_model,0.0)
+        I_otfs = im.fft3d(I_model*self.weight[3])*self.bead_kernel*tf.complex(intensities*self.weight[0],0.0) 
+        pos = tf.complex(tf.reshape(pos,pos.shape+(1,1,1)),0.0)
+        I_res = im.ifft3d(I_otfs*self.phaseRamp(pos))
 
         psf_fit = tf.math.real(I_res)
         if self.options.model.estimate_drift:
-            psfsize = im.shapevec(I_model)
-            Nz = psfsize[0]
-            zv = np.expand_dims(np.linspace(0,Nz-1,Nz,dtype=np.float32)-Nz/2,axis=-1)
-            if self.data.skew_const:
-                sk = np.array([self.data.skew_const],dtype=np.float32)
-                gxy = gxy*self.weight[2]
-                otf2d = im.ft(psf_fit,axes=[-1,-2])
-                otf2dphase = otf2d[0:1]
-                for i,g in enumerate(gxy):
-                    dxy = -sk*zv+tf.round(sk*zv)                    
-                    tmp = self.applyPhaseRamp(otf2d[i],dxy)
-                    otf2dphase = tf.concat((otf2dphase,tf.expand_dims(tmp,axis=0)),axis=0)
-            else:
-                gxy = gxy*self.weight[2]
-                otf2d = im.ft(psf_fit,axes=[-1,-2])
-                otf2dphase = otf2d[0:1]
-                for i,g in enumerate(gxy):
-                    dxy = g*zv                    
-                    tmp = self.applyPhaseRamp(otf2d[i],dxy)
-                    otf2dphase = tf.concat((otf2dphase,tf.expand_dims(tmp,axis=0)),axis=0)
-
-            psf_shift = tf.math.real(im.ift(otf2dphase[1:],axes=[-1,-2]))
+            gxy = gxy*self.weight[2]
+            psf_shift = self.applyDrfit(psf_fit,gxy)
             forward_images = psf_shift + backgrounds*self.weight[1]
         else:
             forward_images = psf_fit + backgrounds*self.weight[1]
@@ -112,21 +82,14 @@ class PSFVolumeBased(PSFInterface):
         real positions in the image from the positions in the roi. Also, normalizes
         psf and adapts intensities and background accordingly.
         """
-        positions, backgrounds, intensities, psf_params,gxy = variables
-        I_model = psf_params*self.weight[3]
-        z_center = (psf_params.shape[-3] - 1) // 2
-        #z_center = 0
-        # calculate global positions in images since positions variable just represents the positions in the rois
+        positions, backgrounds, intensities, I_model,gxy = variables
+        I_model = I_model*self.weight[3]
+        z_center = (I_model.shape[-3] - 1) // 2
         images, _, centers, _ = self.data.get_image_data()
-        original_shape = images.shape[-3:]
         centers_with_z = np.concatenate((np.full((centers.shape[0], 1), z_center), centers[:,-2:]), axis=1)
 
-        # use modulo operator to get rid of periodicity from FFT shifting
         global_positions = centers_with_z - positions
             
-        # make sure everything has correct dtype
-        # this is probably not needed anymore (see Fitter)
-        # but just left since it does no harm
         return [global_positions.astype(np.float32),
                 backgrounds*self.weight[1], # already correct
                 intensities*self.weight[0], # already correct

@@ -59,6 +59,8 @@ class PSFInterface():
         if Nz is None:
             Nz = self.data.bead_kernel.shape[0]
         Lx = self.data.rois.shape[-1]        
+        Ly = self.data.rois.shape[-2]
+        Lz = self.data.rois.shape[-3]
         xsz =self.options.model.pupilsize
      
         xrange = np.linspace(-Lx/2+0.5,Lx/2-0.5,Lx)
@@ -77,8 +79,9 @@ class PSFInterface():
         nmed = self.options.imaging.RI.med
         ncov = self.options.imaging.RI.cov
         n_max = self.options.model.n_max
-        out = im.genZern(n_max,xsz)
-        Zk = out[0]        
+        Zk = im.genZern1(n_max,xsz)
+        #out = im.genZern(n_max,xsz)
+        #Zk = out[0]        
         #signm = out[-1]%2
         #signm[0] = 0
         #self.signm = np.reshape(signm,(len(signm),1,1)).astype(np.float32)
@@ -115,22 +118,26 @@ class PSFInterface():
         hy = sin_phi*pvec+cos_phi*svec
         h = np.concatenate((hx,hy),axis=0)
         if self.options.model.with_apoid:
-            apoid = 1/np.lib.scimath.sqrt(cos_med)/1.225
+            apoid = 1/np.lib.scimath.sqrt(cos_med)
         else:
             apoid = 1/np.lib.scimath.sqrt(1.0)
 
         imszx = Lx*pixelsize_x/2.0*NA/emission_wavelength
         imszy = Lx*pixelsize_y/2.0*NA/emission_wavelength
 
-        self.paramx = im.prechirpz(pupilradius,imszx,xsz,Lx)
-        self.paramy = im.prechirpz(pupilradius,imszy,xsz,Lx)
+        #self.paramx = im.prechirpz(pupilradius,imszx,xsz,Lx)
+        #self.paramy = im.prechirpz(pupilradius,imszy,xsz,Lx)
+        kpixelsize = 2.0*NA/emission_wavelength/xsz
+        self.paramxy = im.prechirpz1(kpixelsize,pixelsize_x,pixelsize_y,xsz,Lx)
 
         self.aperture = np.complex64(kr<1)
+        pupil = self.aperture*apoid
         if fieldtype=='scalar':
-            self.normf = np.complex64(((pixelsize_x*NA/emission_wavelength)**2)/3.0)
+            #self.normf = np.complex64(((pixelsize_x*NA/emission_wavelength)**2)/3.0)
+            self.normf = np.complex64(pixelsize_x*pixelsize_y/np.sum(pupil*tf.math.conj(pupil)*kpixelsize*kpixelsize))
         elif fieldtype=='vector':
-            self.normf = np.complex64(((pixelsize_x*NA/emission_wavelength)**2)/6.0)
-
+            #self.normf = np.complex64(((pixelsize_x*NA/emission_wavelength)**2)/6.0)
+            self.normf = np.complex64(pixelsize_x*pixelsize_y/np.sum(pupil*tf.math.conj(pupil)*kpixelsize*kpixelsize))
 
         
         self.Zrange = -1*np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.complex64).reshape((Nz,1,1))
@@ -144,6 +151,14 @@ class PSFInterface():
         self.nimm = nimm
         self.nmed = nmed
         self.Zk = np.float32(Zk)
+
+        # only for bead data, precompute phase ramp
+        self.zv = np.linspace(0,Lz-1,Lz,dtype=np.float32).reshape(Lz,1,1)-Lz/2
+        self.kxv = np.linspace(-Lx/2+0.5,Lx/2-0.5,Lx,dtype=np.float32)/Lx
+        self.kyv = (np.linspace(-Ly/2+0.5,Ly/2-0.5,Ly,dtype=np.float32).reshape(Ly,1))/Ly
+        self.kzv = (np.linspace(-Lz/2+0.5,Lz/2-0.5,Lz,dtype=np.float32).reshape(Lz,1,1))/Lz
+
+
 
     def applyPhaseRamp(self, img, shiftvec):
         """
@@ -162,6 +177,29 @@ class PSFInterface():
                 myshifts = tf.expand_dims(myshifts,-1)
             res = res * tf.exp(tf.complex(im.totensor(0.0), 2.0 * np.pi * myshifts * nip.ramp1D(myshape[-d], ramp_dim = -d, freq='ftfreq')))
         return res
+
+    def phaseRamp(self,pos):
+        if pos.shape[1]==2:
+            shiftphase = 1j*2*np.pi*(self.kxv*pos[:,1]+self.kyv*pos[:,0])
+        if pos.shape[1]==3:
+            shiftphase = 1j*2*np.pi*(self.kxv*pos[:,2]+self.kyv*pos[:,1]+self.kzv*pos[:,0])
+
+        return tf.exp(shiftphase)
+
+    def applyDrfit(self,psfin,gxy):
+        otf2d = im.fft2d(tf.complex(psfin,0.0))
+        if self.data.skew_const:
+            sk = np.array([self.data.skew_const],dtype=np.float32)+np.zeros(gxy.shape,dtype=np.float32)
+            sk = np.reshape(sk,sk.shape+(1,1,1))
+            dxy = tf.complex(-sk*self.zv+tf.round(sk*self.zv),0.0) 
+            shiftphase = self.phaseRamp(dxy)
+
+        else:
+            gxy = tf.complex(tf.reshape(gxy,gxy.shape+(1,1,1)),0.0)*self.zv
+            shiftphase = self.phaseRamp(gxy)
+        psf_shift = tf.math.real(im.ifft2d(otf2d*shiftphase))
+
+        return psf_shift
 
     def psf2IAB(self, ROIs):
         G = np.zeros(ROIs.shape, dtype = np.complex64)

@@ -35,12 +35,10 @@ class PSFVolumeBased4pi(PSFInterface):
         _, rois, _, _ = self.data.get_image_data() # TODO: check if file_idx are returned at all
 
         I_data, A_data, _, init_phi = self.psf2IAB(rois)
-        #I_data = np.sum(rois,axis=-4)/rois.shape[-4]
         #init_phi = np.reshape(init_phi,(I_data.shape[0],1,1,1))
         init_phi = np.zeros((I_data.shape[0],1,1,1))
         init_positions = np.zeros([I_data.shape[0],len(I_data.shape)-1]).astype(np.float32)               
         init_backgrounds = np.min(gaussian_filter(I_data, [0, 2, 2, 2]), axis=(-3, -2, -1), keepdims=True)
-        #init_intensities = np.max(I_data - init_backgrounds, axis=(-3, -2, -1), keepdims=True)
         init_intensities = np.sum(I_data - init_backgrounds, axis=(-2, -1), keepdims=True)     
         init_intensities = np.mean(init_intensities,axis=1,keepdims=True)  
 
@@ -51,12 +49,10 @@ class PSFVolumeBased4pi(PSFInterface):
         A1 = np.ones(I1.shape, dtype=np.float32)*(1+1j)*0.002/2/np.sqrt(2)/self.weight[3]    
         phase_dm = self.options.fpi.phase_dm
         phase = np.reshape(np.array(phase_dm)*-1,(len(phase_dm),1,1,1,1)).astype(np.float32)
-        #phase = np.reshape(np.array([2/3,0,-2/3])*np.pi,(3,1,1,1,1)).astype(np.float32)
-        #phase = np.reshape(np.array([0])*np.pi,(1,1,1,1,1)).astype(np.float32)
         N = rois.shape[0]
         Nz = rois.shape[-3]
-        Zphase = tf.cast(2*np.pi*nip.zz(I_data[0].shape),tf.float32)
-        self.Zphase = Zphase
+        self.calpupilfield('scalar',Nz)
+        self.Zphase = (np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.float32).reshape(Nz,1,1))*2*np.pi
         
         init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
@@ -92,43 +88,30 @@ class PSFVolumeBased4pi(PSFInterface):
         bg = variables[1]
         intensity_abs = variables[2]*self.weight[0]
         intensity_phase = tf.complex(tf.math.cos(variables[3]),tf.math.sin(variables[3]))
-        #intensity = intensity_abs*intensity_phase
         I_model = variables[4]*self.weight[3]        
         A_model = tf.complex(variables[5],variables[6])*self.weight[3]
         phase0 = tf.complex(tf.math.cos(variables[7]), tf.math.sin(variables[7]))
         Zphase = self.Zphase/self.zT  
         zphase = tf.complex(tf.math.cos(Zphase),tf.math.sin(Zphase))
         
-        I_otfs = im.ft3d(I_model)*tf.complex(intensity_abs*0.0+1.0,0.0)
-        I_res = im.ift3d(self.applyPhaseRamp(I_otfs,pos))    
+
+        I_model = tf.complex(I_model,0.0)
+        I_otfs = im.fft3d(I_model)*tf.complex(intensity_abs*0.0+1.0,0.0)
+        pos = tf.complex(tf.reshape(pos,pos.shape+(1,1,1)),0.0)
+        I_res = im.ifft3d(I_otfs*self.phaseRamp(pos))    
         I_res = tf.math.real(I_res)
    
-        A_otfs = im.ft3d(A_model*zphase)*intensity_phase
-        A_res = im.ift3d(self.applyPhaseRamp(A_otfs,pos))
+        A_otfs = im.fft3d(A_model*zphase)*intensity_phase
+        A_res = im.ifft3d(A_otfs*self.phaseRamp(pos))
 
         psf0 = (I_res)*tf.math.abs(phase0) + tf.math.real(A_res*phase0)*2
-        psf_otfs = im.ft3d(psf0)*tf.expand_dims(tf.expand_dims(self.bead_kernel,axis=0),axis=0)
-        psfmodel = tf.math.real(im.ift3d(psf_otfs)) * intensity_abs + bg*self.weight[1]
+        psf_otfs = im.fft3d(tf.complex(psf0,0.0))*tf.expand_dims(tf.expand_dims(self.bead_kernel,axis=0),axis=0)
+        psfmodel = tf.math.real(im.ifft3d(psf_otfs)) * intensity_abs + bg*self.weight[1]
 
         if self.options.model.estimate_drift:
-            psf_fit = tf.transpose(psfmodel,perm=[1,2,0,3,4]) 
-            psfsize = im.shapevec(I_model)
-            Nz = psfsize[0]
-            zv = np.expand_dims(np.linspace(0,Nz-1,Nz,dtype=np.float32)-Nz/2,axis=-1)
-
             gxy = variables[8]*self.weight[2]
-            otf2d = im.ft(psf_fit,axes=[-1,-2])
-            otf2dphase = otf2d[0:1]
-            for i,g in enumerate(gxy):
-                dxy = g*zv
-                
-                tmp = self.applyPhaseRamp(otf2d[i],dxy)
-                otf2dphase = tf.concat((otf2dphase,tf.expand_dims(tmp,axis=0)),axis=0)
-
-            psf_shift = tf.math.real(im.ift(otf2dphase[1:],axes=[-1,-2])) 
-
-
-            forward_images = tf.transpose(psf_shift, perm = [0,2,1,3,4]) 
+            psf_shift = self.applyDrfit(psfmodel,gxy)
+            forward_images = tf.transpose(psf_shift, perm = [1,0,2,3,4]) 
         else:
             forward_images = tf.transpose(psfmodel, perm = [1,0,2,3,4]) 
         return forward_images

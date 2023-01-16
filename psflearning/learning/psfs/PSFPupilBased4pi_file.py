@@ -62,8 +62,7 @@ class PSFPupilBased4pi(PSFInterface):
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
 
-        Zphase = tf.cast(2*np.pi*nip.zz((Nz,Lx,Lx)),tf.float32)
-        self.Zphase = Zphase
+        self.Zphase = (np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.float32).reshape(Nz,1,1))*2*np.pi
 
         self.zT = self.data.zT
         self.weight = np.array([np.median(init_intensities), 10, 0.1, 10,10,0.1],dtype=np.float32)
@@ -132,31 +131,25 @@ class PSFPupilBased4pi(PSFInterface):
         phixy_d = 1j*2*np.pi*self.ky*pos_d[:,1]+1j*2*np.pi*self.kx*pos_d[:,2]
 
         PupilFunction = (pupil1*tf.exp(-phiz)*intensity_phase + pupil2*tf.exp(phiz)*phase0)*tf.exp(phixy)
-        IntermediateImage = tf.transpose(im.cztfunc(PupilFunction,self.paramx),perm=(0,1,2,4,3))
-        I_m = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,1,2,4,3))
+        I_m = im.cztfunc1(PupilFunction,self.paramxy)   
         I_m = I_m*tf.math.conj(I_m)*self.normf/2.0
 
         PupilFunction1 = pupil1*tf.exp(-phiz)*tf.exp(phixy)
-        IntermediateImage = tf.transpose(im.cztfunc(PupilFunction1,self.paramx),perm=(0,1,3,2))
-        I1 = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,1,3,2))
+        I1 = im.cztfunc1(PupilFunction1,self.paramxy)   
         I1 = I1*tf.math.conj(I1)*self.normf/2.0
 
         PupilFunction2 = pupil2*tf.exp(phiz)*tf.exp(phixy)
-        IntermediateImage = tf.transpose(im.cztfunc(PupilFunction2,self.paramx),perm=(0,1,3,2))
-        I2 = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,1,3,2))
+        I2 = im.cztfunc1(PupilFunction2,self.paramxy)   
         I2 = I2*tf.math.conj(I2)*self.normf/2.0
 
         I_w = I1+I2
         alpha = tf.complex(alpha*self.weight[5],0.0)
         I_res = alpha*I_m + (1-alpha)*I_w
-        #I_res = I_m
-        #filter2 = tf.exp(-2*sigma*sigma*self.kspace)
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
 
-        filter2 = filter2/tf.reduce_max(filter2)
-        filter2 = tf.complex(filter2,0.0)
+        filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
         
-        I_blur = im.ift3d(im.ft3d(I_res)*self.bead_kernel*filter2)
+        I_blur = im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2)
         psf_fit = tf.math.real(I_blur)*intensity_abs*self.weight[0] + bg*self.weight[1]
         Nz = psf_fit.shape[-3]
         st = (self.bead_kernel.shape[0]-self.data.rois[0].shape[-3])//2
@@ -165,23 +158,9 @@ class PSFPupilBased4pi(PSFInterface):
         
 
         if self.options.model.estimate_drift:
-            psf_fit = tf.transpose(psf_fit,[1,2,0,3,4])
-            Nz = psf_fit.shape[-3]
-            
-            zv = np.expand_dims(np.linspace(0,Nz-1,Nz,dtype=np.float32)-Nz/2,axis=-1)
-
             gxy = gxy*self.weight[2]
-            otf2d = im.ft(psf_fit,axes=[-1,-2])
-            otf2dphase = otf2d[0:1]
-            for i,g in enumerate(gxy):
-                dxy = g*zv                
-                tmp = self.applyPhaseRamp(otf2d[i],dxy)
-                otf2dphase = tf.concat((otf2dphase,tf.expand_dims(tmp,axis=0)),axis=0)
-
-            psf_shift = tf.math.real(im.ift(otf2dphase[1:],axes=[-1,-2])) 
-
-
-            forward_images = tf.transpose(psf_shift, perm = [0,2,1,3,4]) 
+            psf_shift = self.applyDrfit(psf_fit,gxy)
+            forward_images = tf.transpose(psf_shift, perm = [1,0,2,3,4]) 
         else:
             forward_images = tf.transpose(psf_fit,[1,0,2,3,4])
         return forward_images
@@ -208,36 +187,30 @@ class PSFPupilBased4pi(PSFInterface):
         dxy = np.mean(pos_d,axis=0)
         phixy = 1j*2*np.pi*self.ky*dxy[1]+1j*2*np.pi*self.kx*dxy[2]
         PupilFunction = (pupil1*tf.exp(-phiz+phixy) + pupil2*tf.exp(phiz)*phase0)
-        IntermediateImage = tf.transpose(im.cztfunc(PupilFunction,self.paramx),perm=(0,1,3,2))
-        I_m = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,1,3,2))
+        I_m = im.cztfunc1(PupilFunction,self.paramxy)   
         I_m = I_m*tf.math.conj(I_m)*self.normf/2.0
 
         PupilFunction1 = pupil1*tf.exp(-phiz+phixy)
-        IntermediateImage = tf.transpose(im.cztfunc(PupilFunction1,self.paramx),perm=(0,2,1))
-        I1 = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,2,1))
+        I1 = im.cztfunc1(PupilFunction1,self.paramxy)   
         I1 = I1*tf.math.conj(I1)*self.normf/2.0
 
         PupilFunction2 = pupil2*tf.exp(phiz)
-        IntermediateImage = tf.transpose(im.cztfunc(PupilFunction2,self.paramx),perm=(0,2,1))
-        I2 = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,2,1))
+        I2 = im.cztfunc1(PupilFunction2,self.paramxy)   
         I2 = I2*tf.math.conj(I2)*self.normf/2.0
 
         I_w = I1+I2
         alpha = tf.complex(alpha*self.weight[5],0.0)
         
         I_res = alpha*I_m + (1-alpha)*I_w
-        #I_res = I_m
-        #filter2 = tf.exp(-2*sigma*sigma*self.kspace)
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
 
-        filter2 = filter2/tf.reduce_max(filter2)
-        filter2 = tf.complex(filter2,0.0)
+        filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
 
         Zphase = -self.Zphase/self.zT  
         zphase = tf.complex(tf.math.cos(Zphase),tf.math.sin(Zphase))
 
-        psf_model_bead = np.real(im.ift3d(im.ft3d(I_res)*self.bead_kernel*filter2))
-        psf_model = np.real(im.ift3d(im.ft3d(I_res)*filter2))
+        psf_model_bead = np.real(im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2))
+        psf_model = np.real(im.ifft3d(im.fft3d(I_res)*filter2))
         
         I_model,A_model,_,_ = self.psf2IAB(np.expand_dims(psf_model,axis=0))
         A_model = A_model[0]*zphase
@@ -251,11 +224,8 @@ class PSFPupilBased4pi(PSFInterface):
         # calculate global positions in images since positions variable just represents the positions in the rois
         images, _, centers, _ = self.data.get_image_data()
 
-        #centers_with_z = np.concatenate((np.full((centers.shape[0], 1), z_center), centers), axis=1)
-        #global_positions = centers_with_z - pos
         global_positions = np.swapaxes(np.vstack((pos[:,0]+z_center,centers[:,-2]-pos[:,-2],centers[:,-1]-pos[:,-1])),1,0)
 
-        #pos_d = 0
         return [global_positions.astype(np.float32), 
                 bg*self.weight[1], 
                 intensities, 

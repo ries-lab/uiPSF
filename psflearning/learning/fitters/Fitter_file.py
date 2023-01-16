@@ -369,7 +369,7 @@ class Fitter(FitterInterface):
             plt.plot(np.median(zdiff,axis=0),color='r')
             plt.plot(zg-zg,color='k')
             ax.set_ylabel('z bias')
-            ax.set_ylim([-0.1,0.1]/pz)
+            ax.set_ylim([-0.1,0.1]/np.array(pz))
 
         
         loc_FD = dict(x=xf,y=yf,z=zf)

@@ -78,7 +78,7 @@ Params:
       var_photon: false
 
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
-  PSFtype: insitu_zernike                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
+  PSFtype: insitu_pupil                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
   channeltype: single            # single, multi, 4pi
   datatype: smlm                 # bead, smlm
   

@@ -135,47 +135,22 @@ class PSFZernikeBased_FD(PSFInterface):
         phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
 
         PupilFunction = pupil*tf.exp(phiz+phixy)
-        IntermediateImage = tf.transpose(im.cztfunc(PupilFunction,self.paramx),perm=(0,1,3,2))
-        I_res = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,1,3,2))
-        
+        I_res = im.cztfunc1(PupilFunction,self.paramxy)
         I_res = I_res*tf.math.conj(I_res)*self.normf
 
-        #filter2 = tf.exp(-2*sigma*sigma*self.kspace)
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
 
-        filter2 = filter2/tf.reduce_max(filter2)
-        filter2 = tf.complex(filter2,0.0)
+        filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
 
-        I_blur = im.ift3d(im.ft3d(I_res)*self.bead_kernel*filter2)
+        I_blur = im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2)
         psf_fit = tf.math.real(I_blur)*intensities*self.weight[0]
         Nz = psf_fit.shape[-3]
         st = (self.bead_kernel.shape[0]-self.data.rois[0].shape[-3])//2
         psf_fit = psf_fit[:,st:Nz-st]
 
         if self.options.model.estimate_drift:
-            
-            Nz = psf_fit.shape[-3]
-            zv = np.expand_dims(np.linspace(0,Nz-1,Nz,dtype=np.float32)-Nz/2,axis=-1)
-            if self.data.skew_const:
-                sk = np.array([self.data.skew_const],dtype=np.float32)
-                gxy = gxy*self.weight[2] 
-                otf2d = im.ft(psf_fit,axes=[-1,-2])
-                otf2dphase = otf2d[0:1]
-                for i,g in enumerate(gxy):
-                    dxy = -sk*zv+tf.round(sk*zv)                    
-                    tmp = self.applyPhaseRamp(otf2d[i],dxy)
-                    otf2dphase = tf.concat((otf2dphase,tf.expand_dims(tmp,axis=0)),axis=0)
-            else:
-                gxy = gxy*self.weight[2]
-                otf2d = im.ft(psf_fit,axes=[-1,-2])
-                otf2dphase = otf2d[0:1]
-                for i,g in enumerate(gxy):
-                    dxy = g*zv
-                    
-                    tmp = self.applyPhaseRamp(otf2d[i],dxy)
-                    otf2dphase = tf.concat((otf2dphase,tf.expand_dims(tmp,axis=0)),axis=0)
-
-            psf_shift = tf.math.real(im.ift(otf2dphase[1:],axes=[-1,-2]))
+            gxy = gxy*self.weight[2]
+            psf_shift = self.applyDrfit(psf_fit,gxy)
             forward_images = psf_shift + backgrounds*self.weight[1]
         else:
             forward_images = psf_fit + backgrounds*self.weight[1]
@@ -219,24 +194,19 @@ class PSFZernikeBased_FD(PSFInterface):
         pupil_phase = tf.reduce_sum(self.Zk*Zcoeff2,axis=1,keepdims=True)
         pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
 
-        #filter2 = tf.exp(-2*sigma*sigma*self.kspace)
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
-
-        filter2 = filter2/tf.reduce_max(filter2)
-        filter2 = tf.complex(filter2,0.0)
+        filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
 
         phiz = 1j*2*np.pi*self.kz*self.Zrange
         PupilFunction = pupil*tf.exp(phiz)
-        IntermediateImage = tf.transpose(im.cztfunc(PupilFunction,self.paramx),perm=(0,1,3,2))
-        I_res = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,1,3,2))        
-        I_res = np.real(I_res*tf.math.conj(I_res)*self.normf)
-        I_model = np.real(im.ift3d(im.ft3d(I_res)*filter2))
+        I_res = im.cztfunc1(PupilFunction,self.paramxy)      
+        I_res = I_res*tf.math.conj(I_res)*self.normf
+        I_model = np.real(im.ifft3d(im.fft3d(I_res)*filter2))
 
         PupilFunction = pupil_avg*tf.exp(phiz)
-        IntermediateImage = tf.transpose(im.cztfunc(PupilFunction,self.paramx),perm=(0,2,1))
-        I_res = tf.transpose(im.cztfunc(IntermediateImage,self.paramy),perm=(0,2,1))        
-        I_res = np.real(I_res*tf.math.conj(I_res)*self.normf)
-        I_model_avg = np.real(im.ift3d(im.ft3d(I_res)*filter2))
+        I_res = im.cztfunc1(PupilFunction,self.paramxy)        
+        I_res = I_res*tf.math.conj(I_res)*self.normf
+        I_model_avg = np.real(im.ifft3d(im.fft3d(I_res)*filter2))
 
 
         # calculate global positions in images since positions variable just represents the positions in the rois

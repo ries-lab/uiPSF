@@ -91,27 +91,28 @@ plt.plot(imavg1[:,cc,:])
 plt.show()
 
 #%%
-fig = plt.figure(figsize=[16,8])
-for i in range(0,Nchannel):
-    ax = fig.add_subplot(2,4,i+1)
-    pupil_phase = np.angle(f.res['channel'+str(i)].pupil1)
-    plt.imshow(pupil_phase,cmap='bwr')
-    plt.axis('off')
-    ax = fig.add_subplot(2,4,i+5)
-    pupil_phase = np.angle(f.res['channel'+str(i)].pupil2)
-    plt.imshow(pupil_phase,cmap='bwr')
-    plt.axis('off')
+if hasattr(f.res.channel0,'pupil1'):
+    fig = plt.figure(figsize=[16,8])
+    for i in range(0,Nchannel):
+        ax = fig.add_subplot(2,4,i+1)
+        pupil_phase = np.angle(f.res['channel'+str(i)].pupil1)
+        plt.imshow(pupil_phase,cmap='bwr')
+        plt.axis('off')
+        ax = fig.add_subplot(2,4,i+5)
+        pupil_phase = np.angle(f.res['channel'+str(i)].pupil2)
+        plt.imshow(pupil_phase,cmap='bwr')
+        plt.axis('off')
 
-fig = plt.figure(figsize=[16,8])
-for i in range(0,Nchannel):
-    ax = fig.add_subplot(2,4,i+1)
-    pupil_mag = np.abs(f.res['channel'+str(i)].pupil1)
-    plt.imshow(pupil_mag,cmap='bwr',vmax=1.3,vmin=0.0)
-    plt.axis('off')
-    ax = fig.add_subplot(2,4,i+5)
-    pupil_mag = np.abs(f.res['channel'+str(i)].pupil2)
-    plt.imshow(pupil_mag,cmap='bwr',vmax=1.3,vmin=0.0)
-    plt.axis('off')
+    fig = plt.figure(figsize=[16,8])
+    for i in range(0,Nchannel):
+        ax = fig.add_subplot(2,4,i+1)
+        pupil_mag = np.abs(f.res['channel'+str(i)].pupil1)
+        plt.imshow(pupil_mag,cmap='bwr',vmax=1.3,vmin=0.0)
+        plt.axis('off')
+        ax = fig.add_subplot(2,4,i+5)
+        pupil_mag = np.abs(f.res['channel'+str(i)].pupil2)
+        plt.imshow(pupil_mag,cmap='bwr',vmax=1.3,vmin=0.0)
+        plt.axis('off')
 
 #
 if hasattr(f.res.channel0,'zernike_coeff_mag'):
