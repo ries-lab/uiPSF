@@ -459,10 +459,12 @@ class psflearninglib:
         iterN = self.param.option.insitu.repeat
         pz = self.param.pixel_size.z
         channeltype = self.param.channeltype
+        savename = self.param.savename
         for nn in range(0,iterN):
             if nn >0:
                 dataobj.resetdata()
             psfobj,fitter = self.learn_psf(dataobj,time=time)
+            self.param.savename = savename + str(nn)
             resfile = self.save_result(psfobj,dataobj,fitter)
             self.param.option.model.init_pupil_file = resfile
             self.param.option.insitu.min_photon = max([min_photon-nn*0.1,0.4])

@@ -21,8 +21,6 @@ L.getpsfclass()
 
 #%%
 dataobj = L.prep_data(images)
-
-#%%
 resfile = L.iterlearn_psf(dataobj,time=0)
 #%%
 #psfobj,fitter = L.learn_psf(dataobj,time=0)
@@ -52,7 +50,7 @@ plt.plot(pos[:,0],'.')
 plt.title('z')
 ax = fig.add_subplot(2,4,5)
 plt.plot(f.res.intensity,'.')
-plt.title('phton')
+plt.title('photon')
 ax = fig.add_subplot(2,4,6)
 plt.plot(f.res.bg,'.')
 plt.title('background')
@@ -109,14 +107,3 @@ for i,id in enumerate(zind):
 plt.show()
 
 
-
-   
-
-
-
-
-
-
-
-
-# %%

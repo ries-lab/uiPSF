@@ -41,7 +41,6 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         self.centers = []
         self.frames = []
         self.rois_available = False
-        self.bead_kernel = 1.0
         self.min_border_dist = None # needed in cut_new_rois()
         self.zT = None
         return
@@ -109,34 +108,6 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         self.centers = self.alldata['centers']
         self.frames = self.alldata['frames']
 
-    def gen_bead_kernel(self,pixelsize_x,pixelsize_y,pixelsize_z,bead_radius,isVolume = True):
-
-        xsz = self.rois.shape[-1]
-        if isVolume:
-            Nz = self.rois.shape[-3]
-        else:
-            Nz = self.rois.shape[-3]+np.int(bead_radius//pixelsize_z)*2+4
-        xrange = np.linspace(-xsz/2+0.5,xsz/2-0.5,xsz)+1e-6
-        zrange = np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz)
-        [xx,yy,zz] = np.meshgrid(xrange,xrange,zrange)
-        xx = np.swapaxes(xx,0,2)
-        yy = np.swapaxes(yy,0,2)
-        zz = np.swapaxes(zz,0,2)
-
-        pkx = 1/xsz/pixelsize_x
-        pky = 1/xsz/pixelsize_y
-        pkz = 1/Nz/pixelsize_z
-        if bead_radius>0:
-            Zk0 = np.sqrt((xx*pkx)**2+(yy*pky)**2+(zz*pkz)**2)*bead_radius
-            mu = 1.5
-            kernel = spf.jv(mu,2*np.pi*Zk0)/(Zk0**mu)*bead_radius**3
-            kernel = kernel/np.max(kernel)
-            kernel = np.float32(kernel)
-        else:
-            kernel = np.ones((Nz,xsz,xsz),dtype=np.float32)
-        self.bead_kernel = kernel
-
-        return 
 
     def remove_close_rois(self, rois, centers, min_dist):
         """
@@ -236,6 +207,5 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
             self.zT = modulation_period/pixelsize_z
 
 
-        self.gen_bead_kernel(pixelsize_x,pixelsize_y,pixelsize_z,bead_radius, isVolume=isVolume)
         return
 

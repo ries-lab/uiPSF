@@ -47,8 +47,9 @@ class PSFPupilBased4pi(PSFInterface):
         init_intensities = np.sum(I_data - init_backgrounds, axis=(-2, -1), keepdims=True)     
         init_intensities = np.mean(init_intensities,axis=1,keepdims=True)  
 
+        self.gen_bead_kernel()
         N = rois.shape[0]
-        Nz = self.data.bead_kernel.shape[0]
+        Nz = self.bead_kernel.shape[0]
         Lx = rois.shape[-1]
         xsz =self.options.model.pupilsize
         self.calpupilfield('scalar')
@@ -60,7 +61,6 @@ class PSFPupilBased4pi(PSFInterface):
         #    sigma = np.ones((1,))*self.options['gauss_filter_sigma']*np.pi
         
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
-        self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
 
         self.Zphase = (np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.float32).reshape(Nz,1,1))*2*np.pi
 
@@ -165,6 +165,43 @@ class PSFPupilBased4pi(PSFInterface):
             forward_images = tf.transpose(psf_fit,[1,0,2,3,4])
         return forward_images
 
+    def genpsfmodel(self,pupil1,pupil2,sigma,alpha):
+        phase0 = np.reshape(np.array([-2/3,0,2/3])*np.pi+self.dphase,(3,1,1,1)).astype(np.float32)
+        phase0 = tf.complex(tf.math.cos(phase0),tf.math.sin(phase0))
+
+        phiz = 1j*2*np.pi*self.kz*(self.Zrange)
+        PupilFunction = (pupil1*tf.exp(-phiz) + pupil2*tf.exp(phiz)*phase0)
+        I_m = im.cztfunc1(PupilFunction,self.paramxy)   
+        I_m = I_m*tf.math.conj(I_m)*self.normf/2.0
+
+        PupilFunction1 = pupil1*tf.exp(-phiz)
+        I1 = im.cztfunc1(PupilFunction1,self.paramxy)   
+        I1 = I1*tf.math.conj(I1)*self.normf/2.0
+
+        PupilFunction2 = pupil2*tf.exp(phiz)
+        I2 = im.cztfunc1(PupilFunction2,self.paramxy)   
+        I2 = I2*tf.math.conj(I2)*self.normf/2.0
+
+        I_w = I1+I2
+        
+        I_res = alpha*I_m + (1-alpha)*I_w
+        filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
+
+        filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
+
+        Zphase = -self.Zphase/self.zT  
+        zphase = tf.complex(tf.math.cos(Zphase),tf.math.sin(Zphase))
+
+        #psf_model_bead = np.real(im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2))
+        psf_model = np.real(im.ifft3d(im.fft3d(I_res)*filter2))
+        
+        I_model,A_model,_,_ = self.psf2IAB(np.expand_dims(psf_model,axis=0))
+        A_model = A_model[0]*zphase
+        #I_model_bead,A_model_bead,_,_ = self.psf2IAB(np.expand_dims(psf_model_bead,axis=0))
+        #A_model_bead = A_model_bead[0]*zphase
+
+        return psf_model[1], I_model[0], A_model
+
     def postprocess(self, variables):
         """
         Applies postprocessing to the optimized variables. In this case calculates
@@ -175,48 +212,13 @@ class PSFPupilBased4pi(PSFInterface):
         
         intensity_phase = tf.complex(tf.math.cos(intensity_phase),tf.math.sin(intensity_phase))
         intensities = intensity_abs*self.weight[0]*intensity_phase
-        phase0 = np.reshape(np.array([-2/3,0,2/3])*np.pi+self.dphase,(3,1,1,1)).astype(np.float32)
-        phase0 = tf.complex(tf.math.cos(phase0),tf.math.sin(phase0))
         
         pupil_mag1 = tf.complex(pupilR1*self.weight[4],0.0)
         pupil1 = tf.complex(tf.math.cos(pupilI1*self.weight[3]),tf.math.sin(pupilI1*self.weight[3]))*pupil_mag1*self.aperture*(2-self.apoid)
         pupil_mag2 = tf.complex(pupilR2*self.weight[4],0.0)
         pupil2 = tf.complex(tf.math.cos(pupilI2*self.weight[3]),tf.math.sin(pupilI2*self.weight[3]))*pupil_mag2*self.aperture*self.apoid
-
-        phiz = 1j*2*np.pi*self.kz*(self.Zrange)
-        dxy = np.mean(pos_d,axis=0)
-        phixy = 1j*2*np.pi*self.ky*dxy[1]+1j*2*np.pi*self.kx*dxy[2]
-        PupilFunction = (pupil1*tf.exp(-phiz+phixy) + pupil2*tf.exp(phiz)*phase0)
-        I_m = im.cztfunc1(PupilFunction,self.paramxy)   
-        I_m = I_m*tf.math.conj(I_m)*self.normf/2.0
-
-        PupilFunction1 = pupil1*tf.exp(-phiz+phixy)
-        I1 = im.cztfunc1(PupilFunction1,self.paramxy)   
-        I1 = I1*tf.math.conj(I1)*self.normf/2.0
-
-        PupilFunction2 = pupil2*tf.exp(phiz)
-        I2 = im.cztfunc1(PupilFunction2,self.paramxy)   
-        I2 = I2*tf.math.conj(I2)*self.normf/2.0
-
-        I_w = I1+I2
         alpha = tf.complex(alpha*self.weight[5],0.0)
-        
-        I_res = alpha*I_m + (1-alpha)*I_w
-        filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
-
-        filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
-
-        Zphase = -self.Zphase/self.zT  
-        zphase = tf.complex(tf.math.cos(Zphase),tf.math.sin(Zphase))
-
-        psf_model_bead = np.real(im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2))
-        psf_model = np.real(im.ifft3d(im.fft3d(I_res)*filter2))
-        
-        I_model,A_model,_,_ = self.psf2IAB(np.expand_dims(psf_model,axis=0))
-        A_model = A_model[0]*zphase
-        I_model_bead,A_model_bead,_,_ = self.psf2IAB(np.expand_dims(psf_model_bead,axis=0))
-        A_model_bead = A_model_bead[0]*zphase
-
+        psf_model, I_model, A_model = self.genpsfmodel(pupil1,pupil2,sigma,alpha)
         gxy = gxy*self.weight[2]
 
         z_center = (I_model.shape[-3]-1) // 2
@@ -229,7 +231,7 @@ class PSFPupilBased4pi(PSFInterface):
         return [global_positions.astype(np.float32), 
                 bg*self.weight[1], 
                 intensities, 
-                I_model[0], 
+                I_model, 
                 A_model, 
                 np.complex64(pupil1),
                 np.complex64(pupil2),

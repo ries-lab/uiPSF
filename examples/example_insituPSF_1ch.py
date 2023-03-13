@@ -11,8 +11,8 @@ maindatadir = io.param.load('../config/config_path.yaml').main_data_dir
 
 #%% load parameters
 L = psflearninglib()
-L.param = io.param.load('../config/config_zernike_M4.yaml').Params
-#L.param.datapath = maindatadir + L.param.datapath
+L.param = io.param.load('../config/config_insitu_tetrapod_yoav.yaml').Params
+L.param.datapath = maindatadir + L.param.datapath
 L.param.savename = L.param.datapath + L.param.savename
 images = L.load_data()
 
@@ -103,7 +103,9 @@ plt.show()
 
 
 
-   
+#%%
+[0.5215881 , 0.48724937]   #bin=1
+[0.4527834, 0.4128101]  #bin=2
 
 
 

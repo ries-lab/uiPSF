@@ -38,30 +38,26 @@ class PSFPupilBased_vector(PSFInterface):
             init_positions = np.zeros((rois.shape[0], len(rois.shape)-1))
 
         init_backgrounds = np.array(np.min(gaussian_filter(rois, [0, 2, 2, 2]), axis=(-3, -2, -1), keepdims=True))
-        #init_intensities = np.max(rois - init_backgrounds, axis=(-3, -2, -1), keepdims=True)
         init_intensitiesL = np.sum(rois - init_backgrounds, axis=(-2, -1), keepdims=True)
         init_intensities = np.mean(init_intensitiesL,axis=1,keepdims=True)
-        # TODO: instead of using first roi as initial guess, use average
-        roi_avg = np.mean((rois - init_backgrounds),axis=0)
         
+        self.gen_bead_kernel()
         N = rois.shape[0]
-        Nz = self.data.bead_kernel.shape[0]
+        Nz = self.bead_kernel.shape[0]
         Lx = rois.shape[-1]
         xsz =options.model.pupilsize
         
-        self.calpupilfield('vector')
+        self.calpupilfield('vector',Nz)
         self.const_mag = options.model.const_pupilmag
-        self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
-        self.weight = np.array([np.median(init_intensities), 10, 0.1, 10, 10],dtype=np.float32)
-        sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
+        #self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
+        self.weight = np.array([np.median(init_intensities), 10, 0.1, 10, 10, 1],dtype=np.float32)
+        sigma = np.ones((2,))*self.options.model.blur_sigma*self.options.model.bin*np.pi/self.weight[5]
 
         init_pupil = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
         init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         gxy = np.zeros((N,2),dtype=np.float32) 
-        st = (self.bead_kernel.shape[0]-self.data.rois[0].shape[-3])//2
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities
-        
         if options.model.var_photon:
             init_Intensity = gI/self.weight[0]
         else:
@@ -82,7 +78,6 @@ class PSFPupilBased_vector(PSFInterface):
 
         pos, backgrounds, intensities, pupilR, pupilI, sigma, gxy = variables
 
-
         if self.const_mag:
             pupil_mag = tf.complex(1.0,0.0)
         else:
@@ -93,33 +88,29 @@ class PSFPupilBased_vector(PSFInterface):
         else:
             pupil = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*pupil_mag*self.aperture*self.apoid
        
-
         pos = tf.complex(tf.reshape(pos,pos.shape+(1,1,1)),0.0)
-
         phiz = 1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
-        
-
         if pos.shape[1]>3:
             phixy = 1j*2*np.pi*self.ky*pos[:,2]+1j*2*np.pi*self.kx*pos[:,3]
             phiz = 1j*2*np.pi*(self.kz_med*pos[:,1]-self.kz*(pos[:,0]-self.Zrange))
-
         else:
             phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
 
         I_res = 0.0
-        for h in self.dipole_field:
+        for k,h in enumerate(self.dipole_field):
             PupilFunction = pupil*tf.exp(phiz+phixy)*h
             psfA = im.cztfunc1(PupilFunction,self.paramxy)     
             I_res += psfA*tf.math.conj(psfA)*self.normf
-        
 
+        bin = self.options.model.bin
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
-
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
-
         I_blur = im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2)
-        
-        psf_fit = tf.math.real(I_blur)*intensities*self.weight[0]
+        I_blur = tf.expand_dims(tf.math.real(I_blur),axis=-1)
+        kernel = np.ones((1,bin,bin,1,1),dtype=np.float32)
+        I_blur_bin = tf.nn.convolution(I_blur,kernel,strides=(1,1,bin,bin,1),padding='SAME',data_format='NDHWC')
+
+        psf_fit = I_blur_bin[...,0]*intensities*self.weight[0]
         Nz = psf_fit.shape[-3]
         st = (self.bead_kernel.shape[0]-self.data.rois[0].shape[-3])//2
         psf_fit = psf_fit[:,st:Nz-st]
@@ -134,7 +125,28 @@ class PSFPupilBased_vector(PSFInterface):
         return forward_images
 
 
+    def genpsfmodel(self,sigma,pupil):
 
+        phiz = 1j*2*np.pi*self.kz*self.Zrange
+        I_res = 0.0
+        for k,h in enumerate(self.dipole_field):
+            PupilFunction = pupil*tf.exp(phiz)*h
+            psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+            I_res += psfA*tf.math.conj(psfA)*self.normf
+    
+
+        bin = self.options.model.bin
+        filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
+
+        filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
+        I_blur = im.ifft3d(im.fft3d(I_res)*filter2)       
+        I_blur = tf.expand_dims(tf.math.real(I_blur),axis=-1)
+        kernel = np.ones((bin,bin,1,1),dtype=np.float32)
+        I_model = tf.nn.convolution(I_blur,kernel,strides=(1,bin,bin,1),padding='SAME',data_format='NHWC')
+        I_model = I_model[...,0]
+
+        return I_model
+    
     def postprocess(self, variables):
         """
         Applies postprocessing to the optimized variables. In this case calculates
@@ -149,20 +161,8 @@ class PSFPupilBased_vector(PSFInterface):
         else:
             pupil = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*pupil_mag*self.aperture*self.apoid
 
-        phiz = 1j*2*np.pi*self.kz*self.Zrange
-        I_res = 0.0
-        for h in self.dipole_field:
-            PupilFunction = pupil*tf.exp(phiz)*h
-            psfA = im.cztfunc1(PupilFunction,self.paramxy)      
-            I_res += psfA*tf.math.conj(psfA)*self.normf
-    
-
-
-        filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
-
-        filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
-        I_model = np.real(im.ifft3d(im.fft3d(I_res)*filter2))
-        I_model_bead = np.real(im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2))
+        I_model = self.genpsfmodel(sigma,pupil)
+        #I_model_bead = np.real(im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2))
         # calculate global positions in images since positions variable just represents the positions in the rois
         images, _, centers, _ = self.data.get_image_data()
         original_shape = images.shape[-3:]

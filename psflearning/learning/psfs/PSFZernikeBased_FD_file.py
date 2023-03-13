@@ -33,18 +33,13 @@ class PSFZernikeBased_FD(PSFInterface):
 
         init_positions = np.zeros((rois.shape[0], len(rois.shape)-1))
 
-        # beacuse of using nip init_backgrounds would be of type image
-        # I prefer it to be a numpy array --> use np.array
-        # TODO: or maybe just use scipy.ndimage.filters.gaussian_filter if it works similarly
         init_backgrounds = np.array(np.min(gaussian_filter(rois, [0, 2, 2, 2]), axis=(-3, -2, -1), keepdims=True))
-        #init_intensities = np.max(rois - init_backgrounds, axis=(-3, -2, -1), keepdims=True)
         init_intensitiesL = np.sum(rois - init_backgrounds, axis=(-2, -1), keepdims=True)
         init_intensities = np.mean(init_intensitiesL,axis=1,keepdims=True)
-        # TODO: instead of using first roi as initial guess, use average
-        roi_avg = np.mean((rois - init_backgrounds),axis=0)
         
+        self.gen_bead_kernel()
         N = rois.shape[0]
-        Nz = self.data.bead_kernel.shape[0]
+        Nz = self.bead_kernel.shape[0]
         Lx = rois.shape[-1]
      
         imsz = self.data.image_size
@@ -60,7 +55,6 @@ class PSFZernikeBased_FD(PSFInterface):
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
 
         
-        self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
         self.weight = np.array([np.median(init_intensities), 10, 0.1, 1],dtype=np.float32)
         Zmap = np.zeros((2,self.Zk.shape[0])+xx1.shape,dtype = np.float32)
         Zmap[0,0] = 1.0/self.weight[3]
@@ -69,10 +63,10 @@ class PSFZernikeBased_FD(PSFInterface):
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         gxy = np.zeros((N,2),dtype=np.float32) 
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities
-        st = (self.bead_kernel.shape[0]-self.data.rois[0].shape[-3])//2
-        gI[:,st:Nz-st] = init_intensitiesL
-        gI[:,0:st] = np.abs(np.min(init_intensitiesL[:,0]))
-        gI[:,-st:] = np.abs(np.min(init_intensitiesL[:,-1]))
+        # st = (self.bead_kernel.shape[0]-self.data.rois[0].shape[-3])//2
+        # gI[:,st:Nz-st] = init_intensitiesL
+        # gI[:,0:st] = np.abs(np.min(init_intensitiesL[:,0]))
+        # gI[:,-st:] = np.abs(np.min(init_intensitiesL[:,-1]))
         
         if self.options.model.var_photon:
             init_Intensity = gI/self.weight[0]
@@ -157,42 +151,28 @@ class PSFZernikeBased_FD(PSFInterface):
 
         return forward_images
 
+    def genpsfmodel(self,sigma,Zmap=None,cor=None,pupil=None):
+        Zcoeff = None
+        if pupil is None:
+            imsz = self.data.image_size
+            Zcoeff1 = [None] * Zmap.shape[-3]
+            Zcoeff2 = [None] * Zmap.shape[-3]
+            
+            for i in range(0,Zmap.shape[-3]):
+                Zcoeff1[i] = tfp.math.batch_interp_regular_nd_grid(cor,[0,0],imsz[-2:],Zmap[0,i],axis=-2)
+                Zcoeff2[i] = tfp.math.batch_interp_regular_nd_grid(cor,[0,0],imsz[-2:],Zmap[1,i],axis=-2)
 
 
+            Zcoeff1 = tf.transpose(tf.stack(Zcoeff1),perm=(1,0))
+            Zcoeff1 = tf.reshape(Zcoeff1,Zcoeff1.shape+(1,1))
+            Zcoeff2 = tf.transpose(tf.stack(Zcoeff2),perm=(1,0))
+            Zcoeff2 = tf.reshape(Zcoeff2,Zcoeff2.shape+(1,1))
 
-    def postprocess(self, variables):
-        """
-        Applies postprocessing to the optimized variables. In this case calculates
-        real positions in the image from the positions in the roi. Also, normalizes
-        psf and adapts intensities and background accordingly.
-        """
-        positions, backgrounds, intensities, Zmap,sigma,gxy = variables
-        z_center = (self.Zrange.shape[-3] - 1) // 2
-        #z_center = 0
-        c1 = self.spherical_terms
-        imsz = self.data.image_size
-        Zcoeff1 = [None] * Zmap.shape[-3]
-        Zcoeff2 = [None] * Zmap.shape[-3]
-        Zmap = Zmap*self.weight[3]
-        cor = np.float32(self.data.centers)
-        for i in range(0,Zmap.shape[-3]):
-            Zcoeff1[i] = tfp.math.batch_interp_regular_nd_grid(cor[:,-2:],[0,0],imsz[-2:],Zmap[0,i],axis=-2)
-            Zcoeff2[i] = tfp.math.batch_interp_regular_nd_grid(cor[:,-2:],[0,0],imsz[-2:],Zmap[1,i],axis=-2)
+            Zcoeff = tf.stack([Zcoeff1,Zcoeff2])
 
-
-        Zcoeff1 = tf.transpose(tf.stack(Zcoeff1),perm=(1,0))
-        Zcoeff1 = tf.reshape(Zcoeff1,Zcoeff1.shape+(1,1))
-        Zcoeff2 = tf.transpose(tf.stack(Zcoeff2),perm=(1,0))
-        Zcoeff2 = tf.reshape(Zcoeff2,Zcoeff2.shape+(1,1))
-
-        pupil_mag = tf.reduce_sum(self.Zk*Zcoeff1,axis=(0,1))/Zcoeff1.shape[0]
-        pupil_phase = tf.reduce_sum(self.Zk*Zcoeff2,axis=(0,1))/Zcoeff2.shape[0]
-        pupil_avg = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
-
-
-        pupil_mag = tf.abs(tf.reduce_sum(self.Zk*Zcoeff1,axis=1,keepdims=True))
-        pupil_phase = tf.reduce_sum(self.Zk*Zcoeff2,axis=1,keepdims=True)
-        pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
+            pupil_mag = tf.reduce_sum(self.Zk*Zcoeff1,axis=-3,keepdims=True)
+            pupil_phase = tf.reduce_sum(self.Zk*Zcoeff2,axis=-3,keepdims=True)
+            pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
 
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
@@ -203,11 +183,30 @@ class PSFZernikeBased_FD(PSFInterface):
         I_res = I_res*tf.math.conj(I_res)*self.normf
         I_model = np.real(im.ifft3d(im.fft3d(I_res)*filter2))
 
-        PupilFunction = pupil_avg*tf.exp(phiz)
-        I_res = im.cztfunc1(PupilFunction,self.paramxy)        
-        I_res = I_res*tf.math.conj(I_res)*self.normf
-        I_model_avg = np.real(im.ifft3d(im.fft3d(I_res)*filter2))
+        return I_model, Zcoeff, pupil
 
+    def postprocess(self, variables):
+        """
+        Applies postprocessing to the optimized variables. In this case calculates
+        real positions in the image from the positions in the roi. Also, normalizes
+        psf and adapts intensities and background accordingly.
+        """
+        positions, backgrounds, intensities, Zmap,sigma,gxy = variables
+        z_center = (self.Zrange.shape[-3] - 1) // 2
+
+        Zmap = Zmap*self.weight[3]
+        cor = np.float32(self.data.centers)
+
+        Nbead = positions.shape[0]
+    
+        
+        I_model, Zcoeff, pupil = self.genpsfmodel(sigma,Zmap,cor[:,-2:])
+
+        pupil_mag = tf.reduce_sum(self.Zk*Zcoeff[0],axis=(0,1))/Nbead
+        pupil_phase = tf.reduce_sum(self.Zk*Zcoeff[1],axis=(0,1))/Nbead
+        pupil_avg = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
+
+        I_model_avg, _, _ = self.genpsfmodel(sigma,pupil=pupil_avg)
 
         # calculate global positions in images since positions variable just represents the positions in the rois
         images, _, centers, _ = self.data.get_image_data()
@@ -228,7 +227,7 @@ class PSFZernikeBased_FD(PSFInterface):
                 I_model,
                 np.complex64(pupil),
                 Zmap,
-                np.stack([Zcoeff1,Zcoeff2]),    
+                Zcoeff,    
                 sigma,           
                 gxy*self.weight[2],
                 variables] # already correct

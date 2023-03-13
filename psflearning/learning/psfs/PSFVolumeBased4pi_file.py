@@ -41,8 +41,8 @@ class PSFVolumeBased4pi(PSFInterface):
         init_backgrounds = np.min(gaussian_filter(I_data, [0, 2, 2, 2]), axis=(-3, -2, -1), keepdims=True)
         init_intensities = np.sum(I_data - init_backgrounds, axis=(-2, -1), keepdims=True)     
         init_intensities = np.mean(init_intensities,axis=1,keepdims=True)  
+        self.gen_bead_kernel(isVolume=True)
 
-        self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
         self.zT = self.data.zT
         self.weight = np.array([np.quantile(init_intensities,0.1), 20, 0.1, 0.1],dtype=np.float32)
         I1 = np.zeros(I_data[0].shape,dtype=np.float32)+0.002 / self.weight[3]
@@ -60,8 +60,6 @@ class PSFVolumeBased4pi(PSFInterface):
         gxy = np.zeros((N,2),dtype=np.float32) 
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities
  
-
-
         if self.options.model.var_photon:
             init_Intensity = gI/self.weight[0]
         else:
@@ -133,18 +131,13 @@ class PSFVolumeBased4pi(PSFInterface):
         A_model = (variables[5] + 1j*variables[6])*self.weight[3]
         phase = variables[7]
         gxy = variables[8]*self.weight[2]
-
         z_center = I_model.shape[-3] // 2
 
         # calculate global positions in images since positions variable just represents the positions in the rois
         images, _, centers, _ = self.data.get_image_data()
 
         centers_with_z = np.concatenate((np.full((centers.shape[0], 1), z_center), centers), axis=1)
-
-
         global_positions = centers_with_z - positions
-
-
         return [global_positions, backgrounds, intensities, I_model, A_model, phase,gxy,variables]
 
     

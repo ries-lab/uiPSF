@@ -3,13 +3,13 @@
 # that would be reasonable to set to the repo dir
 Params:
   # ------data specific parameters, should be updated for different data
-  datapath: E:/EMBL files/data for PSF learning/insitu data/210122_Ulf_1C3D_M2/beadstacks/                  # full path to your data
-  keyword: Pos1                 # keyword for your data file, used for automatic finding files with the same keyword
-  savename: E:/EMBL files/data for PSF learning/insitu data/210122_Ulf_1C3D_M2/beadstacks/psfmodel            # full path to your result foder/filename
-  subfolder: Pos1                 # keyword for subfolder name if each bead data is saved in a individual folder
+  datapath: E:/EMBL files/data 2022/230202_Nup96SNAP_NC_M2/beads_30ms_conventional/30ms_conventional/                  # full path to your data
+  keyword: Pos                 # keyword for your data file, used for automatic finding files with the same keyword
+  savename: E:/EMBL files/data 2022/230202_Nup96SNAP_NC_M2/beads_30ms_conventional/30ms_conventional/psfmodel            # full path to your result foder/filename
+  subfolder: Pos                 # keyword for subfolder name if each bead data is saved in a individual folder
   format: .tif                  # .mat, .tif, .czi
   stage_mov_dir: normal         # normal, reverse: normal direction is where stage move towards the object when taking a z-stack bead data
-  gain: 0.01
+  gain: 1
   ccd_offset: 400
   roi:
     roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
@@ -20,14 +20,14 @@ Params:
     bead_radius: 0.0            # unit: micron
   pixel_size:                   # unit: micron
     x: 0.127
-    y: 0.127
+    y: 0.116
     z: 0.05
   FOV:                           # define FOV for bead selection, if x_center, y_center, radius are 0, select the full FOV
-    y_center: 0
-    x_center: 0
-    radius: 0
-    z_start: 0
-    z_end: 0
+    y_center: 150
+    x_center: 380
+    radius: 100
+    z_start: 20
+    z_end: -20
     z_step: 5
 
 
@@ -76,9 +76,10 @@ Params:
       init_pupil_file: ""
       estimate_drift: false
       var_photon: true
+      bin: 2
 
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
-  PSFtype: zernike_vector                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
+  PSFtype: pupil_vector                 # voxel, zernike, pupil, zernike_vector, pupil_vector, insitu
   channeltype: single            # single, multi, 4pi
   datatype: bead                 # bead, smlm
   
@@ -96,10 +97,10 @@ Params:
   rej_threshold:                 # threshold for ourlier removal after initial learning, which are relative values or quantile for insitu PSF
     bias_z: 3
     mse: 3
-    photon: 1.5
+    photon: 0.2
   
   usecuda: true                  # for spline localization
-  plotall: false
+  plotall: true
   ref_channel: 0                 # index of the reference channel, for multi-channel system
   batch_size: 2000               # maximum number of beads or emitters to be optimized at one time
   iteration: 200                 # number of iterations for learning

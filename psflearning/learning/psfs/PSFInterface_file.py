@@ -3,6 +3,7 @@ import pickle
 
 import numpy as np
 import tensorflow as tf
+import scipy.special as spf
 
 from ..data_representation.PreprocessedImageDataInterface_file import PreprocessedImageDataInterface
 from .. import utilities as im
@@ -57,9 +58,10 @@ class PSFInterface():
 
     def calpupilfield(self,fieldtype,Nz=None):
         if Nz is None:
-            Nz = self.data.bead_kernel.shape[0]
-        Lx = self.data.rois.shape[-1]        
-        Ly = self.data.rois.shape[-2]
+            Nz = self.bead_kernel.shape[0]
+        bin = self.options.model.bin
+        Lx = self.data.rois.shape[-1]*bin        
+        Ly = self.data.rois.shape[-2]*bin
         Lz = self.data.rois.shape[-3]
         xsz =self.options.model.pupilsize
      
@@ -71,8 +73,8 @@ class PSFInterface():
         self.kspace_x = np.float32(pkx*pkx)
         self.kspace_y = np.float32(pky*pky)
 
-        pixelsize_x = self.data.pixelsize_x
-        pixelsize_y = self.data.pixelsize_y
+        pixelsize_x = self.data.pixelsize_x/bin
+        pixelsize_y = self.data.pixelsize_y/bin
         NA = self.options.imaging.NA
         emission_wavelength = self.options.imaging.emission_wavelength
         nimm = self.options.imaging.RI.imm
@@ -80,11 +82,6 @@ class PSFInterface():
         ncov = self.options.imaging.RI.cov
         n_max = self.options.model.n_max
         Zk = im.genZern1(n_max,xsz)
-        #out = im.genZern(n_max,xsz)
-        #Zk = out[0]        
-        #signm = out[-1]%2
-        #signm[0] = 0
-        #self.signm = np.reshape(signm,(len(signm),1,1)).astype(np.float32)
 
         n1 = np.array(range(-1,n_max,2))
         self.spherical_terms = (n1+1)*(n1+2)//2
@@ -153,11 +150,51 @@ class PSFInterface():
         self.Zk = np.float32(Zk)
 
         # only for bead data, precompute phase ramp
+        Lx = self.data.rois.shape[-1]      
+        Ly = self.data.rois.shape[-2]
+        Lz = self.data.rois.shape[-3]
+
         self.zv = np.linspace(0,Lz-1,Lz,dtype=np.float32).reshape(Lz,1,1)-Lz/2
         self.kxv = np.linspace(-Lx/2+0.5,Lx/2-0.5,Lx,dtype=np.float32)/Lx
         self.kyv = (np.linspace(-Ly/2+0.5,Ly/2-0.5,Ly,dtype=np.float32).reshape(Ly,1))/Ly
         self.kzv = (np.linspace(-Lz/2+0.5,Lz/2-0.5,Lz,dtype=np.float32).reshape(Lz,1,1))/Lz
 
+
+    def gen_bead_kernel(self,isVolume = False):
+        pixelsize_z = self.data.pixelsize_z
+        bead_radius = self.data.bead_radius
+        if isVolume:
+            Nz = self.data.rois.shape[-3]
+            bin = 1
+        else:
+            Nz = self.data.rois.shape[-3]+np.int(bead_radius//pixelsize_z)*2+4
+            bin = self.options.model.bin
+        
+        Lx = self.data.rois.shape[-1]*bin
+        pixelsize_x = self.data.pixelsize_x/bin
+        pixelsize_y = self.data.pixelsize_y/bin
+
+        xrange = np.linspace(-Lx/2+0.5,Lx/2-0.5,Lx)+1e-6
+        zrange = np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz)
+        [xx,yy,zz] = np.meshgrid(xrange,xrange,zrange)
+        xx = np.swapaxes(xx,0,2)
+        yy = np.swapaxes(yy,0,2)
+        zz = np.swapaxes(zz,0,2)
+
+        pkx = 1/Lx/pixelsize_x
+        pky = 1/Lx/pixelsize_y
+        pkz = 1/Nz/pixelsize_z
+        if bead_radius>0:
+            Zk0 = np.sqrt((xx*pkx)**2+(yy*pky)**2+(zz*pkz)**2)*bead_radius
+            mu = 1.5
+            kernel = spf.jv(mu,2*np.pi*Zk0)/(Zk0**mu)*bead_radius**3
+            kernel = kernel/np.max(kernel)
+            kernel = np.float32(kernel)
+        else:
+            kernel = np.ones((Nz,Lx,Lx),dtype=np.float32)
+        self.bead_kernel = tf.complex(kernel,0.0)
+
+        return 
 
 
     def applyPhaseRamp(self, img, shiftvec):

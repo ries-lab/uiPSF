@@ -3,14 +3,14 @@
 # that would be reasonable to set to the repo dir
 Params:
   # ------data specific parameters, should be updated for different data
-  datapath: E:/EMBL files/data for PSF learning/insitu data/210121_Ulf_M2_U2OS_Nup96_BG-AF647_638i100_100ms_EM200-10_637-37_1/                  # full path to your data
+  datapath: E:/EMBL files/data 2022/230202_Nup96SNAP_NC_M2/Nup96SNAP_BME_i50SM_ex100_NC_1                 # full path to your data
   keyword: Default.                 # keyword for your data file, used for automatic finding files with the same keyword
-  savename: E:/EMBL files/data for PSF learning/insitu data/210121_Ulf_M2_U2OS_Nup96_BG-AF647_638i100_100ms_EM200-10_637-37_1/psfmodel_iter            # full path to your result foder/filename
+  savename: E:/EMBL files/data 2022/230202_Nup96SNAP_NC_M2/Nup96SNAP_BME_i50SM_ex100_NC_1/psfmodel_iter            # full path to your result foder/filename
   subfolder: ""                 # keyword for subfolder name if each bead data is saved in a individual folder
   format: .tif                  # .mat, .tif, .czi
   stage_mov_dir: normal         # normal, reverse: normal direction is where stage move towards the object when taking a z-stack bead data
-  gain: 0.01
-  ccd_offset: 400
+  gain: 0.2
+  ccd_offset: 398.6
   roi:
     roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [4,4]          # blur kernel size, corresponding to dimensions defined in roi_size
@@ -20,7 +20,7 @@ Params:
     bead_radius: 0.0            # unit: micron
   pixel_size:                   # unit: micron
     x: 0.127
-    y: 0.127
+    y: 0.116
     z: 0.05
   FOV:                           # define FOV for bead selection, if x_center, y_center, radius are 0, select the full FOV
     y_center: 0
@@ -37,11 +37,10 @@ Params:
     channel_arrange: up-down     # up-down, left-right
   fpi:                           # parameters only for 4pi systems
     modulation_period: 0.26      # unit: micron
-    phase_dm: [2,0,-2]           # unit: radian
   LLS:                           # parameters only for lattice light-sheet psfs
     skew_const: [0,0]            # unit: pixel
   insitu:               
-    frame_range: [1000,3000]     # set the frames to be loaded
+    frame_range: [0,3000]     # set the frames to be loaded
 
   option:                         # mainly for pupil and zernike, insitu  learning
     imaging:                       
@@ -52,7 +51,7 @@ Params:
         cov: 1.516
       NA: 1.43
     insitu:
-      stage_pos: 1.2               # 0 at the coverslip, positive when move towards the coverslip
+      stage_pos: 0.5               # 0 at the coverslip, positive when move towards the coverslip
       min_photon: 0.4              # quantile for rejecting low photon emitters
       partition_data: true
       partition_size: [21,100]     # number of z segments, maximum number of emitter per segment
@@ -61,24 +60,26 @@ Params:
       z_range: 2.0                 # unit: micron, z range of insitu psf model
       zkorder_rank: L             # L, H: searching range of zernike coefficient (4,21), (21,45)    
       var_stagepos: true
-      repeat: 2
+      repeat: 3
     fpi:
       link_zernikecoeff: true
+      phase_dm: [2,0,-2]           # unit: radian
     model:
       pupilsize: 64                # unit: pixel
       n_max: 8                     # maximum zernike order
       zernike_nl: []
       blur_sigma: 0.5              # unit: pixel
       with_apoid: true
-      const_pupilmag: true
-      symmetric_mag: true          # pupil magnitude is circular symmetric
+      const_pupilmag: false
+      symmetric_mag: false          # pupil magnitude is circular symmetric
       with_IMM: false
       init_pupil_file: ""
       estimate_drift: false
       var_photon: false
+      bin: 2
 
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
-  PSFtype: insitu_zernike                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
+  PSFtype: insitu_pupil                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
   channeltype: single            # single, multi, 4pi
   datatype: smlm                 # bead, smlm
   
@@ -99,7 +100,7 @@ Params:
     photon: 1.5
   
   usecuda: true                  # for spline localization
-  plotall: false
+  plotall: true
   ref_channel: 0                 # index of the reference channel, for multi-channel system
   batch_size: 2000               # maximum number of beads or emitters to be optimized at one time
   iteration: 200                 # number of iterations for learning

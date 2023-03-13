@@ -46,11 +46,6 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
 
         return
     
-    def gen_bead_kernel(self,pixelsize_x,pixelsize_y,pixelsize_z,bead_radius, isVolume=True):
-        for channel in self.channels:
-            channel.gen_bead_kernel(pixelsize_x,pixelsize_y,pixelsize_z,bead_radius, isVolume=isVolume)
-        
-        return
 
     def cut_new_rois(self, channel, centers, file_idxs, roi_shape=None, min_border_dist=None):
         """
@@ -189,7 +184,6 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
         if pixelsize_y is None:
             pixelsize_y = pixelsize_x
         self.pixelsize_y = pixelsize_y
-        self.gen_bead_kernel(pixelsize_x,pixelsize_y,pixelsize_z,bead_radius,isVolume)
 
         if modulation_period is not None:
             for channel in self.channels:
