@@ -1,0 +1,26 @@
+  
+  format: .mat                 # .mat, .tif, .czi
+  pixel_size:                   # unit: micron
+    x: 0.11
+    y: 0.11
+  roi:
+    roi_size: [31,31]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
+    gauss_sigma: [12,12]          # blur kernel size, corresponding to dimensions defined in roi_size
+    max_kernel: [13,13]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
+  
+  insitu:               
+    frame_range: []     # set the frames to be loaded, only for .tif format
+
+  option:   
+    imaging:                       
+      emission_wavelength: 0.67    # unit: micron
+      RI: 
+        imm: 1.518
+        med: 1.33
+        cov: 1.518
+      NA: 1.45
+    insitu:
+      zernike_index: [12]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
+      zernike_coeff: [-2]         # for initial pupil, value corresponding to the zernike index 
+      partition_size: [31,100]     # number of z segments, maximum number of emitter per segment
+      z_range: 4.0                 # unit: micron, z range of insitu psf model

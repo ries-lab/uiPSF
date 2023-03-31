@@ -5,7 +5,7 @@ Params:
   # ------data specific parameters, should be updated for different data
   datapath: /insitu data/from Yoav/3D STORM TP/converted/                  # full path to your data
   keyword: data                 # keyword for your data file, used for automatic finding files with the same keyword
-  savename: test_iter_fix_            # full path to your result foder/filename
+  savename: test_iter_abs_            # full path to your result foder/filename
   subfolder: ''                 # keyword for subfolder name if each bead data is saved in a individual folder
   format: .mat                  # .mat, .tif, .czi
   stage_mov_dir: normal         # normal, reverse: normal direction is where stage move towards the object when taking a z-stack bead data
@@ -52,7 +52,7 @@ Params:
         cov: 1.518
       NA: 1.45
     insitu:
-      stage_pos: 4              # 0 at the coverslip, positive when move towards the coverslip
+      stage_pos: 2.3              # 0 at the coverslip, positive when move towards the coverslip
       min_photon: 0.7             # quantile for rejecting low photon emitters
       partition_data: true
       partition_size: [31,100]     # number of z segments, maximum number of emitter per segment
@@ -60,7 +60,7 @@ Params:
       zernike_coeff: [-2]         # for initial pupil, value corresponding to the zernike index 
       z_range: 4.0                 # unit: micron, z range of insitu psf model
       zkorder_rank: L             # L, H: searching range of zernike coefficient (4,21), (21,45)    
-      var_stagepos: false
+      var_stagepos: true
       repeat: 10
     fpi:
       link_zernikecoeff: true
@@ -71,7 +71,7 @@ Params:
       blur_sigma: 0.5              # unit: pixel
       with_apoid: true
       const_pupilmag: true
-      symmetric_mag: true
+      symmetric_mag: false
       with_IMM: false
       init_pupil_file: ''
       estimate_drift: false

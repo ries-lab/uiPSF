@@ -15,8 +15,8 @@ Params:
     roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [2,2]          # blur kernel size, corresponding to dimensions defined in roi_size
     max_kernel: [3,3]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
-    peak_height: 0.7            # relative to maximum bead intensity, bead intensity below which are rejected
-    max_bead_number: 100        # ignored by insitu PSF learning
+    peak_height: 0.3            # relative to maximum bead intensity, bead intensity below which are rejected
+    max_bead_number: 40        # ignored by insitu PSF learning
     bead_radius: 0.0            # unit: micron
   pixel_size:                   # unit: micron
     x: 0.127
@@ -79,7 +79,7 @@ Params:
       bin: 2
 
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
-  PSFtype: pupil_vector                 # voxel, zernike, pupil, zernike_vector, pupil_vector, insitu
+  PSFtype: zernike_vector                 # voxel, zernike, pupil, zernike_vector, pupil_vector, insitu
   channeltype: single            # single, multi, 4pi
   datatype: bead                 # bead, smlm
   
@@ -90,17 +90,17 @@ Params:
     edge: 0.01
     psf_min: 1
     bg_min: 1
-    photon_min: 0.000001
+    photon_min: 1
     Inorm: 0
     gxy_min: 10
   
   rej_threshold:                 # threshold for ourlier removal after initial learning, which are relative values or quantile for insitu PSF
     bias_z: 3
     mse: 3
-    photon: 0.2
+    photon: 1.5
   
   usecuda: true                  # for spline localization
-  plotall: true
+  plotall: false
   ref_channel: 0                 # index of the reference channel, for multi-channel system
   batch_size: 2000               # maximum number of beads or emitters to be optimized at one time
   iteration: 200                 # number of iterations for learning

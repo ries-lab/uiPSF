@@ -108,7 +108,7 @@ class psflearninglib:
             psfmulticlass = None
         elif channeltype == 'multi':
             psfclass = PSF_DICT[PSFtype]
-            if (PSFtype == 'insitu_zernike') or (PSFtype == 'insitu_zernike'):
+            if (PSFtype == 'insitu_zernike') or (PSFtype == 'insitu_pupil'):
                 psfmulticlass = PSFMultiChannel_smlm
             else:
                 psfmulticlass = PSFMultiChannel
@@ -382,7 +382,12 @@ class psflearninglib:
                     psfobj.initpupil = np.array(f['res']['pupil'])
                 except:
                     pass
+                try:
+                    psfobj.Zoffset = np.array(f['res']['zoffset'])
+                except:
+                    pass
                 psfobj.initpsf = np.array(f['res']['I_model']).astype(np.float32)
+                
             else:
                 Nchannels = len(dataobj.channels)
                 psfobj.initpupil = [None]*Nchannels
@@ -390,6 +395,10 @@ class psflearninglib:
                 for k in range(0,Nchannels):
                     try:
                         psfobj.initpupil[k] = np.array(f['res']['channel'+str(k)]['pupil'])
+                    except:
+                        pass
+                    try:
+                        psfobj.sub_psfs[k].Zoffset = np.array(f['res']['channel'+str(k)]['zoffset'])
                     except:
                         pass
                     psfobj.initpsf[k] = np.array(f['res']['channel'+str(k)]['I_model']).astype(np.float32)
@@ -484,18 +493,18 @@ class psflearninglib:
                     plt.show()
             else:
                 self.param.option.insitu.stage_pos = float(res['channel0']['stagepos'])
-                
-                for j in range(0,len(dataobj.channels)):
-                    I_model = res['channel'+str(j)]['I_model']
-                    Nz = I_model.shape[-3]
-                    zind = range(0,Nz,4)
-                
-                    fig = plt.figure(figsize=[3*len(zind),3])
-                    for i,id in enumerate(zind):
-                        ax = fig.add_subplot(1,len(zind),i+1)
-                        plt.imshow(I_model[id],cmap='twilight')
-                        plt.axis('off')
-                plt.show()
+                if self.param.plotall:
+                    for j in range(0,len(dataobj.channels)):
+                        I_model = res['channel'+str(j)]['I_model']
+                        Nz = I_model.shape[-3]
+                        zind = range(0,Nz,4)
+
+                        fig = plt.figure(figsize=[3*len(zind),3])
+                        for i,id in enumerate(zind):
+                            ax = fig.add_subplot(1,len(zind),i+1)
+                            plt.imshow(I_model[id],cmap='twilight')
+                            plt.axis('off')
+                    plt.show()
 
         
         return resfile

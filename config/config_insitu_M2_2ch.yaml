@@ -6,7 +6,7 @@ Params:
   datapath: 190910_u2os_course_96_WGA_3D_M2/                  # full path to your data
   keyword: Pos0.                 # keyword for your data file, used for automatic finding files with the same keyword
   savename: psfmodel_iter            # full path to your result foder/filename
-  subfolder: ritu                 # keyword for subfolder name if each bead data is saved in a individual folder
+  subfolder: ''                 # keyword for subfolder name if each bead data is saved in a individual folder
   format: .tif                  # .mat, .tif, .czi
   stage_mov_dir: normal         # normal, reverse: normal direction is where stage move towards the object when taking a z-stack bead data
   gain: 0.1
@@ -15,12 +15,12 @@ Params:
     roi_size: [19,19]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [4,4]          # blur kernel size, corresponding to dimensions defined in roi_size
     max_kernel: [5,5]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
-    peak_height: 0.2            # relative to maximum bead intensity, bead intensity below which are rejected
+    peak_height: 0.1            # relative to maximum bead intensity, bead intensity below which are rejected
     max_bead_number: 100        # ignored by insitu PSF learning
     bead_radius: 0.0            # unit: micron
   pixel_size:                   # unit: micron
     x: 0.127
-    y: 0.127
+    y: 0.116
     z: 0.05
   FOV:                           # define FOV for bead selection, if x_center, y_center, radius are 0, select the full FOV
     y_center: 0
@@ -60,7 +60,7 @@ Params:
       zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 
       z_range: 2.0                 # unit: micron, z range of insitu psf model
       zkorder_rank: L             # L, H: searching range of zernike coefficient (4,21), (21,45)    
-      var_stagepos: false
+      var_stagepos: true
       repeat: 2
     fpi:
       link_zernikecoeff: true

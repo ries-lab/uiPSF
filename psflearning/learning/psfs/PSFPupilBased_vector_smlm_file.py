@@ -23,7 +23,7 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         self.options = options
         self.default_loss_func = mse_real_pupil_smlm
         self.pos_weight = 1
-
+        self.Zoffset = None
         return
 
     def calc_initials(self, data: PreprocessedImageDataInterface, start_time=None):
@@ -40,12 +40,16 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         if hasattr(self,'initpsf'):
             I_init = self.initpsf
             Nz = I_init.shape[0]
-            self.calpupilfield('vector', Nz)
+            if self.Zoffset is None:
+                self.estzoffset(Nz)
+            self.calpupilfield('vector', Nz,'insitu')
+            self.Zrange -=self.Zrange[0]-self.Zoffset
         elif not options.insitu.zernike_index:
+            self.estzoffset()
             I_init = self.estzernike(start_time=start_time)
         else:
-            Nz = np.int32(options.insitu.z_range/self.data.pixelsize_z+1)
-            self.calpupilfield('vector', Nz)
+            self.estzoffset()
+            self.Zrange -=self.Zrange[0]-self.Zoffset
             init_sigma = np.ones((2,),dtype=np.float32)*options.model.blur_sigma*np.pi
             init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
             init_Zcoeff[0,0,0,0] = 1
@@ -79,7 +83,7 @@ class PSFPupilBased_vector_smlm(PSFInterface):
 
         init_positions = np.zeros((rois.shape[0], 3))
        
-        init_positions[:,0] = initz
+        init_positions[:,0] = initz+np.real(self.Zoffset)
         init_backgrounds = np.array(np.min(gaussian_filter(rois, [0, 2, 2]), axis=(-2, -1), keepdims=True))
         init_intensities = np.sum(rois - init_backgrounds, axis=(-2, -1), keepdims=True)
                                        
@@ -89,7 +93,7 @@ class PSFPupilBased_vector_smlm(PSFInterface):
             self.n_max_mag = 100
 
         
-        self.weight = np.array([np.median(init_intensities), 10, 20, 10, 10, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
+        self.weight = np.array([np.median(init_intensities), 10, 5, 10, 10, 5],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi*self.options.model.bin
         self.pos_weight = self.weight[2]
 
@@ -151,10 +155,26 @@ class PSFPupilBased_vector_smlm(PSFInterface):
 
         return forward_images
 
+    def estzoffset(self,Nz=None):
+        if Nz is None:
+            Nz = np.int32(self.options.insitu.z_range/self.data.pixelsize_z+1)
+        self.calpupilfield('vector', Nz,'insitu')
+        self.Zrange += self.stagepos*self.options.imaging.RI.med/self.options.imaging.RI.imm
+        if self.Zrange[0]<0:
+            self.Zrange -=self.Zrange[0]
+        init_sigma = np.ones((2,),dtype=np.float32)*self.options.model.blur_sigma*np.pi
+        init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
+        init_Zcoeff[0,0,0,0] = 1
+        I_init = self.genpsfmodel(init_sigma,Zcoeff=init_Zcoeff)
+        ccz = np.argmax(np.max(I_init,axis=(-1,-2)))
+        self.Zrange += self.Zrange[ccz]-self.Zrange[Nz//2]
+        if self.Zrange[0]<0:
+            self.Zrange -=self.Zrange[0]
+        self.Zoffset = self.Zrange[0]
+
+        return
 
     def estzernike(self,start_time = None):
-        Nz = np.int32(self.options.insitu.z_range/self.data.pixelsize_z+1)
-        self.calpupilfield('vector', Nz)
         pixelsize_z = np.array(self.data.pixelsize_z)
         init_sigma = np.ones((2,),dtype=np.float32)*self.options.model.blur_sigma*np.pi
 
@@ -164,8 +184,9 @@ class PSFPupilBased_vector_smlm(PSFInterface):
             zkrange = range(21,45)
         else:
             zkrange = range(4,21)
+        coeffamp = np.abs(self.options.insitu.zernike_coeff)
         for k in zkrange:
-            for val in [-0.5,0.5]:
+            for val in [-coeffamp,coeffamp]:
                 init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
                 init_Zcoeff[0,0,0,0] = 1
                 init_Zcoeff[1,k,0,0] = val
@@ -192,7 +213,7 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         if stagepos is None:
             stagepos = self.stagepos
 
-        zrange = -self.Zrange+self.Zrange[0]
+        zrange = self.Zrange
         phiz = 1j*2*np.pi*(self.kz_med*zrange-self.kz*stagepos)  
         phixy = 1j*2*np.pi*self.ky*0.0+1j*2*np.pi*self.kx*0.0
         I_res = 0.0
@@ -257,7 +278,6 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         pupil = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*pupil_mag*self.aperture*self.apoid
         pupil_real = [pupilR*self.weight[4],pupilI*self.weight[3]]
         stagepos = stagepos*self.weight[5]
-        
         I_model = self.genpsfmodel(sigma,stagepos=stagepos,pupil=pupil)
         # calculate global positions in images since positions variable just represents the positions in the rois
         images, _, centers, _ = self.data.get_image_data()
@@ -288,6 +308,7 @@ class PSFPupilBased_vector_smlm(PSFInterface):
                         offset=np.min(res[3]),
                         zernike_polynomial = self.Zk,
                         apodization = self.apoid,
+                        zoffset = self.Zoffset,
                         cor_all = self.data.alldata['centers'],
                         cor = self.data.centers)
 
