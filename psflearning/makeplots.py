@@ -14,16 +14,24 @@ def showlearnedparam(f,p):
         photon = f.res.channel0.intensity.transpose()
         bg = f.res.channel0.bg
         drift = f.res.channel0.drift_rate
+    if p.channeltype == '4pi':
+        phi = np.angle(f.res.channel0.intensity)
+        photon = np.abs(f.res.channel0.intensity)
+
     fig = plt.figure(figsize=[16,8])
     ax = fig.add_subplot(2,4,1)
-    plt.plot(pos[:,1]-cor[:,0])
-    plt.title('y')
-    ax = fig.add_subplot(2,4,2)
     plt.plot(pos[:,2]-cor[:,1])
     plt.title('x')
+    ax = fig.add_subplot(2,4,2)
+    plt.plot(pos[:,1]-cor[:,0])
+    plt.title('y')
     ax = fig.add_subplot(2,4,3)
     plt.plot(pos[:,0])
     plt.title('z')
+    if p.channeltype == '4pi':
+        ax = fig.add_subplot(2,4,4)
+        plt.plot(phi)
+        ax.set_title('phi')
     ax = fig.add_subplot(2,4,5)
     plt.plot(photon)
     plt.title('photon')
@@ -81,7 +89,7 @@ def showpupil(f,p):
 
         plt.imshow(np.angle(pupil))
         plt.title('pupil phase')
-    else:
+    elif p.channeltype == 'multi':
         Nchannel = f.rois.psf_data.shape[0]
         fig = plt.figure(figsize=[4*Nchannel,4])
         for i in range(0,Nchannel):
@@ -97,7 +105,32 @@ def showpupil(f,p):
             plt.imshow(pupil_phase)
             plt.axis('off')
             plt.title('pupil phase ' + str(i))
-
+    elif p.channeltype == '4pi':
+        Nchannel = f.rois.psf_data.shape[0]
+        fig = plt.figure(figsize=[16,8])
+        for i in range(0,Nchannel):
+            ax = fig.add_subplot(2,4,i+1)
+            pupil_mag = np.abs(f.res['channel'+str(i)].pupil1)
+            plt.imshow(pupil_mag)
+            plt.axis('off')
+            plt.title('top pupil magnitude ' + str(i))
+            ax = fig.add_subplot(2,4,i+5)
+            pupil_mag = np.abs(f.res['channel'+str(i)].pupil2)
+            plt.imshow(pupil_mag)
+            plt.axis('off')
+            plt.title('bottom pupil magnitude ' + str(i))
+        fig = plt.figure(figsize=[16,8])
+        for i in range(0,Nchannel):
+            ax = fig.add_subplot(2,4,i+1)
+            pupil_phase = np.angle(f.res['channel'+str(i)].pupil1)
+            plt.imshow(pupil_phase)
+            plt.axis('off')
+            plt.title('top pupil phase ' + str(i))
+            ax = fig.add_subplot(2,4,i+5)
+            pupil_phase = np.angle(f.res['channel'+str(i)].pupil2)
+            plt.imshow(pupil_phase)
+            plt.axis('off')
+            plt.title('bottom pupil phase ' + str(i))
     return
 
 def showzernike(f,p):
@@ -120,7 +153,7 @@ def showzernike(f,p):
         plt.imshow(pupil_mag)
         ax = fig.add_subplot(1,2,2)
         plt.imshow(pupil_phase)
-    else:
+    elif p.channeltype == 'multi':
         Nchannel = f.rois.psf_data.shape[0]
         fig = plt.figure(figsize=[6*Nchannel,6])
         ax1 = fig.add_subplot(2,2,1)
@@ -152,6 +185,60 @@ def showzernike(f,p):
             plt.imshow(pupil_phase)
             plt.axis('off')
             plt.title('pupil phase ' + str(i))
+    elif p.channeltype == '4pi':
+        Nchannel = f.rois.psf_data.shape[0]
+        fig = plt.figure(figsize=[16,8])
+        ax1 = fig.add_subplot(2,2,1)
+        ax2 = fig.add_subplot(2,2,2)
+        ax3 = fig.add_subplot(2,2,3)
+        ax4 = fig.add_subplot(2,2,4)
+        for i in range(0,Nchannel):
+        
+            line, = ax1.plot(f.res['channel'+str(i)].zernike_coeff_mag[0],'.-')    
+            ax2.plot(f.res['channel'+str(i)].zernike_coeff_phase[0],'.-')
+            ax2.set_ylim((-0.6,0.6))
+            ax3.plot(f.res['channel'+str(i)].zernike_coeff_mag[1],'.-')
+            ax4.plot(f.res['channel'+str(i)].zernike_coeff_phase[1],'.-')
+            ax4.set_ylim((-0.6,0.6))
+            ax3.set_xlabel('zernike polynomial')
+            ax3.set_ylabel('coefficient')
+            ax1.set_title('top pupil magnitude')
+            ax2.set_title('top pupil phase')
+            ax3.set_title('bottom pupil magnitude')
+            ax4.set_title('bottom pupil phase')
+            line.set_label('channel '+str(i))
+            ax1.legend()
+
+        aperture=np.float32(np.abs(f.res.channel0.pupil1)>0.0)
+        Zk = f.res.channel0.zernike_polynomial
+        fig = plt.figure(figsize=[16,8])
+        for i in range(0,Nchannel):
+            ax = fig.add_subplot(2,4,i+1)
+            pupil_mag = np.sum(Zk*f.res['channel'+str(i)].zernike_coeff_mag[0].reshape((-1,1,1)),axis=0)*aperture
+            plt.imshow(pupil_mag)
+            plt.axis('off')
+            plt.title('top pupil magnitude ' + str(i))
+            ax = fig.add_subplot(2,4,i+5)
+            pupil_mag = np.sum(Zk*f.res['channel'+str(i)].zernike_coeff_mag[1].reshape((-1,1,1)),axis=0)*aperture
+            plt.imshow(pupil_mag)
+            plt.axis('off')
+            plt.title('bottom pupil magnitude ' + str(i))
+
+        fig = plt.figure(figsize=[16,8])
+        for i in range(0,Nchannel):
+            ax = fig.add_subplot(2,4,i+1)
+            pupil_phase = np.sum(Zk[4:]*f.res['channel'+str(i)].zernike_coeff_phase[0][4:].reshape((-1,1,1)),axis=0)*aperture
+            plt.imshow(pupil_phase)
+            plt.axis('off')
+            plt.title('top pupil phase ' + str(i))
+            ax = fig.add_subplot(2,4,i+5)
+            pupil_phase = np.sum(Zk[4:]*f.res['channel'+str(i)].zernike_coeff_phase[1][4:].reshape((-1,1,1)),axis=0)*aperture
+            plt.imshow(pupil_phase)
+            plt.axis('off')
+            plt.title('bottom pupil phase ' + str(i))
+        plt.show()
+
+
     return
 
 
@@ -165,8 +252,12 @@ def showpsfvsdata(f,p,index):
     else:
         Nchannel = psf_data.shape[0]
         for ch in range(0,Nchannel):
-            im1 = psf_data[ch,index]
-            im2 = psf_fit[ch,index]
+            if p.channeltype == '4pi':
+                im1 = psf_data[ch,index,0]
+                im2 = psf_fit[ch,index,0]
+            else:
+                im1 = psf_data[ch,index]
+                im2 = psf_fit[ch,index]
             print('channel '+str(ch))
             psfcompare(im1,im2)
     return

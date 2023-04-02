@@ -1,24 +1,30 @@
 Params:
-  format: .tif                  # .mat, .tif, .czi
+  format: .mat                  # .mat, .tif, .czi
+  stage_mov_dir: reverse         # normal, reverse: normal direction is where stage move towards the object when taking a z-stack bead data
   pixel_size:                   # unit: micron
-    x: 0.123
-    y: 0.123
+    x: 0.129
+    y: 0.129
   roi:
     roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [4,4]          # blur kernel size, corresponding to dimensions defined in roi_size
     max_kernel: [5,5]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
 
+  fpi:                           # parameters only for 4pi systems
+    modulation_period: 0.26      # unit: micron
   insitu:               
-    frame_range: [1000,3000]     # set the frames to be loaded, only for .tif format
+    frame_range: []     # set the frames to be loaded, only for .tif format
 
   option:   
     imaging:                       
-      emission_wavelength: 0.68    # unit: micron
+      emission_wavelength: 0.6    # unit: micron
       RI: 
         imm: 1.406
-        med: 1.35
-        cov: 1.524
+        med: 1.406
+        cov: 1.516
       NA: 1.35
+    fpi:
+      link_zernikecoeff: true
+      phase_dm: [2,0,-2]           # unit: radian
     insitu:
       zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
       zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 

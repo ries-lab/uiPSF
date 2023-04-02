@@ -26,8 +26,8 @@ Params:
     y_center: 0
     x_center: 0
     radius: 0
-    z_start: 1
-    z_end: -1
+    z_start: 0
+    z_end: -0
     z_step: 1
 
 

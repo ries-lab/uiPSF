@@ -18,7 +18,8 @@ def combine(basefile,psftype=None,channeltype=None,sysfile=None):
     if sysfile is not None:
         sysparam = load('../demo_config/'+sysfile+'.yaml').Params
         fparam = redefine(fparam,sysparam)
-    
+    if psftype == 'zernike' and channeltype == '4pi':
+        fparam.PSFtype = 'zernike'
 
     return fparam
 

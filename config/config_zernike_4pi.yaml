@@ -17,7 +17,7 @@ Params:
     max_kernel: [3,3]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
     peak_height: 0.2            # relative to maximum bead intensity, bead intensity below which are rejected
     max_bead_number: 20        # ignored by insitu PSF learning
-    bead_radius: 0.025            # unit: micron
+    bead_radius: 0.0            # unit: micron
   pixel_size:                   # unit: micron
     x: 0.129
     y: 0.129
@@ -90,7 +90,7 @@ Params:
     edge: 0.01
     psf_min: 1
     bg_min: 1
-    photon_min: 0.000001
+    photon_min: 1
     Inorm: 0
     gxy_min: 10
   

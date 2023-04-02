@@ -1,4 +1,4 @@
-  
+Params:
   format: .mat                 # .mat, .tif, .czi
   pixel_size:                   # unit: micron
     x: 0.11
