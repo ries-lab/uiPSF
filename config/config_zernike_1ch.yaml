@@ -76,6 +76,7 @@ Params:
       init_pupil_file: ""
       estimate_drift: true
       var_photon: true
+      bin: 2
 
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
   PSFtype: zernike_vector                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu

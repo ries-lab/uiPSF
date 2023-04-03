@@ -23,7 +23,10 @@ Paths:
         ast: ../source/mleFit_LM_so/libCPUmleFit_LM.so
         fpi: ../source/mleFit_LM_so/libCPUmleFit_LM_4Pi.so
       cuda:
+        astM: ../source/mleFit_LM_so/libGPUmleFit_LM_MultiChannel.so
+        ast: ../source/mleFit_LM_so/libGPUmleFit_LM.so
+        fpi: ../source/mleFit_LM_so/libGPUmleFit_LM_4Pi.so
   
 main_data_dir:
-  E:/EMBL files/data for PSF learning/ # main folder to your data, it is only useful if all your data are saved in one location, see example file
-  #/home/sheng/mnt/e/EMBL files/data for PSF learning/
+  #E:/EMBL files/data for PSF learning/ # main folder to your data, it is only useful if all your data are saved in one location, see example file
+  /mnt/e/EMBL files/data for PSF learning/

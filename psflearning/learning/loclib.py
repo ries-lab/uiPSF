@@ -42,10 +42,20 @@ class localizationlib:
             dllpath_cpu_astM = cfg.Paths.spline.mac.cpu.astM
             dllpath_cpu_4pi = cfg.Paths.spline.mac.cpu.fpi
         elif sys.platform.startswith('linux'):
-            usecuda = False
+            
             dllpath_cpu_ast = cfg.Paths.spline.linux.cpu.ast
+            dllpath_gpu_ast = cfg.Paths.spline.linux.cuda.ast
             dllpath_cpu_astM = cfg.Paths.spline.linux.cpu.astM
+            dllpath_gpu_astM = cfg.Paths.spline.linux.cuda.astM
             dllpath_cpu_4pi = cfg.Paths.spline.linux.cpu.fpi
+            dllpath_gpu_4pi = cfg.Paths.spline.linux.cuda.fpi
+            if tf.test.gpu_device_name():
+                lib_gpu_astM = ctypes.CDLL(dllpath_gpu_astM)            
+                lib_gpu_4pi = ctypes.CDLL(dllpath_gpu_4pi)            
+                lib_gpu_ast = ctypes.CDLL(dllpath_gpu_ast)
+            else:
+                usecuda = False
+
 
         lib_cpu_astM = ctypes.CDLL(dllpath_cpu_astM)        
         lib_cpu_4pi = ctypes.CDLL(dllpath_cpu_4pi)        
