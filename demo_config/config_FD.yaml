@@ -1,0 +1,12 @@
+Params:
+  PSFtype: zernike_FD                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
+  datatype: bead
+  loss_weight:                   # weighting factor for each loss term
+    smooth: 0.001
+  rej_threshold:                 # threshold for ourlier removal after initial learning, which are relative values or quantile for insitu PSF
+    bias_z: 10
+    mse: 3
+    photon: 3
+  option:
+    model:
+      var_photon: true

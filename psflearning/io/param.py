@@ -20,6 +20,13 @@ def combine(basefile,psftype=None,channeltype=None,sysfile=None):
         fparam = redefine(fparam,sysparam)
     if psftype == 'zernike' and channeltype == '4pi':
         fparam.PSFtype = 'zernike'
+    if psftype == 'insitu':
+        fparam.roi.roi_size[-1] = max([4,fparam.roi.roi_size[-1]])
+        fparam.roi.roi_size[-2] = max([4,fparam.roi.roi_size[-2]])
+        fparam.roi.gauss_sigma[-1] = max([5,fparam.roi.roi_size[-1]])
+        fparam.roi.gauss_sigma[-2] = max([5,fparam.roi.roi_size[-2]])
+    if psftype == 'FD':
+        fparam.option.model.bin = 1
 
     return fparam
 

@@ -16,7 +16,7 @@ Params:
     gauss_sigma: [2,2]          # blur kernel size, corresponding to dimensions defined in roi_size
     max_kernel: [3,3]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
     peak_height: 0.7            # relative to maximum bead intensity, bead intensity below which are rejected
-    max_bead_number: 10        # ignored by insitu PSF learning
+    max_bead_number: 50        # ignored by insitu PSF learning
     bead_radius: 0.05            # unit: micron
   pixel_size:                   # unit: micron
     x: 0.117
@@ -79,7 +79,7 @@ Params:
       bin: 2
 
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
-  PSFtype: zernike_vector                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
+  PSFtype: zernike                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
   channeltype: multi            # single, multi, 4pi
   datatype: bead                 # bead, smlm
   
@@ -90,7 +90,7 @@ Params:
     edge: 0.01
     psf_min: 1
     bg_min: 1
-    photon_min: 0.000001
+    photon_min: 1
     Inorm: 0
     gxy_min: 10
   

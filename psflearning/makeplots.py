@@ -76,10 +76,13 @@ def showlearnedparam_insitu(f,p):
 
     return
 
-def showpupil(f,p):
+def showpupil(f,p, index=None):
     if p.channeltype == 'single':
         fig = plt.figure(figsize=[12,6])
-        pupil = f.res.pupil
+        if index is None:
+            pupil = f.res.pupil
+        else:
+            pupil = f.res.pupil[index]
 
         ax = fig.add_subplot(1,2,1)
 
@@ -133,20 +136,25 @@ def showpupil(f,p):
             plt.title('bottom pupil phase ' + str(i))
     return
 
-def showzernike(f,p):
+def showzernike(f,p,index=None):
     if p.channeltype == 'single':
-        fig = plt.figure(figsize=[12,6])
-
-        plt.plot(f.res.zernike_coeff.transpose(),'.-')
+        fig = plt.figure(figsize=[10,4])
+        if index is None:
+            zcoeff = f.res.zernike_coeff
+            aperture=np.float32(np.abs(f.res.pupil)>0.0)
+        else:
+            zcoeff = f.res.zernike_coeff[:,index]
+            aperture=np.float32(np.abs(f.res.pupil[0])>0.0)
+        plt.plot(zcoeff.transpose(),'.-')
         plt.xlabel('zernike polynomial')
         plt.ylabel('coefficient')
         plt.legend(['pupil magnitude','pupil phase'])
         
-        aperture=np.float32(np.abs(f.res.pupil)>0.0)
+        
         Zk = f.res.zernike_polynomial
 
-        pupil_mag = np.sum(Zk*f.res.zernike_coeff[0].reshape((-1,1,1)),axis=0)*aperture
-        pupil_phase = np.sum(Zk[4:]*f.res.zernike_coeff[1][4:].reshape((-1,1,1)),axis=0)*aperture
+        pupil_mag = np.sum(Zk*zcoeff[0].reshape((-1,1,1)),axis=0)*aperture
+        pupil_phase = np.sum(Zk[4:]*zcoeff[1][4:].reshape((-1,1,1)),axis=0)*aperture
 
         fig = plt.figure(figsize=[12,6])
         ax = fig.add_subplot(1,2,1)
@@ -237,9 +245,40 @@ def showzernike(f,p):
             plt.axis('off')
             plt.title('bottom pupil phase ' + str(i))
         plt.show()
-
-
     return
+
+def showzernikemap(f,index):
+    fig = plt.figure(figsize=[16,4])
+    ax = fig.add_subplot(1,2,1)
+    plt.plot(f.res.zernike_coeff[0].transpose(),'k',alpha=0.1)
+    plt.plot(index,f.res.zernike_coeff[0,0,index],'ro')
+    plt.xlabel('zernike polynomial')
+    plt.ylabel('coefficient')
+    plt.title('pupil magnitude')
+    ax = fig.add_subplot(1,2,2)
+    plt.plot(f.res.zernike_coeff[1].transpose(),'k',alpha=0.1)
+    plt.plot(index,f.res.zernike_coeff[1,0,index],'ro')
+    plt.xlabel('zernike polynomial')
+    plt.ylabel('coefficient')
+    plt.title('pupil phase')
+
+    aperture=np.float32(np.abs(f.res.pupil[0])>0.0)
+    imsz = np.array(f.rois.image_size)
+    Zmap = f.res.zernike_map
+    Zk = f.res.zernike_polynomial
+    scale = (imsz[-2:]-1)/(np.array(Zmap.shape[-2:])-1)
+
+    fig = plt.figure(figsize=[3*len(index),6])
+    for i,id in enumerate(index):
+        ax = fig.add_subplot(2,len(index),i+1)
+        #plt.imshow(Zmap[1,id],cmap='twilight',vmin=-0.05,vmax=0.5)
+        plt.imshow(Zmap[1,id],cmap='twilight')
+        #plt.plot(cor[:,-1]/scale[-1],cor[:,-2]/scale[-2],'ro',markersize=5)
+        plt.axis('off')
+        plt.title('mode '+str(id))
+        ax = fig.add_subplot(2,len(index),i+1+len(index))
+        plt.imshow(Zk[id]*aperture,cmap='viridis')
+        plt.axis('off')
 
 
 def showpsfvsdata(f,p,index):
@@ -313,22 +352,30 @@ def showpsfvsdata_insitu(f,p):
     return
 
 def showlocalization(f,p):
-    Nz = f.locres.loc.z.shape[1]
+    loc = f.locres.loc
+    plotlocbias(loc,p)
+    if hasattr(f.locres,'loc_FD'):
+        loc = f.locres.loc_FD
+        plotlocbias(loc,p)
+    return
+
+def plotlocbias(loc,p):
+    Nz = loc.z.shape[1]
     fig = plt.figure(figsize=[16,4])
     ax = fig.add_subplot(1,3,1)
-    plt.plot(f.locres.loc.x.transpose()*p.pixel_size.x*1e3,'k',alpha=0.1)
-    plt.plot(f.locres.loc.x[0]*0.0,'r')
+    plt.plot(loc.x.transpose()*p.pixel_size.x*1e3,'k',alpha=0.1)
+    plt.plot(loc.x[0]*0.0,'r')
     ax.set_ylabel('x bias (nm)')
     ax = fig.add_subplot(1,3,2)
-    plt.plot(f.locres.loc.y.transpose()*p.pixel_size.y*1e3,'k',alpha=0.1)
-    plt.plot(f.locres.loc.y[0]*0.0,'r')
+    plt.plot(loc.y.transpose()*p.pixel_size.y*1e3,'k',alpha=0.1)
+    plt.plot(loc.y[0]*0.0,'r')
     ax.set_ylabel('y bias (nm)')
     ax = fig.add_subplot(1,3,3)
-    plt.plot(np.transpose(f.locres.loc.z-np.linspace(0,Nz-1,Nz))*p.pixel_size.z*1e3,'k',alpha=0.1)
-    plt.plot(f.locres.loc.z[0]*0.0,'r')
+    plt.plot(np.transpose(loc.z-np.linspace(0,Nz-1,Nz))*p.pixel_size.z*1e3,'k',alpha=0.1)
+    plt.plot(loc.z[0]*0.0,'r')
     ax.set_ylabel('z bias (nm)')
     ax.set_ylim([-40,40])
-
+    plt.show()
     return
 
 def showtransform(f):

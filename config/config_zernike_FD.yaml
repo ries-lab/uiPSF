@@ -90,7 +90,7 @@ Params:
     edge: 0.01
     psf_min: 1
     bg_min: 1
-    photon_min: 0.00001
+    photon_min: 1
     Inorm: 0
     gxy_min: 10
   

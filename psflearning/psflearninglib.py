@@ -435,7 +435,7 @@ class psflearninglib:
             res, toc = fitter.learn_psf(start_time=time)
         
         if len(file_idxs)==1:
-            locres = fitter.localize(res,channeltype,usecuda=usecuda,start_time=toc)
+            locres = fitter.localize(res,channeltype,usecuda=usecuda,plot=showplot,start_time=toc)
             res1 = res
         else:
              
@@ -458,8 +458,8 @@ class psflearninglib:
     def localize_FD(self,fitter, initz=None):
         res = self.learning_result
         usecuda = self.param.usecuda
-
-        loc_FD = fitter.localize_FD(res, usecuda=usecuda, initz=initz)
+        showplot = self.param.plotall
+        loc_FD = fitter.localize_FD(res, usecuda=usecuda, initz=initz,plot=showplot)
         self.loc_FD = loc_FD
         return loc_FD
 
