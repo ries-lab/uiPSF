@@ -105,6 +105,15 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         init_positions = init_positions / self.weight[2]
         init_stagepos = np.ones((1,))*self.stagepos / self.weight[5]
         self.init_stagepos = init_stagepos.astype(np.float32)
+
+        self.varinfo = [dict(type='Nfit',id=0),
+            dict(type='Nfit',id=0),
+            dict(type='Nfit',id=0),
+            dict(type='shared'),
+            dict(type='shared'),
+            dict(type='shared'),
+            dict(type='shared')]
+
         return [init_positions.astype(np.float32),
                 init_backgrounds.astype(np.float32),
                 init_Intensity.astype(np.float32),

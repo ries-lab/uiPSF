@@ -77,7 +77,7 @@ class Fitter(FitterInterface):
         #self.optimizer.weight = self.psf.weight
         pbar = tqdm(total=self.optimizer.maxiter+50,desc='3/6: learning',bar_format = "{desc}: {n_fmt}/{total_fmt} [{elapsed}s] {rate_fmt}, {postfix[0]}{postfix[2][loss]:>4.5f}, {postfix[1]}{postfix[2][time]:>4.2f}s",postfix=["current loss: ","total time: ", dict(loss=0,time=start_time)])
         
-        variables = self.optimizer.minimize(self.objective, variables,pbar)
+        variables = self.optimizer.minimize(self.objective, variables,self.psf.varinfo,pbar)
         toc = pbar.postfix[-1]['time']
         pbar.close()
         # save final state of forward images to access from easily from outside
@@ -181,7 +181,7 @@ class Fitter(FitterInterface):
                 var[0] = initres[-1][0][mask] # pos
                 var[1] = initres[-1][1][mask] # bg
                 var[2] = initres[-1][2][mask] # intensity
-
+                self.psf.zweight = self.psf.zweight[mask]
                 res,toc = self.learn_psf(var,start_time=start_time)
             else:
                 _, rois, centers, frames = self.data.get_image_data() 
@@ -210,11 +210,11 @@ class Fitter(FitterInterface):
         return res, toc
 
     def localize(self,res,channeltype,usecuda=True,initz=None, plot=True,start_time=None):
-        intensity = np.abs(np.squeeze(res[2]))
+        intensity = np.abs(np.squeeze(res[2],axis=(-1,-2)))
         if res[2].dtype == 'complex64':
             intensityR = intensity
         else:
-            intensityR = np.real(np.squeeze(res[2]))
+            intensityR = np.real(np.squeeze(res[2],axis=(-1,-2)))
         I_model = res[3]
         psf_fit = self.forward_images
         psf_data = self.rois

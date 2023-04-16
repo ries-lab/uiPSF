@@ -78,7 +78,15 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         if self.options.insitu.partition_data:
             initz, roisavg = self.partitiondata(initz,LL)
             
-        _, rois, _, _ = self.data.get_image_data()
+        _, rois, cor, _ = self.data.get_image_data()
+        if options.backgroundROI:
+            bgroi = options.backgroundROI
+            maskcor = (cor[:,-1]>bgroi[2]) & (cor[:,-1]<bgroi[3]) & (cor[:,-2]>bgroi[0]) & (cor[:,-2]<bgroi[1]) 
+            zw = np.ones(initz.shape,dtype = np.float32)
+            zw[maskcor] = 0.0
+            self.zweight = zw.reshape(zw.shape+(1,1))
+        else:
+            self.zweight = np.ones(initz.shape+(1,1),dtype=np.float32)
 
         init_positions = np.zeros((rois.shape[0], 3))
        
@@ -109,6 +117,13 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         init_positions = init_positions / self.weight[2]
         init_stagepos = np.ones((1,))*self.stagepos / self.weight[5]
         self.init_stagepos = init_stagepos.astype(np.float32)
+        self.varinfo = [dict(type='Nfit',id=0),
+            dict(type='Nfit',id=0),
+            dict(type='Nfit',id=0),
+            dict(type='shared'),
+            dict(type='shared'),
+            dict(type='shared')]
+
         return [init_positions.astype(np.float32),
                 init_backgrounds.astype(np.float32),
                 init_Intensity.astype(np.float32),
@@ -147,7 +162,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         else:
             stagepos = tf.complex(self.init_stagepos*self.weight[5],0.0)
 
-        phiz = 1j*2*np.pi*(self.kz_med*pos[:,0]-self.kz*stagepos)
+        phiz = 1j*2*np.pi*(self.kz_med*pos[:,0]*self.zweight[self.ind[0]:self.ind[1]]-self.kz*stagepos)
         phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
         I_res = 0.0
         for h in self.dipole_field:

@@ -105,6 +105,11 @@ class PSFMultiChannel(PSFInterface):
         if hasattr(self.sub_psfs[0],'pos_weight'):
             self.weight[0] = self.sub_psfs[0].pos_weight
         param[-1] = param[-1]/self.weight[-1]
+        self.varinfo = self.sub_psfs[0].varinfo
+        for k, vinfo in enumerate(self.varinfo[1:]):
+            if vinfo['type'] == 'Nfit':
+                self.varinfo[k+1]['id'] += 1
+        self.varinfo.append(dict(type='shared'))
         return param, toc
 
 

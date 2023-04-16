@@ -102,6 +102,11 @@ class PSFMultiChannel4pi(PSFInterface):
         self.weight = np.ones((len(param)))
         self.weight[-1] = 1e-3
         param[-1] = param[-1]/self.weight[-1]
+        self.varinfo = self.sub_psfs[0].varinfo
+        for k, vinfo in enumerate(self.varinfo[1:]):
+            if vinfo['type'] == 'Nfit':
+                self.varinfo[k+1]['id'] += 1
+        self.varinfo.append(dict(type='shared'))
 
         if self.psftype == PSFZernikeBased4pi:
             if self.options.fpi.link_zernikecoeff:

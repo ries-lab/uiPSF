@@ -43,6 +43,11 @@ class PSFVolumeBased(PSFInterface):
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         gxy = np.zeros((N,2),dtype=np.float32) 
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities
+        self.varinfo = [dict(type='Nfit',id=0),
+                   dict(type='Nfit',id=0),
+                   dict(type='Nfit',id=0),
+                   dict(type='shared'),
+                   dict(type='Nfit',id=0)]
         
         if self.options.model.var_photon:
             init_Intensity = gI/self.weight[0]

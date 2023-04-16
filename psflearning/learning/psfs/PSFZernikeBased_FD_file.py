@@ -67,7 +67,13 @@ class PSFZernikeBased_FD(PSFInterface):
         # gI[:,st:Nz-st] = init_intensitiesL
         # gI[:,0:st] = np.abs(np.min(init_intensitiesL[:,0]))
         # gI[:,-st:] = np.abs(np.min(init_intensitiesL[:,-1]))
-        
+        self.varinfo = [dict(type='Nfit',id=0),
+            dict(type='Nfit',id=0),
+            dict(type='Nfit',id=0),
+            dict(type='shared'),
+            dict(type='shared'),
+            dict(type='Nfit',id=0)]
+
         if self.options.model.var_photon:
             init_Intensity = gI/self.weight[0]
         else:
