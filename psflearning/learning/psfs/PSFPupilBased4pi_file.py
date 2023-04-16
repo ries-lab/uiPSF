@@ -80,6 +80,20 @@ class PSFPupilBased4pi(PSFInterface):
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities
         alpha = np.array([0.8])/self.weight[5]
         init_pos_shift = np.zeros(init_positions.shape)
+        self.varinfo = [dict(type='Nfit',id=0),
+            dict(type='Nfit',id=0),
+            dict(type='Nfit',id=0),
+            dict(type='Nfit',id=0),
+            dict(type='shared'),
+            dict(type='shared'),
+            dict(type='shared'),
+            dict(type='shared'),
+            dict(type='shared'),
+            dict(type='shared'),
+            dict(type='Nfit',id=0),
+            dict(type='shared'),
+            dict(type='Nfit',id=0)]
+
         if self.options.model.var_photon:
             init_Intensity = gI/self.weight[0]
         else:

@@ -274,7 +274,7 @@ class L_BFGS_B(OptimizerABC):
         self.options = {**options, **kwargs}
         return None
 
-    def minimize(self, objective, variables,pbar):
+    def minimize(self, objective, variables,varinfo,pbar):
         """
         Adapts the given variables in a way that minimizes the given objective.
         Returns the new state of the variables after the optimization.
@@ -285,7 +285,7 @@ class L_BFGS_B(OptimizerABC):
         init_var = self.flatten_variables(variables)
         self.options['maxiter'] = self.maxiter
         start_time = pbar.postfix[-1]['time']
-        result = optimize.minimize(fun=self.objective_wrapper_for_optimizer, x0=init_var, args=(pbar,start_time), jac=True, method='L-BFGS-B', options=self.options)
+        result = optimize.minimize(fun=self.objective_wrapper_for_optimizer, x0=init_var, args=(varinfo,pbar,start_time), jac=True, method='L-BFGS-B', options=self.options)
         
         #self.write_output(self.maxiter, result.fun, True)
         
@@ -352,16 +352,16 @@ class L_BFGS_B(OptimizerABC):
 
         return variables
 
-    def objective_wrapper_for_optimizer(self, var, pbar,start_time):
+    def objective_wrapper_for_optimizer(self, var,varinfo, pbar,start_time):
         """
         Wrapper around the actual objective. This is needed since the L-BFGS-B implementation is based
         on Fortran code that needs double precision (float64) whereas tensorflow
         works with single precision (float32).
         """
-        return [np.real(tensor.numpy()).astype(np.float64) for tensor in self.objective_wrapper_for_gradient(tf.cast(var, tf.float32),pbar,start_time)]
+        return [np.real(tensor.numpy()).astype(np.float64) for tensor in self.objective_wrapper_for_gradient(tf.cast(var, tf.float32),varinfo,pbar,start_time)]
 
     #@tf.function
-    def objective_wrapper_for_gradient(self, var, pbar,start_time=None):
+    def objective_wrapper_for_gradient(self, var, varinfo,pbar,start_time=None):
         """
         Another wrapper around the actual objective. Needed to allow graient calculation
         via tf.function decorator. When working with tf.GradientTape() this can probabaly
@@ -379,15 +379,11 @@ class L_BFGS_B(OptimizerABC):
         var1 = [None]*Np
         for i in range(len(ind)-1):
             for k in range(Np):
-                if (Nfit) in self.shapes[k]:
-                    if self.shapes[k].index(Nfit)==0:
+                if varinfo[k]['type']=='Nfit':
+                    if varinfo[k]['id']==0:
                         var1[k] = variables[k][ind[i]:ind[i+1]]
-                    elif self.shapes[k].index(Nfit)==1:
+                    elif varinfo[k]['id']==1:
                         var1[k] = variables[k][:,ind[i]:ind[i+1]]
-                    else:
-                        var1[k] = variables[k]
-                        if i == 0:
-                            grad[k] = 0.0
                 else:
                     var1[k] = variables[k]
                     if i == 0:
@@ -405,11 +401,11 @@ class L_BFGS_B(OptimizerABC):
                     grad1[k] = var1[k]*0
                     
             for k in range(Np):
-                if (Nfit) in self.shapes[k]:
+                if varinfo[k]['type']=='Nfit':
                     if grad[k] is None:
                         grad[k] = grad1[k]
                     else:
-                        grad[k] = tf.concat((grad[k],grad1[k]),axis=self.shapes[k].index(Nfit))
+                        grad[k] = tf.concat((grad[k],grad1[k]),axis=varinfo[k]['id'])
                 else:
                     grad[k] = grad[k]+grad1[k]*w1
 

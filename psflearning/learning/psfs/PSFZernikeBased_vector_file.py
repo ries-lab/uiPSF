@@ -61,6 +61,13 @@ class PSFZernikeBased_vector(PSFInterface):
         gxy = np.zeros((N,2),dtype=np.float32) 
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities
 
+        self.varinfo = [dict(type='Nfit',id=0),
+                   dict(type='Nfit',id=0),
+                   dict(type='Nfit',id=0),
+                   dict(type='shared'),
+                   dict(type='shared'),
+                   dict(type='Nfit',id=0)]
+
         if options.model.var_photon:
             init_Intensity = gI/self.weight[0]
         else:
