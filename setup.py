@@ -38,14 +38,15 @@ setup(
             "numpy",
             "scipy",
             "matplotlib",
-            #"tensorflow",
+            "tensorflow",
             "tensorflow-probability",
             "scikit-image",
             "tqdm",
             "czifile",
             "hdfdict",
             "dotted_dict",
-            "omegaconfig"
+            "omegaconf",
+            "pytest"
             #"NanoImagingPack"
             # TODO: right now it is not even possible to install NIP into an empty environment...
             # so either write Rainer and fixes this or get rid of these packages
