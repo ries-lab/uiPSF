@@ -8,8 +8,6 @@
 	pip install -e psfmodelling
 
 
-
-
 %For windows PC with GPU
 1) install Anaconda
 2) run the following command at terminal
@@ -17,7 +15,20 @@
 	git check out dev_sheng
 	conda env create --name psfinv --file=psfmodelling/environment.yml
 	conda activate psfinv
-	pip install -e psfmodelling[gpu]
+	pip install -e psfmodelling
+
+
+%For linux with GPU
+1) install miniconda
+2) run the following command at terminal
+	git clone https://git.embl.de/ries/psfmodelling.git
+	git check out dev_sheng
+	conda env create --name psfinv --file=psfmodelling/environment.yml
+	conda activate psfinv
+	pip install -e psfmodelling	
+3) after installation run the following command to add cudnn path
+	mkdir -p $CONDA_PREFIX/etc/conda/activate.d
+	echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
 
 
 
