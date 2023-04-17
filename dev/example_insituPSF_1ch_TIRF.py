@@ -1,11 +1,15 @@
 #%%
+import tensorflow as tf
+gpus = tf.config.list_physical_devices('GPU')
+tf.config.set_visible_devices(gpus[1], 'GPU')
+tf.config.experimental.set_memory_growth(gpus[1], True)
+
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
 import hdfdict
 from dotted_dict import DottedDict
 import h5py
-
 
 sys.path.append("..")
 from psflearning.psflearninglib import psflearninglib
@@ -16,7 +20,7 @@ maindatadir = io.param.load('../config/config_path.yaml').main_data_dir
 #%% load parameters
 L = psflearninglib()
 L.param = io.param.load('../config/config_insitu_TIRF.yaml').Params
-L.param.datapath = r'C:\Users\Sheng\Documents\MATLAB\data\UNM-TIRF\04-10-2023/'
+L.param.datapath = '/home/kiwibogo/shares/lidkelab/Personal Folders/Sheng/data/TIRF/'
 L.param.savename = L.param.datapath + L.param.savename
 images = L.load_data()
 

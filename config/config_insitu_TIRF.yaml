@@ -103,7 +103,7 @@ Params:
   usecuda: true                  # for spline localization
   plotall: true
   ref_channel: 0                 # index of the reference channel, for multi-channel system
-  batch_size: 1500               # maximum number of beads or emitters to be optimized at one time
+  batch_size: 2000               # maximum number of beads or emitters to be optimized at one time
   iteration: 200                 # number of iterations for learning
   varname: ""                    # only for simulated data from matlab, the variable name for the data
   filelist: []                   # user can also give a list of data files, instead of giving the keyword or subfolder, data loading will skip automatic populate filelist 

@@ -30,7 +30,7 @@ class localizationlib:
             dllpath_cpu_ast = cfg.Paths.spline.win.cpu.ast
             dllpath_gpu_ast = cfg.Paths.spline.win.cuda.ast
             
-            if tf.test.gpu_device_name():
+            if tf.config.list_physical_devices('GPU'):
                 lib_gpu_astM = ctypes.CDLL(dllpath_gpu_astM)            
                 lib_gpu_4pi = ctypes.CDLL(dllpath_gpu_4pi)            
                 lib_gpu_ast = ctypes.CDLL(dllpath_gpu_ast)
@@ -49,17 +49,19 @@ class localizationlib:
             dllpath_gpu_astM = cfg.Paths.spline.linux.cuda.astM
             dllpath_cpu_4pi = cfg.Paths.spline.linux.cpu.fpi
             dllpath_gpu_4pi = cfg.Paths.spline.linux.cuda.fpi
-            if tf.test.gpu_device_name():
+            if tf.config.list_physical_devices('GPU'):
                 lib_gpu_astM = ctypes.CDLL(dllpath_gpu_astM)            
                 lib_gpu_4pi = ctypes.CDLL(dllpath_gpu_4pi)            
                 lib_gpu_ast = ctypes.CDLL(dllpath_gpu_ast)
             else:
                 usecuda = False
 
-
-        lib_cpu_astM = ctypes.CDLL(dllpath_cpu_astM)        
-        lib_cpu_4pi = ctypes.CDLL(dllpath_cpu_4pi)        
-        lib_cpu_ast = ctypes.CDLL(dllpath_cpu_ast)
+        try:
+            lib_cpu_astM = ctypes.CDLL(dllpath_cpu_astM)        
+            lib_cpu_4pi = ctypes.CDLL(dllpath_cpu_4pi)        
+            lib_cpu_ast = ctypes.CDLL(dllpath_cpu_ast)
+        except:
+            print('MLE CPU fitting is not available')
        
     
 
