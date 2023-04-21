@@ -33,13 +33,13 @@ setup(
       scripts=['bin/learn_psf'],
 
       packages=['psflearning'], # TODO: put correct name here # what's actually imported by people later
-      python_requires='>=3.9',
+      python_requires='>=3.7',
       install_requires=[
             "numpy",
             "scipy",
             "matplotlib",
-            "tensorflow",
-            "tensorflow-probability",
+            "tensorflow==2.9.1",
+            "tensorflow-probability==0.17",
             "scikit-image",
             "tqdm",
             "czifile",
