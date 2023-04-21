@@ -74,7 +74,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         self.data.frames = frames[mask]
         initz = zp.flatten()[mask]
         LL = locres[2][mask]
-        
+
         if self.options.insitu.partition_data:
             initz, roisavg = self.partitiondata(initz,LL)
             
@@ -84,6 +84,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
             maskcor = (cor[:,-1]>bgroi[2]) & (cor[:,-1]<bgroi[3]) & (cor[:,-2]>bgroi[0]) & (cor[:,-2]<bgroi[1]) 
             zw = np.ones(initz.shape,dtype = np.float32)
             zw[maskcor] = 0.0
+            initz *= zw
             self.zweight = zw.reshape(zw.shape+(1,1))
         else:
             self.zweight = np.ones(initz.shape+(1,1),dtype=np.float32)

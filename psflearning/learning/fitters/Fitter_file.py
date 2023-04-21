@@ -161,7 +161,11 @@ class Fitter(FitterInterface):
             intensity = np.min(intensity,axis=0,keepdims=False)
             mse1 = np.sum(mse1,axis=0,keepdims=False)
         a = threshold[0]
-        mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp>np.quantile(zp,1-a)) & (zp<np.quantile(zp,a))
+        if self.psf.options.backgroundROI:
+            mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) 
+        else:
+            mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp>np.quantile(zp,1-a)) & (zp<np.quantile(zp,a))
+
         mask = mask & (mse1<np.quantile(mse1,threshold[1]))
         mask = mask & (intensity>0)
         delete_id = np.where(~mask)

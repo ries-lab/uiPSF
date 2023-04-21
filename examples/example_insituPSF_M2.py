@@ -1,4 +1,9 @@
 #%%
+import tensorflow as tf
+gpus = tf.config.list_physical_devices('GPU')
+#tf.config.set_visible_devices(gpus[1], 'GPU')
+tf.config.experimental.set_memory_growth(gpus[0], True)
+
 import sys
 import matplotlib.pyplot as plt
 import numpy as np

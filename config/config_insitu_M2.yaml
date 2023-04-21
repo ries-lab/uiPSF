@@ -77,6 +77,7 @@ Params:
       estimate_drift: false
       var_photon: false
       bin: 2
+    backgroundROI: []
 
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
   PSFtype: insitu_zernike                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
@@ -100,9 +101,9 @@ Params:
     photon: 1.5
   
   usecuda: true                  # for spline localization
-  plotall: false
+  plotall: true
   ref_channel: 0                 # index of the reference channel, for multi-channel system
-  batch_size: 1800               # maximum number of beads or emitters to be optimized at one time
+  batch_size: 2000               # maximum number of beads or emitters to be optimized at one time
   iteration: 200                 # number of iterations for learning
   varname: ""                    # only for simulated data from matlab, the variable name for the data
   filelist: []                   # user can also give a list of data files, instead of giving the keyword or subfolder, data loading will skip automatic populate filelist 
