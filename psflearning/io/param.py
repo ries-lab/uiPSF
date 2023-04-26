@@ -8,15 +8,15 @@ def load(path: Union[str, Path]) -> DictConfig:
     return OmegaConf.load(path)
 
 def combine(basefile,psftype=None,channeltype=None,sysfile=None):
-    fparam = load('../demo_config/'+basefile+'.yaml').Params
+    fparam = load('../config/'+basefile+'.yaml').Params
     if psftype is not None:
-        psfparam = load('../demo_config/config_'+psftype+'.yaml').Params
+        psfparam = load('../config/psftype/'+psftype+'.yaml').Params
         fparam = redefine(fparam,psfparam)
     if channeltype is not None:
-        chparam = load('../demo_config/config_'+channeltype+'.yaml').Params
+        chparam = load('../config/channeltype/'+channeltype+'.yaml').Params
         fparam = redefine(fparam,chparam)
     if sysfile is not None:
-        sysparam = load('../demo_config/'+sysfile+'.yaml').Params
+        sysparam = load('../config/systemtype/'+sysfile+'.yaml').Params
         fparam = redefine(fparam,sysparam)
     if psftype == 'zernike' and channeltype == '4pi':
         fparam.PSFtype = 'zernike'

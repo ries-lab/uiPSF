@@ -30,7 +30,7 @@ setup(
             "Topic :: Scientific/Engineering :: Physics"              
       ],
 
-      scripts=['bin/learn_psf'],
+      #scripts=['bin/learn_psf'],
 
       packages=['psflearning'], # TODO: put correct name here # what's actually imported by people later
       python_requires='>=3.7',

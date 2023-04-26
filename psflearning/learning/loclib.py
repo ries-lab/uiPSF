@@ -21,7 +21,7 @@ from psflearning import io
 class localizationlib:
     def __init__(self,usecuda=False):
         thispath = os.path.dirname(os.path.abspath(__file__))
-        cfg = io.param.load('../config/config_path.yaml')
+        cfg = io.param.load('../config/path/config_path.yaml')
         if sys.platform.startswith('win'):
             dllpath_cpu_astM = cfg.Paths.spline.win.cpu.astM
             dllpath_gpu_astM = cfg.Paths.spline.win.cuda.astM
