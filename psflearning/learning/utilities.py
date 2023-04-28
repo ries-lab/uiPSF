@@ -73,7 +73,7 @@ def nl2noll(n,l):
     if ((l > 0) & (np.mod(n, 4) >= 2)) | ((l < 0) & (np.mod(n, 4) <= 1)):
        j = j + 1
     
-    return int(j)
+    return np.int32(j)
 
 def noll2nl(j):
     n = np.ceil((-3 + np.sqrt(1 + 8*j)) / 2)
@@ -84,7 +84,7 @@ def noll2nl(j):
     if np.mod(j, 2) == 1:
        l= -l
     
-    return int(n),int(l)
+    return np.int32(n),np.int32(l)
 
 def radialpoly(n,m,rho):
     if m==0:

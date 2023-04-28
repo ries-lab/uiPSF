@@ -169,7 +169,7 @@ class PSFInterface():
             Nz = self.data.rois.shape[-3]
             bin = 1
         else:
-            Nz = self.data.rois.shape[-3]+np.int(bead_radius//pixelsize_z)*2+4
+            Nz = self.data.rois.shape[-3]+np.int32(bead_radius//pixelsize_z)*2+4
             bin = self.options.model.bin
         
         Lx = self.data.rois.shape[-1]*bin

@@ -30,7 +30,7 @@ class OptimizerABC:
     def __init__(self, maxiter, options, kwargs) -> None:
         self.maxiter = maxiter
 
-        self.print_step_size = np.max((np.round(self.maxiter / 10).astype(int),20))
+        self.print_step_size = np.max((np.round(self.maxiter / 10).astype(np.int32),20))
         self.print_width = len(str(self.print_step_size))
 
         self.history = [['step', 'time', 'loss']]
@@ -86,7 +86,7 @@ class OptimizerABC:
         Used to show user the progress of the optimization.
         """
         # TODO: one could caluclate an estimate how long the optimization still takes
-        self.print_step_size =  np.max((np.round(self.maxiter / 10).astype(int),20))
+        self.print_step_size =  np.max((np.round(self.maxiter / 10).astype(np.int32),20))
         if (step % self.print_step_size == 0) or do_anyway:
             #tf.print(f"[{step:5}/{self.maxiter}]  loss={loss:>8.2f} ")
             tf.print("step:",step,"loss:",loss)

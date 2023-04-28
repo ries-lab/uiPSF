@@ -234,7 +234,7 @@ class PreprocessedImageDataSingleChannel(PreprocessedImageDataInterface):
             value = np.empty((), dtype=object)
             value[()] = (0, 0)
             padsize = np.full((len(rois.shape), ), value, dtype=object)
-            padsize[-3] = (np.int(bead_radius//pixelsize_z),np.int(bead_radius//pixelsize_z))
+            padsize[-3] = (np.int32(bead_radius//pixelsize_z),np.int32(bead_radius//pixelsize_z))
             roisL = np.pad(rois,tuple(padsize),mode='edge')
             self.rois = roisL
             print(f"padded rois shape channel : {roisL.shape}")

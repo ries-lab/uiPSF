@@ -47,7 +47,7 @@ def extractMultiPeaks(im, ROIsize, sigma=None, threshold_rel=None, alternateImg=
 
     if alternateImg is not None:
         im = alternateImg
-    centers = np.round(coordinates).astype(np.int)
+    centers = np.round(coordinates).astype(np.int32)
     if len(ROIsize) < centers.shape[-1]:
         centers = centers[:,-len(ROIsize):]
     if coordinates.size>0:
@@ -87,7 +87,7 @@ def extractMultiPeaks_smlm(im, ROIsize, sigma=None, threshold_rel=None, alternat
 
     if alternateImg is not None:
         im = alternateImg
-    centers = np.round(coordinates).astype(np.int)
+    centers = np.round(coordinates).astype(np.int32)
     if len(ROIsize) < centers.shape[-1]:
         centers = centers[:,-len(ROIsize):]
     if coordinates.size>0:
