@@ -69,6 +69,7 @@ Params:
       n_max: 8                     # maximum zernike order
       zernike_nl: []
       blur_sigma: 0.5              # unit: pixel
+      fix_blur: true
       with_apoid: true
       const_pupilmag: false
       symmetric_mag: false          # pupil magnitude is circular symmetric
