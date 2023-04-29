@@ -117,7 +117,7 @@ class PSFZernikeBased_vector(PSFInterface):
             I_res += psfA*tf.math.conj(psfA)*self.normf
 
         bin = self.options.model.bin
-        if self.options.model.fix_blur:
+        if not self.options.model.var_blur:
             sigma = self.init_sigma
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)

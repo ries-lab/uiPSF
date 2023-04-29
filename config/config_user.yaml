@@ -53,35 +53,35 @@ Params:
     insitu:
       stage_pos: 1               # 0 at the coverslip, positive when move towards the coverslip
       min_photon: 0.4              # quantile for rejecting low photon emitters
-      partition_data: true
+      partition_data: true         # select best emitters from each partition
       partition_size: [21,100]     # number of z segments, maximum number of emitter per segment
       zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
       zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 
       z_range: 2.0                 # unit: micron, z range of insitu psf model
       zkorder_rank: L             # L, H: searching range of zernike coefficient (4,21), (21,45)    
-      var_stagepos: true
-      repeat: 2
+      var_stagepos: true          # estimate stage position
+      repeat: 2                   # iteration number for insitu learning, the previous psf model will be used for the next iteration
+      backgroundROI: []           # define the region where the emitters are at the coverslip, only for imaging close to the coverslip    
     fpi:
       link_zernikecoeff: true
       phase_dm: [2,0,-2]           # unit: radian
     model:
       pupilsize: 64                # unit: pixel
       n_max: 8                     # maximum zernike order
-      zernike_nl: []
+      zernike_nl: []               # set the Zernike terms for PSF learning, e.g. [(2,2),(2,-2)], if empty, all zernike terms defined by n_max will be used 
       blur_sigma: 0.5              # unit: pixel
-      fix_blur: true
-      with_apoid: true
-      const_pupilmag: false
+      var_blur: false               # estimate blurring sigma
+      with_apoid: true              # with theoretical apoidization term
+      const_pupilmag: false         # pupil magnitude is constant and equal to one
       symmetric_mag: false          # pupil magnitude is circular symmetric
-      with_IMM: false
-      init_pupil_file: ""
-      estimate_drift: false
-      var_photon: false
-      bin: 2
-    backgroundROI: []    
+      with_IMM: false               # only used for agarose bead
+      init_pupil_file: ""           # .h file from psf learning
+      estimate_drift: false         # estimate lateral drift between each z slice
+      var_photon: false             # estimate photon variation between each z slice
+      bin: 2                        # upsamplling pixel size equal to camera pixel size divided by bin
 
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
-  PSFtype: insitu_zernike                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
+  PSFtype: insitu_zernike                 # voxel, zernike, pupil, zernike_vector, pupil_vector, insitu
   channeltype: single            # single, multi, 4pi
   datatype: smlm                 # bead, smlm
   

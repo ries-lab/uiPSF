@@ -79,8 +79,8 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
             initz, roisavg = self.partitiondata(initz,LL)
             
         _, rois, cor, _ = self.data.get_image_data()
-        if options.backgroundROI:
-            bgroi = options.backgroundROI
+        if options.insitu.backgroundROI:
+            bgroi = options.insitu.backgroundROI
             maskcor = (cor[:,-1]>bgroi[2]) & (cor[:,-1]<bgroi[3]) & (cor[:,-2]>bgroi[0]) & (cor[:,-2]<bgroi[1]) 
             zw = np.ones(initz.shape,dtype = np.float32)
             zw[maskcor] = 0.0
