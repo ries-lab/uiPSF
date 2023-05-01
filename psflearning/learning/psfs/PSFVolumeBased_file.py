@@ -37,12 +37,13 @@ class PSFVolumeBased(PSFInterface):
         self.calpupilfield('scalar',Nz)
         self.gen_bead_kernel(isVolume=True)
 
-        self.weight = np.array([np.median(init_intensities)*0.1, 10, 0.1, 0.1],dtype=np.float32)
+        self.weight = np.array([np.median(init_intensities)*1, 10, 0.1, 0.1],dtype=np.float32)
         init_psf_model = np.zeros(rois[0].shape)+0.002/self.weight[3]
         init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         gxy = np.zeros((N,2),dtype=np.float32) 
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities
+        #gI = np.ones((N,Nz,1,1),dtype = np.float32)*np.mean(init_intensities,keepdims=True)
         self.varinfo = [dict(type='Nfit',id=0),
                    dict(type='Nfit',id=0),
                    dict(type='Nfit',id=0),
@@ -68,11 +69,11 @@ class PSFVolumeBased(PSFInterface):
         pos, backgrounds, intensities, I_model, gxy = variables
 
         I_model = tf.complex(I_model,0.0)
-        I_otfs = im.fft3d(I_model*self.weight[3])*self.bead_kernel*tf.complex(intensities*self.weight[0],0.0) 
+        I_otfs = im.fft3d(I_model*self.weight[3])*self.bead_kernel #*tf.complex(intensities*self.weight[0],0.0) 
         pos = tf.complex(tf.reshape(pos,pos.shape+(1,1,1)),0.0)
         I_res = im.ifft3d(I_otfs*self.phaseRamp(pos))
 
-        psf_fit = tf.math.real(I_res)
+        psf_fit = tf.math.real(I_res)*intensities*self.weight[0]
         if self.options.model.estimate_drift:
             gxy = gxy*self.weight[2]
             psf_shift = self.applyDrfit(psf_fit,gxy)
