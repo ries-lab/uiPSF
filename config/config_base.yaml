@@ -15,7 +15,7 @@ Params:
     roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [4,4]          # blur kernel size, corresponding to dimensions defined in roi_size
     max_kernel: [5,5]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
-    peak_height: 0.2            # relative to maximum bead intensity, bead intensity below which are rejected
+    peak_height: 0.3            # relative to maximum bead intensity, bead intensity below which are rejected
     max_bead_number: 40        # ignored by insitu PSF learning
     bead_radius: 0.0            # unit: micron
   pixel_size:                   # unit: micron

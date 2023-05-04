@@ -2,4 +2,4 @@ Params:
   channeltype: single            # single, multi, 4pi
   option:
     model:
-      bin: 1
+      bin: 2
