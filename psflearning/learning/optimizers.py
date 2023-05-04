@@ -285,7 +285,8 @@ class L_BFGS_B(OptimizerABC):
         init_var = self.flatten_variables(variables)
         self.options['maxiter'] = self.maxiter
         start_time = pbar.postfix[-1]['time']
-        result = optimize.minimize(fun=self.objective_wrapper_for_optimizer, x0=init_var, args=(varinfo,pbar,start_time), jac=True, method='L-BFGS-B', options=self.options)
+        bd = tuple(map(tuple,np.ones((init_var.shape[0],2))*[[-1e5,1e5]]))
+        result = optimize.minimize(fun=self.objective_wrapper_for_optimizer, x0=init_var, args=(varinfo,pbar,start_time), jac=True, method='L-BFGS-B',bounds=bd, options=self.options)
         
         #self.write_output(self.maxiter, result.fun, True)
         
