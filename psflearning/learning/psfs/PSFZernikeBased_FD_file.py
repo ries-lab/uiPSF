@@ -90,12 +90,7 @@ class PSFZernikeBased_FD(PSFInterface):
         Calculate forward images from the current guess of the variables.
         Shifting is done by Fourier transform and applying a phase ramp.
         """
-        # it would be nice to get rid of InverseModelling and/or NanoImagingPack
-        # unfortunately im.ft3d behaves differently than tf.signal.fft3d or np.fft.fftn
-        # and my physics/maths skills were not good enough to understand the difference
-        # then I run out of time
-        # for now it is working with im.ft3d but it would be nice to get rid of InverseModelling
-        # TODO: try to get rid of InverseModelling
+
 
         pos, backgrounds, intensities, Zmap, sigma, gxy = variables
         c1 = self.spherical_terms

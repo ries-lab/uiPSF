@@ -177,7 +177,7 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
                 min_center_dist=None,FOV=None, modulation_period=None, padPSF=False, plot=True,pixelsize_y=None, isVolume = False,skew_const=None, max_bead_number=None):
 
         self.find_rois(roi_size, gaus_sigma, min_border_dist, max_threshold, max_kernel, FOV, min_center_dist)
-        _, rois, cor, _ = self.get_image_data()
+        img, rois, cor, _ = self.get_image_data()
 
         print(f"rois shape channel : {rois.shape}")
 
@@ -189,6 +189,7 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         self.rois = rois-offset
         self.centers_all = cor
         self.offset = offset
+        self.image_size = img.shape
         if plot:
             plt.figure(figsize=[6,6])
             plt.plot(cor[:,-1],cor[:,-2],'o',markersize = 8,markerfacecolor='none')

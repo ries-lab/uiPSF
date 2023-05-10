@@ -262,7 +262,10 @@ def showzernikemap(f,index):
     plt.ylabel('coefficient')
     plt.title('pupil phase')
 
-    aperture=np.float32(np.abs(f.res.pupil[0])>0.0)
+    if len(f.res.pupil.shape)>2:
+        aperture=np.float32(np.abs(f.res.pupil[0])>0.0)
+    else:
+        aperture=np.float32(np.abs(f.res.pupil)>0.0)
     imsz = np.array(f.rois.image_size)
     Zmap = f.res.zernike_map
     Zk = f.res.zernike_polynomial

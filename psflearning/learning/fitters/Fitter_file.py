@@ -3,7 +3,7 @@ import numpy as np
 from numpy.core.fromnumeric import var
 import scipy as sp
 import tensorflow as tf
-from tensorflow.keras import optimizers
+#from tensorflow.keras import optimizers
 import matplotlib.pyplot as plt
 
 from psflearning.learning.psfs.PSFVolumeBased4pi_file import PSFVolumeBased4pi

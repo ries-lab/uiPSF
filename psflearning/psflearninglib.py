@@ -45,12 +45,14 @@ from .learning import ( PreprocessedImageDataSingleChannel,
                         PSFMultiChannel4pi,
                         PSFZernikeBased_vector_smlm,
                         PSFPupilBased_vector_smlm,
+                        PSFZernikeBased_FD_smlm,
                         L_BFGS_B,
                         mse_real,
                         mse_real_zernike,
                         mse_real_zernike_FD,
                         mse_real_zernike_smlm,
                         mse_real_pupil_smlm,
+                        mse_real_zernike_FD_smlm,
                         mse_real_4pi,
                         mse_zernike_4pi,
                         mse_real_pupil,
@@ -67,7 +69,8 @@ PSF_DICT = dict(voxel=PSFVolumeBased,
                 pupil_vector=PSFPupilBased_vector,
                 zernike_FD=PSFZernikeBased_FD,
                 insitu_zernike = PSFZernikeBased_vector_smlm,
-                insitu_pupil = PSFPupilBased_vector_smlm)
+                insitu_pupil = PSFPupilBased_vector_smlm,
+                insitu_FD = PSFZernikeBased_FD_smlm)
 
 LOSSFUN_DICT = dict(voxel=mse_real, 
                 pupil=mse_real_pupil,
@@ -76,7 +79,8 @@ LOSSFUN_DICT = dict(voxel=mse_real,
                 pupil_vector=mse_real_pupil,
                 zernike_FD=mse_real_zernike_FD,
                 insitu_zernike = mse_real_zernike_smlm,
-                insitu_pupil = mse_real_pupil_smlm)
+                insitu_pupil = mse_real_pupil_smlm,
+                insitu_FD = mse_real_zernike_FD_smlm)
 
 
 PSF_DICT_4pi = dict(voxel=PSFVolumeBased4pi, 
@@ -261,7 +265,7 @@ class psflearninglib:
         else:
             images = imagesall
 
-        if (PSFtype == 'insitu_zernike') or (PSFtype == 'insitu_pupil'):
+        if 'insitu' in PSFtype:
             if channeltype == 'multi':
                 images = images.reshape(images.shape[0],-1,images.shape[-2],images.shape[-1])
             else:
@@ -319,14 +323,14 @@ class psflearninglib:
             padpsf = False
 
         if channeltype == 'single':
-            if (PSFtype == 'insitu_zernike') or (PSFtype == 'insitu_pupil'):
+            if 'insitu' in PSFtype:
                 dataobj = PreprocessedImageDataSingleChannel_smlm(images)
             else:
                 dataobj = PreprocessedImageDataSingleChannel(images)
         elif channeltype == '4pi':
                 dataobj = PreprocessedImageDataMultiChannel(images, PreprocessedImageDataSingleChannel, is4pi=True)        
         elif channeltype == 'multi':
-            if (PSFtype == 'insitu_zernike') or (PSFtype == 'insitu_pupil'):
+            if 'insitu' in PSFtype:
                 dataobj = PreprocessedImageDataMultiChannel_smlm(images, PreprocessedImageDataSingleChannel_smlm)
             else:
                 dataobj = PreprocessedImageDataMultiChannel(images, PreprocessedImageDataSingleChannel)
@@ -440,7 +444,7 @@ class psflearninglib:
         else:
              
             # %%  remove ourlier
-            if (PSFtype == 'insitu_zernike') or (PSFtype == 'insitu_pupil'):
+            if 'insitu' in PSFtype:
                 #th = [0.99,0.9] # quantile
                 res1,toc = fitter.relearn_smlm(res,channeltype,rej_threshold,start_time=toc)
                 locres = fitter.localize_smlm(res1,channeltype,plot=showplot)
