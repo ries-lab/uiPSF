@@ -113,7 +113,7 @@ class PreprocessedImageDataSingleChannel(PreprocessedImageDataInterface):
         self.centers_all = np.concatenate(all_centers)[0:L].astype(np.int32)
         self.file_idxs = np.array(file_idxs)[0:L].astype(np.int32)
         self.rois_available = True
-
+        self.image_size = self.images.shape
         return
 
 

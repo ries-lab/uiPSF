@@ -95,19 +95,24 @@ def showpupil(f,p, index=None):
     elif p.channeltype == 'multi':
         Nchannel = f.rois.psf_data.shape[0]
         fig = plt.figure(figsize=[4*Nchannel,4])
+        fig1 = plt.figure(figsize=[4*Nchannel,4])
         for i in range(0,Nchannel):
+            if index is None:
+                pupil = f.res['channel'+str(i)].pupil
+            else:
+                pupil = f.res['channel'+str(i)].pupil[index]
+
             ax = fig.add_subplot(1,Nchannel,i+1)
-            pupil_mag = np.abs(f.res['channel'+str(i)].pupil)
-            plt.imshow(pupil_mag)
-            plt.axis('off')
-            plt.title('pupil magnitude ' + str(i))
-        fig = plt.figure(figsize=[4*Nchannel,4])
-        for i in range(0,Nchannel):
-            ax = fig.add_subplot(1,Nchannel,i+1)
-            pupil_phase = np.angle(f.res['channel'+str(i)].pupil)
-            plt.imshow(pupil_phase)
-            plt.axis('off')
-            plt.title('pupil phase ' + str(i))
+            pupil_mag = np.abs(pupil)
+            ax.imshow(pupil_mag)
+            ax.axis('off')
+            ax.set_title('pupil magnitude ' + str(i))
+        
+            ax1 = fig1.add_subplot(1,Nchannel,i+1)
+            pupil_phase = np.angle(pupil)
+            ax1.imshow(pupil_phase)
+            ax1.axis('off')
+            ax1.set_title('pupil phase ' + str(i))
     elif p.channeltype == '4pi':
         Nchannel = f.rois.psf_data.shape[0]
         fig = plt.figure(figsize=[16,8])
@@ -167,32 +172,39 @@ def showzernike(f,p,index=None):
         ax1 = fig.add_subplot(2,2,1)
         ax2 = fig.add_subplot(2,2,2)
         for i in range(0,Nchannel):
-            line, = ax1.plot(f.res['channel'+str(i)].zernike_coeff[0],'.-')    
-            ax2.plot(f.res['channel'+str(i)].zernike_coeff[1],'.-')
+            if index is None:
+                zcoeff = f.res['channel'+str(i)].zernike_coeff
+                aperture=np.float32(np.abs(f.res['channel'+str(i)].pupil)>0.0)
+            else:
+                zcoeff = f.res['channel'+str(i)].zernike_coeff[:,index]
+                aperture=np.float32(np.abs(f.res['channel'+str(i)].pupil[0])>0.0)
+
+
+            line, = ax1.plot(zcoeff[0],'.-')    
+            ax2.plot(zcoeff[1],'.-')
             ax1.set_xlabel('zernike polynomial')
             ax1.set_ylabel('coefficient')
             ax1.set_title('pupil magnitude')
             ax2.set_title('pupil phase')
             line.set_label('channel '+str(i))
             ax1.legend()
-        aperture=np.float32(np.abs(f.res.channel0.pupil)>0.0)
+        
         Zk = f.res.channel0.zernike_polynomial
 
         fig = plt.figure(figsize=[4*Nchannel,4])
+        fig1 = plt.figure(figsize=[4*Nchannel,4])
         for i in range(0,Nchannel):
             ax = fig.add_subplot(1,Nchannel,i+1)
-            pupil_mag = np.sum(Zk*f.res['channel'+str(i)].zernike_coeff[0].reshape((-1,1,1)),axis=0)*aperture
-            plt.imshow(pupil_mag,)
-            plt.axis('off')
-            plt.title('pupil magnitude ' + str(i))
+            pupil_mag = np.sum(Zk*zcoeff[0].reshape((-1,1,1)),axis=0)*aperture
+            ax.imshow(pupil_mag,)
+            ax.axis('off')
+            ax.set_title('pupil magnitude ' + str(i))
 
-        fig = plt.figure(figsize=[4*Nchannel,4])
-        for i in range(0,Nchannel):
-            ax = fig.add_subplot(1,Nchannel,i+1)
-            pupil_phase = np.sum(Zk[4:]*f.res['channel'+str(i)].zernike_coeff[1][4:].reshape((-1,1,1)),axis=0)*aperture
-            plt.imshow(pupil_phase)
-            plt.axis('off')
-            plt.title('pupil phase ' + str(i))
+            ax1 = fig1.add_subplot(1,Nchannel,i+1)
+            pupil_phase = np.sum(Zk[4:]*zcoeff[1][4:].reshape((-1,1,1)),axis=0)*aperture
+            ax1.imshow(pupil_phase)
+            ax1.axis('off')
+            ax1.set_title('pupil phase ' + str(i))
     elif p.channeltype == '4pi':
         Nchannel = f.rois.psf_data.shape[0]
         fig = plt.figure(figsize=[16,8])
@@ -247,42 +259,61 @@ def showzernike(f,p,index=None):
         plt.show()
     return
 
-def showzernikemap(f,index):
+
+def showzernikemap(f,p,index):
+    if p.channeltype == 'single':
+        zmap = f.res.zernike_map
+        zcoeff = f.res.zernike_coeff
+        pupil = f.res.pupil
+        Zk = f.res.zernike_polynomial
+        zernikemap(f,index,zmap,zcoeff,pupil,Zk)
+    if p.channeltype == 'multi':
+        Nchannel = f.rois.psf_data.shape[0]
+        for i in range(0,Nchannel):
+            print('channel '+str(i))
+            zmap = f.res['channel'+str(i)].zernike_map
+            zcoeff = f.res['channel'+str(i)].zernike_coeff
+            pupil = f.res['channel'+str(i)].pupil
+            Zk = f.res['channel'+str(i)].zernike_polynomial
+            zernikemap(f,index,zmap,zcoeff,pupil,Zk)
+
+def zernikemap(f,index,zmap,zcoeff,pupil,Zk):
+
     fig = plt.figure(figsize=[16,4])
     ax = fig.add_subplot(1,2,1)
-    plt.plot(f.res.zernike_coeff[0].transpose(),'k',alpha=0.1)
-    plt.plot(index,f.res.zernike_coeff[0,0,index],'ro')
+    plt.plot(zcoeff[0].transpose(),'k',alpha=0.1)
+    plt.plot(index,zcoeff[0,0,index],'ro')
     plt.xlabel('zernike polynomial')
     plt.ylabel('coefficient')
     plt.title('pupil magnitude')
     ax = fig.add_subplot(1,2,2)
-    plt.plot(f.res.zernike_coeff[1].transpose(),'k',alpha=0.1)
-    plt.plot(index,f.res.zernike_coeff[1,0,index],'ro')
+    plt.plot(zcoeff[1].transpose(),'k',alpha=0.1)
+    plt.plot(index,zcoeff[1,0,index],'ro')
     plt.xlabel('zernike polynomial')
     plt.ylabel('coefficient')
     plt.title('pupil phase')
 
-    if len(f.res.pupil.shape)>2:
-        aperture=np.float32(np.abs(f.res.pupil[0])>0.0)
+    if len(pupil.shape)>2:
+        aperture=np.float32(np.abs(pupil[0])>0.0)
     else:
-        aperture=np.float32(np.abs(f.res.pupil)>0.0)
+        aperture=np.float32(np.abs(pupil)>0.0)
     imsz = np.array(f.rois.image_size)
-    Zmap = f.res.zernike_map
-    Zk = f.res.zernike_polynomial
-    scale = (imsz[-2:]-1)/(np.array(Zmap.shape[-2:])-1)
+    
+
+    scale = (imsz[-2:]-1)/(np.array(zmap.shape[-2:])-1)
 
     fig = plt.figure(figsize=[3*len(index),6])
     for i,id in enumerate(index):
         ax = fig.add_subplot(2,len(index),i+1)
         #plt.imshow(Zmap[1,id],cmap='twilight',vmin=-0.05,vmax=0.5)
-        plt.imshow(Zmap[1,id],cmap='twilight')
+        plt.imshow(zmap[1,id],cmap='twilight')
         #plt.plot(cor[:,-1]/scale[-1],cor[:,-2]/scale[-2],'ro',markersize=5)
         plt.axis('off')
         plt.title('mode '+str(id))
         ax = fig.add_subplot(2,len(index),i+1+len(index))
         plt.imshow(Zk[id]*aperture,cmap='viridis')
         plt.axis('off')
-
+    plt.show()
 
 def showpsfvsdata(f,p,index):
     psf_data = f.rois.psf_data

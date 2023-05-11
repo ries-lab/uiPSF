@@ -324,7 +324,7 @@ class Fitter(FitterInterface):
         return locres
 
     
-    def localize_FD(self,res, usecuda=True,initz=None, plot=True):
+    def localize_FD(self,res, channeltype,usecuda=True,initz=None, plot=True):
         #res_dict = self.psf.res2dict(res)
         #I_model_all = res_dict['I_model_all']
         I_model_all = self.forward_images
@@ -334,13 +334,21 @@ class Fitter(FitterInterface):
             Nz = psf_data.shape[-3]
         else:
             Nz = 1
-
+        _, _, centers, _ = self.data.get_image_data()
+        cor = np.stack(centers)
         dll = localizationlib(usecuda=usecuda)
         x = []
         y = []
         z = []
-        for i in range(psf_data.shape[0]):
-            loci = dll.loc_ast(psf_data[i],I_model_all[i],pz,initz=initz,start_time=0)
+        for i in range(psf_data.shape[-4]):
+            if channeltype=='single':
+                loci = dll.loc_ast(psf_data[i],I_model_all[i],pz,initz=initz,start_time=0)
+            elif channeltype=='multi':
+
+                imgcenter = self.psf.imgcenter
+                T = res[-2]
+                loci = dll.loc_ast_dual(psf_data[:,i:i+1],I_model_all[:,i],pz,cor[:,i:i+1],imgcenter,T,initz=initz,start_time=0)
+
             x.append(np.squeeze(loci[-1]['x']))
             y.append(np.squeeze(loci[-1]['y']))
             z.append(np.squeeze(loci[-1]['z']))

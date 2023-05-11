@@ -463,7 +463,8 @@ class psflearninglib:
         res = self.learning_result
         usecuda = self.param.usecuda
         showplot = self.param.plotall
-        loc_FD = fitter.localize_FD(res, usecuda=usecuda, initz=initz,plot=showplot)
+        channeltype = self.param.channeltype
+        loc_FD = fitter.localize_FD(res, channeltype, usecuda=usecuda, initz=initz,plot=showplot)
         self.loc_FD = loc_FD
         return loc_FD
 
