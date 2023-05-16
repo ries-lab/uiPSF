@@ -146,10 +146,14 @@ def showzernike(f,p,index=None):
         fig = plt.figure(figsize=[10,4])
         if index is None:
             zcoeff = f.res.zernike_coeff
-            aperture=np.float32(np.abs(f.res.pupil)>0.0)
+            
         else:
             zcoeff = f.res.zernike_coeff[:,index]
+
+        if len(f.res.pupil.shape)>2:
             aperture=np.float32(np.abs(f.res.pupil[0])>0.0)
+        else:
+            aperture=np.float32(np.abs(f.res.pupil)>0.0)
         plt.plot(zcoeff.transpose(),'.-')
         plt.xlabel('zernike polynomial')
         plt.ylabel('coefficient')
@@ -174,10 +178,13 @@ def showzernike(f,p,index=None):
         for i in range(0,Nchannel):
             if index is None:
                 zcoeff = f.res['channel'+str(i)].zernike_coeff
-                aperture=np.float32(np.abs(f.res['channel'+str(i)].pupil)>0.0)
             else:
                 zcoeff = f.res['channel'+str(i)].zernike_coeff[:,index]
+            
+            if len(f.res['channel'+str(i)].pupil.shape)>2:
                 aperture=np.float32(np.abs(f.res['channel'+str(i)].pupil[0])>0.0)
+            else:
+                aperture=np.float32(np.abs(f.res['channel'+str(i)].pupil)>0.0)
 
 
             line, = ax1.plot(zcoeff[0],'.-')    

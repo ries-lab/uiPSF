@@ -3,32 +3,32 @@
 # that would be reasonable to set to the repo dir
 Params:
   # ------data specific parameters, should be updated for different data
-  datapath: E:/EMBL files/data 2022/230202_Nup96SNAP_NC_M2/Nup96SNAP_BME_i50SM_ex200_zpos5um_NC_1                 # full path to your data
-  keyword: Pos                 # keyword for your data file, used for automatic finding files with the same keyword
+  datapath: " "                # full path to your data
+  keyword: stack                 # keyword for your data file, used for automatic finding files with the same keyword
   savename: test            # full path to your result foder/filename
-  subfolder: Pos                # keyword for subfolder name if each bead data is saved in a individual folder
+  subfolder: stack                # keyword for subfolder name if each bead data is saved in a individual folder
   format: .tif                  # .mat, .tif, .czi
   stage_mov_dir: normal         # normal, reverse: normal direction is where stage move towards the objective when taking a z-stack bead data
-  gain: 1
-  ccd_offset: 400
+  gain: 2.9
+  ccd_offset: 500
   roi:
     roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [2,2]          # blur kernel size, corresponding to dimensions defined in roi_size
     max_kernel: [3,3]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
-    peak_height: 0.3            # relative to maximum bead intensity, bead intensity below which are rejected
+    peak_height: 0.2            # relative to maximum bead intensity, bead intensity below which are rejected
     max_bead_number: 200        # ignored by insitu PSF learning
     bead_radius: 0.0            # unit: micron
   pixel_size:                   # unit: micron
     x: 0.127
     y: 0.116
-    z: 0.05
+    z: 0.04
   FOV:                           # define FOV for bead selection, if x_center, y_center, radius are 0, select the full FOV
     y_center: 0
     x_center: 0
     radius: 0
     z_start: 1
     z_end: -1
-    z_step: 5
+    z_step: 2
 
 
   #--------type specific paramters, might require update for different data---------------------------
@@ -70,7 +70,7 @@ Params:
       n_max: 8                     # maximum zernike order
       zernike_nl: []               # set the Zernike terms for PSF learning, e.g. [(2,2),(2,-2)], if empty, all zernike terms defined by n_max will be used 
       blur_sigma: 0.5              # unit: pixel
-      var_blur: false               # estimate blurring sigma
+      var_blur: true               # estimate blurring sigma
       with_apoid: true              # with theoretical apoidization term
       const_pupilmag: false         # pupil magnitude is constant and equal to one
       symmetric_mag: false          # pupil magnitude is circular symmetric
@@ -88,7 +88,7 @@ Params:
   loss_weight:                   # weighting factor for each loss term
     mse1: 1
     mse2: 1
-    smooth: 0.001
+    smooth: 0.0
     edge: 0.01
     psf_min: 1
     bg_min: 1
@@ -99,7 +99,7 @@ Params:
   rej_threshold:                 # threshold for ourlier removal after initial learning, which are relative values or quantile for insitu PSF
     bias_z: 10
     mse: 3
-    photon: 3
+    photon: 1.5
   
   usecuda: true                  # for spline localization
   plotall: true

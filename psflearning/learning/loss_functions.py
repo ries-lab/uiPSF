@@ -243,6 +243,37 @@ def mse_zernike_4pi(model,data,variables=None,mu=None,w=None):
 
     return loss
 
+def mse_zernike_4pi_smlm(model,data,variables=None,mu=None,w=None):
+    mydiff = model-data
+
+    mse_norm1 = tf.reduce_mean(tf.square(mydiff)) / tf.reduce_mean(data)     
+    mse_norm2 = tf.reduce_mean(tf.reduce_sum(tf.square(mydiff),axis=(-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-2,-1)))*200
+
+    #LL = (model-data*tf.math.log(model))
+    LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
+
+    LL = tf.reduce_mean(LL[tf.math.is_finite(LL)]) 
+    bg = variables[1]
+    intensity = variables[2]
+    intensity_phase = variables[3]
+    zcoeff1 = variables[4]
+    zcoeff2 = variables[5]
+    alpha = variables[7]
+
+    bgmin = tf.reduce_sum(tf.math.square(tf.math.minimum(bg,0)))
+    intensitymin = tf.reduce_sum(tf.math.square(tf.math.minimum(intensity,0)))
+    alphamin = tf.reduce_sum(tf.math.square(tf.math.minimum(alpha,0)))
+
+    g1 = tf.reduce_sum(tf.abs(zcoeff1[1][1:]))
+    g2 = tf.reduce_sum(tf.abs(zcoeff1[0][1:]))*2 + tf.reduce_sum(tf.abs(zcoeff2[0][1:]))*2
+    g3 = tf.reduce_sum(tf.abs(zcoeff2[1][1:]))
+    g4 = tf.reduce_sum(tf.square(posd))*2
+
+    #loss = mse_norm1*w[0] + mse_norm2*w[1] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + alphamin*w[4]*mu + (g1+g2)*w[2]
+    loss = LL*w[0] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + alphamin*w[4]*mu 
+
+    return loss
+
 def mse_real_zernike_FD(model,data,variables=None,mu=None,w=None):
     mydiff = model-data
 

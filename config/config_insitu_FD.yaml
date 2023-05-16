@@ -4,13 +4,13 @@
 Params:
   # ------data specific parameters, should be updated for different data
   datapath: E:/EMBL files/data 2022/230202_Nup96SNAP_NC_M2/Nup96SNAP_BME_i50SM_ex200_zpos5um_NC_1                 # full path to your data
-  keyword: Cell                 # keyword for your data file, used for automatic finding files with the same keyword
+  keyword: Pos0.                 # keyword for your data file, used for automatic finding files with the same keyword
   savename: test            # full path to your result foder/filename
-  subfolder: ""                 # keyword for subfolder name if each bead data is saved in a individual folder
+  subfolder: ""                # keyword for subfolder name if each bead data is saved in a individual folder
   format: .tif                  # .mat, .tif, .czi
   stage_mov_dir: normal         # normal, reverse: normal direction is where stage move towards the objective when taking a z-stack bead data
-  gain: 0.44
-  ccd_offset: 100
+  gain: 0.1
+  ccd_offset: 400
   roi:
     roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [4,4]          # blur kernel size, corresponding to dimensions defined in roi_size
@@ -19,8 +19,8 @@ Params:
     max_bead_number: 40        # ignored by insitu PSF learning
     bead_radius: 0.0            # unit: micron
   pixel_size:                   # unit: micron
-    x: 0.13
-    y: 0.13
+    x: 0.127
+    y: 0.116
     z: 0.05
   FOV:                           # define FOV for bead selection, if x_center, y_center, radius are 0, select the full FOV
     y_center: 0
@@ -40,7 +40,7 @@ Params:
   LLS:                           # parameters only for lattice light-sheet psfs
     skew_const: [0,0]            # unit: pixel
   insitu:               
-    frame_range: [0,2000]     # set the frames to be loaded
+    frame_range: [1000,5000]     # set the frames to be loaded
 
   option:                         # mainly for pupil and zernike, insitu  learning
     imaging:                       
@@ -49,15 +49,15 @@ Params:
         imm: 1.516
         med: 1.335
         cov: 1.516
-      NA: 1.49
+      NA: 1.43
     insitu:
-      stage_pos: 0.5               # 0 at the coverslip, positive when move towards the coverslip
+      stage_pos: 0.8               # 0 at the coverslip, positive when move towards the coverslip
       min_photon: 0.4              # quantile for rejecting low photon emitters
       partition_data: true         # select best emitters from each partition
-      partition_size: [13,400]     # number of z segments, maximum number of emitter per segment
+      partition_size: [13,100]     # number of z segments, maximum number of emitter per segment
       zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
-      zernike_coeff: [-0.5]         # for initial pupil, value corresponding to the zernike index 
-      z_range: 1.4                 # unit: micron, z range of insitu psf model
+      zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 
+      z_range: 1.4                # unit: micron, z range of insitu psf model
       zkorder_rank: L             # L, H: searching range of zernike coefficient (4,21), (21,45)    
       var_stagepos: true          # estimate stage position
       repeat: 2                   # iteration number for insitu learning, the previous psf model will be used for the next iteration
@@ -70,7 +70,7 @@ Params:
       n_max: 6                     # maximum zernike order
       zernike_nl: []               # set the Zernike terms for PSF learning, e.g. [(2,2),(2,-2)], if empty, all zernike terms defined by n_max will be used 
       blur_sigma: 0.5              # unit: pixel
-      var_blur: false               # estimate blurring sigma
+      var_blur: true               # estimate blurring sigma
       with_apoid: true              # with theoretical apoidization term
       const_pupilmag: true         # pupil magnitude is constant and equal to one
       symmetric_mag: false          # pupil magnitude is circular symmetric
@@ -82,7 +82,7 @@ Params:
 
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
   PSFtype: insitu_FD                 # voxel, zernike, pupil, zernike_vector, pupil_vector, insitu
-  channeltype: single            # single, multi, 4pi
+  channeltype: multi            # single, multi, 4pi
   datatype: smlm                 # bead, smlm
   
   loss_weight:                   # weighting factor for each loss term
@@ -104,7 +104,7 @@ Params:
   usecuda: true                  # for spline localization
   plotall: true
   ref_channel: 0                 # index of the reference channel, for multi-channel system
-  batch_size: 1200               # maximum number of beads or emitters to be optimized at one time
+  batch_size: 1000               # maximum number of beads or emitters to be optimized at one time
   iteration: 150                 # number of iterations for learning
   varname: ""                    # only for simulated data from matlab, the variable name for the data
   filelist: []                   # user can also give a list of data files, instead of giving the keyword or subfolder, data loading will skip automatic populate filelist 

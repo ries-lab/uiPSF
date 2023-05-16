@@ -15,8 +15,8 @@ maindatadir = io.param.load('../config/path/config_path.yaml').main_data_dir
 
 #%% load parameters
 L = psflearninglib()
-L.param = io.param.load('../config/config_insitu_FD.yaml').Params
-L.param.datapath = r'E:\EMBL files\data for PSF learning\190910_u2os_course_96_WGA_3D_M2\01_191009_u2os_course_96_WGA_3D_ritu_1/'
+L.param = io.param.load('../config/config_insitu_4pi.yaml').Params
+L.param.datapath = r'E:\EMBL files\data for PSF learning\02-26-2021 nup96 AF647\cell1_004/'
 L.param.savename = L.param.datapath + L.param.savename
 images = L.load_data()
 

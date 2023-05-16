@@ -46,6 +46,8 @@ from .learning import ( PreprocessedImageDataSingleChannel,
                         PSFZernikeBased_vector_smlm,
                         PSFPupilBased_vector_smlm,
                         PSFZernikeBased_FD_smlm,
+                        PSFMultiChannel4pi_smlm,
+                        PSFZernikeBased4pi_smlm,
                         L_BFGS_B,
                         mse_real,
                         mse_real_zernike,
@@ -55,6 +57,7 @@ from .learning import ( PreprocessedImageDataSingleChannel,
                         mse_real_zernike_FD_smlm,
                         mse_real_4pi,
                         mse_zernike_4pi,
+                        mse_zernike_4pi_smlm,
                         mse_real_pupil,
                         mse_pupil_4pi,
                         mse_real_All,
@@ -85,11 +88,13 @@ LOSSFUN_DICT = dict(voxel=mse_real,
 
 PSF_DICT_4pi = dict(voxel=PSFVolumeBased4pi, 
                     pupil=PSFPupilBased4pi,
-                    zernike=PSFZernikeBased4pi)
+                    zernike=PSFZernikeBased4pi,
+                    insitu_zernike = PSFZernikeBased4pi_smlm)
 
 LOSSFUN_DICT_4pi = dict(voxel=mse_real_4pi, 
                 pupil=mse_pupil_4pi,
-                zernike=mse_zernike_4pi)
+                zernike=mse_zernike_4pi,
+                insitu_zernike=mse_zernike_4pi_smlm)
 
             
 
@@ -112,7 +117,7 @@ class psflearninglib:
             psfmulticlass = None
         elif channeltype == 'multi':
             psfclass = PSF_DICT[PSFtype]
-            if (PSFtype == 'insitu_zernike') or (PSFtype == 'insitu_pupil'):
+            if 'insitu' in PSFtype:
                 psfmulticlass = PSFMultiChannel_smlm
             else:
                 psfmulticlass = PSFMultiChannel
@@ -120,7 +125,10 @@ class psflearninglib:
         elif channeltype == '4pi':
             psfclass = PSF_DICT_4pi[PSFtype]
             lossfun = LOSSFUN_DICT_4pi[PSFtype]
-            psfmulticlass = PSFMultiChannel4pi
+            if 'insitu' in PSFtype:
+                psfmulticlass = PSFMultiChannel4pi_smlm
+            else:
+                psfmulticlass = PSFMultiChannel4pi
             lossfunmulti = mse_real_4pi_All
 
         self.psf_class = psfclass
@@ -253,10 +261,15 @@ class psflearninglib:
         imagesall = np.stack(imageraw)
         
         if channeltype == '4pi':
-            if varname:
-                images = np.transpose(imagesall,(1,0,2,3,4,5))
+            if 'insitu' in PSFtype:
+                imagesall = np.expand_dims(imagesall,axis=0)
+                images = np.concatenate((imagesall,imagesall[:,:,[2,3,0,1]]),axis=0)
+                images = np.transpose(images,(2,0,1,3,4,5)) 
             else:
-                images = np.transpose(imagesall,(1,0,3,2,4,5))
+                if varname:
+                    images = np.transpose(imagesall,(1,0,2,3,4,5))
+                else:
+                    images = np.transpose(imagesall,(1,0,3,2,4,5))
         elif channeltype == 'multi':
             images = np.transpose(imagesall,(1,0,2,3,4))
             id = list(range(images.shape[0]))
@@ -266,10 +279,12 @@ class psflearninglib:
             images = imagesall
 
         if 'insitu' in PSFtype:
-            if channeltype == 'multi':
-                images = images.reshape(images.shape[0],-1,images.shape[-2],images.shape[-1])
-            else:
+            if channeltype == 'single':
                 images = images.reshape(-1,images.shape[-2],images.shape[-1])
+            elif channeltype == 'multi':
+                images = images.reshape(images.shape[0],-1,images.shape[-2],images.shape[-1])
+            elif channeltype == '4pi':
+                images = images.reshape(images.shape[0],-1,images.shape[1],images.shape[-2],images.shape[-1])
         
         
         if param.swaptif:
@@ -328,6 +343,9 @@ class psflearninglib:
             else:
                 dataobj = PreprocessedImageDataSingleChannel(images)
         elif channeltype == '4pi':
+            if 'insitu' in PSFtype:
+                dataobj = PreprocessedImageDataMultiChannel_smlm(images, PreprocessedImageDataSingleChannel_smlm, is4pi=True)
+            else:
                 dataobj = PreprocessedImageDataMultiChannel(images, PreprocessedImageDataSingleChannel, is4pi=True)        
         elif channeltype == 'multi':
             if 'insitu' in PSFtype:

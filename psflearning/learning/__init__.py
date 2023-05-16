@@ -24,6 +24,8 @@ from .psfs.PSFZernikeBased_vector_smlm_file import PSFZernikeBased_vector_smlm
 from .psfs.PSFPupilBased_vector_smlm_file import PSFPupilBased_vector_smlm
 from .psfs.PSFMultiChannel_smlm_file import PSFMultiChannel_smlm
 from .psfs.PSFZernikeBased_FD_smlm_file import PSFZernikeBased_FD_smlm
+from .psfs.PSFZernikeBased4pi_smlm_file import PSFZernikeBased4pi_smlm
+from .psfs.PSFMultiChannel4pi_smlm_file import PSFMultiChannel4pi_smlm
 
 from .loclib import localizationlib
 

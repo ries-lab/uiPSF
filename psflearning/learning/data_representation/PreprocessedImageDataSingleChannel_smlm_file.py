@@ -30,8 +30,8 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
             self.dim_names = "images, y, x"
         elif is4pi is True:
             self.is4pi = True
-            self.num_dims = 3
-            self.dim_names = "images, y, x"
+            self.num_dims = 4
+            self.dim_names = "images,phase, y, x"
         else:
             raise ValueError("is4pi should be True or False.")
 
@@ -73,8 +73,12 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
 
         for frame, image in enumerate(self.images):
             # TODO: try/except, since nip.extractMuliPeaks throws error if no roi is found
-            ed = np.min((frame+100,self.images.shape[0]))
-            im = image-np.mean(self.images[frame:ed],axis=0)
+            if self.is4pi:
+                im = np.mean(image,axis=0)
+                image = image[0]
+            else:
+                ed = np.min((frame+100,self.images.shape[0]))
+                im = image-np.mean(self.images[frame:ed],axis=0)
             rois, centers = nip.extractMultiPeaks_smlm(im, ROIsize=roi_size, sigma=gaus_sigma,
                                                 borderDist=min_border_dist, threshold_rel=max_threshold,
                                                 alternateImg=image, kernel=max_kernel, min_dist = min_center_dist,FOV=FOV)
@@ -101,6 +105,7 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         self.centers_all = np.concatenate(all_centers).astype(np.int32)
         self.alldata = dict(rois=self.rois,centers=self.centers,frames=self.frames)
         self.offset = np.min((np.quantile(self.rois,1e-3),0))
+        self.image_size = self.images.shape
         return
     
     def resetdata(self):
