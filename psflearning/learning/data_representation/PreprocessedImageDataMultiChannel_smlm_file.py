@@ -38,8 +38,10 @@ class PreprocessedImageDataMultiChannel_smlm(PreprocessedImageDataInterface):
         Just calls the 'find_rois' function for each channel.
         """
         self.min_border_dist = min_border_dist # needed for get_min_border_dist()
-
-        for channel in self.channels:
+        ch = [2,3,0,1]
+        for j,channel in enumerate(self.channels):
+            if self.is4pi:
+                channel.patterns = self.channels[ch[j]].images
             channel.find_rois(roi_size, gaus_sigma, min_border_dist, max_threshold, max_kernel, FOV, min_center_dist,max_bead_number)
         
         self.rois_available = True

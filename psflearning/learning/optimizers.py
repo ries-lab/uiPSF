@@ -38,6 +38,8 @@ class OptimizerABC:
         self.objective = None
         self.variables = None
         self.weight = None
+        self.rate = 1.1
+        self.mu = 1
         self.opt = self.create_actual_optimizer(options, kwargs)
 
     @abstractmethod
@@ -285,8 +287,9 @@ class L_BFGS_B(OptimizerABC):
         init_var = self.flatten_variables(variables)
         self.options['maxiter'] = self.maxiter
         start_time = pbar.postfix[-1]['time']
-        bd = tuple(map(tuple,np.ones((init_var.shape[0],2))*[[-1e5,1e5]]))
-        result = optimize.minimize(fun=self.objective_wrapper_for_optimizer, x0=init_var, args=(varinfo,pbar,start_time), jac=True, method='L-BFGS-B',bounds=bd, options=self.options)
+        self.mu = 1
+        #bd = tuple(map(tuple,np.ones((init_var.shape[0],2))*[[-1e5,1e5]]))
+        result = optimize.minimize(fun=self.objective_wrapper_for_optimizer, x0=init_var, args=(varinfo,pbar,start_time), jac=True, method='L-BFGS-B', options=self.options)
         
         #self.write_output(self.maxiter, result.fun, True)
         
@@ -392,7 +395,7 @@ class L_BFGS_B(OptimizerABC):
                     
             with tf.GradientTape() as tape:
                 tape.watch(var1)
-                loss1 = self.objective(var1,ind[i:i+2])
+                loss1 = self.objective(var1,self.mu,ind[i:i+2])
             w1 = var1[0].shape[0]/Nfit
             loss = loss + loss1*w1   
             grad1 = tape.gradient(loss1, var1)
@@ -423,7 +426,7 @@ class L_BFGS_B(OptimizerABC):
         for g in grad[1:]:
             gradvec = tf.concat((gradvec,tf.reshape(g,[-1])),axis = 0)
         
-
+        self.mu*=self.rate
         return loss, gradvec
         
     def objective_wrapper_for_gradient_copy(self, var, pbar,start_time=None):

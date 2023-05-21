@@ -267,7 +267,6 @@ def mse_zernike_4pi_smlm(model,data,variables=None,mu=None,w=None):
     g1 = tf.reduce_sum(tf.abs(zcoeff1[1][1:]))
     g2 = tf.reduce_sum(tf.abs(zcoeff1[0][1:]))*2 + tf.reduce_sum(tf.abs(zcoeff2[0][1:]))*2
     g3 = tf.reduce_sum(tf.abs(zcoeff2[1][1:]))
-    g4 = tf.reduce_sum(tf.square(posd))*2
 
     #loss = mse_norm1*w[0] + mse_norm2*w[1] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + alphamin*w[4]*mu + (g1+g2)*w[2]
     loss = LL*w[0] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + alphamin*w[4]*mu 

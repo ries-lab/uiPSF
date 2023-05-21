@@ -102,7 +102,7 @@ class PSFMultiChannel_smlm(PSFInterface):
         pixelsize_z = np.array(self.data.pixelsize_z)
         locres = dll.loc_ast_dual(data,I_init,pixelsize_z,cor,imgcenter,T)
         LL = locres[2]
-        initz = locres[-1]['z'].flatten() 
+        initz = locres[-1]['z'].flatten()+self.sub_psfs[0].Zoffset 
         if partition_data:
             initz, rois_id,_ = self.partitiondata(initz,LL)
 

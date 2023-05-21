@@ -301,6 +301,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         psf and adapts intensities and background accordingly.
         """
         positions, backgrounds, intensities, Zcoeff,sigma, stagepos = variables
+        res = variables.copy()
         positions = positions*self.weight[2]
         Zcoeff[0]*=self.weight[4]
         Zcoeff[1]*=self.weight[3]
@@ -321,7 +322,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                 Zcoeff,     
                 sigma,
                 stagepos*self.data.pixelsize_z,
-                variables] # already correct
+                res] # already correct
     
 
     def res2dict(self,res):

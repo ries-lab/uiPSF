@@ -4,7 +4,7 @@
 Params:
   # ------data specific parameters, should be updated for different data
   datapath: E:/EMBL files/data 2022/230202_Nup96SNAP_NC_M2/Nup96SNAP_BME_i50SM_ex200_zpos5um_NC_1                 # full path to your data
-  keyword: cell1__560_00002                 # keyword for your data file, used for automatic finding files with the same keyword
+  keyword: cell1__560                 # keyword for your data file, used for automatic finding files with the same keyword
   savename: test            # full path to your result foder/filename
   subfolder: ""                # keyword for subfolder name if each bead data is saved in a individual folder
   format: .mat                  # .mat, .tif, .czi
@@ -44,30 +44,30 @@ Params:
 
   option:                         # mainly for pupil and zernike, insitu  learning
     imaging:                       
-      emission_wavelength: 0.68    # unit: micron
+      emission_wavelength: 0.6    # unit: micron
       RI: 
-        imm: 1.516
-        med: 1.335
+        imm: 1.406
+        med: 1.406
         cov: 1.516
-      NA: 1.43
+      NA: 1.35
     insitu:
       stage_pos: 0.8               # 0 at the coverslip, positive when move towards the coverslip
       min_photon: 0.4              # quantile for rejecting low photon emitters
       partition_data: true         # select best emitters from each partition
-      partition_size: [13,100]     # number of z segments, maximum number of emitter per segment
+      partition_size: [11,400]     # number of z segments, maximum number of emitter per segment
       zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
       zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 
-      z_range: 1.4                # unit: micron, z range of insitu psf model
+      z_range: 1.0                # unit: micron, z range of insitu psf model
       zkorder_rank: L             # L, H: searching range of zernike coefficient (4,21), (21,45)    
       var_stagepos: true          # estimate stage position
-      repeat: 2                   # iteration number for insitu learning, the previous psf model will be used for the next iteration
+      repeat: 3                   # iteration number for insitu learning, the previous psf model will be used for the next iteration
       backgroundROI: []           # define the region where the emitters are at the coverslip, only for imaging close to the coverslip    
     fpi:
       link_zernikecoeff: true
       phase_dm: [2,0,-2]           # unit: radian
     model:
       pupilsize: 64                # unit: pixel
-      n_max: 6                     # maximum zernike order
+      n_max: 8                     # maximum zernike order
       zernike_nl: []               # set the Zernike terms for PSF learning, e.g. [(2,2),(2,-2)], if empty, all zernike terms defined by n_max will be used 
       blur_sigma: 0.5              # unit: pixel
       var_blur: true               # estimate blurring sigma
@@ -88,7 +88,7 @@ Params:
   loss_weight:                   # weighting factor for each loss term
     mse1: 1
     mse2: 1
-    smooth: 0.001
+    smooth: 0.00
     edge: 0.01
     psf_min: 1
     bg_min: 1
@@ -104,8 +104,8 @@ Params:
   usecuda: true                  # for spline localization
   plotall: true
   ref_channel: 0                 # index of the reference channel, for multi-channel system
-  batch_size: 1000               # maximum number of beads or emitters to be optimized at one time
-  iteration: 150                 # number of iterations for learning
+  batch_size: 500               # maximum number of beads or emitters to be optimized at one time
+  iteration: 200                 # number of iterations for learning
   varname: ""                    # only for simulated data from matlab, the variable name for the data
   filelist: []                   # user can also give a list of data files, instead of giving the keyword or subfolder, data loading will skip automatic populate filelist 
   swaptif: true                  # permute x,y dimension of tif file

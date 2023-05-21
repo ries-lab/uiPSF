@@ -34,7 +34,7 @@ class Fitter(FitterInterface):
         self.loss_weight = loss_weight
         return
 
-    def objective(self, variables, ind = None):
+    def objective(self, variables,mu, ind = None):
         """
         Define sthe objective that should be optimized.
         Basically asks the psf to calculate forward_images and combines those with the data
@@ -42,13 +42,13 @@ class Fitter(FitterInterface):
         """
         if ind is None:
             ind = [0,variables[0].shape[0]]
-        self.mu *= self.rate
+        #self.mu *= self.rate
         self.psf.ind = ind
         forward_images = self.psf.calc_forward_images(variables)
         if self.loss_func_single:
-            loss = self.loss_func(forward_images, self.rois[:,ind[0]:ind[1]], self.loss_func_single,variables,self.mu,self.loss_weight)
+            loss = self.loss_func(forward_images, self.rois[:,ind[0]:ind[1]], self.loss_func_single,variables,mu,self.loss_weight)
         else:
-            loss = self.loss_func(forward_images, self.rois[ind[0]:ind[1]], variables,self.mu,self.loss_weight)
+            loss = self.loss_func(forward_images, self.rois[ind[0]:ind[1]], variables,mu,self.loss_weight)
         return loss
 
     def learn_psf(self, variables=None,start_time=None):
@@ -57,7 +57,7 @@ class Fitter(FitterInterface):
         values (if not provided), runs the optimization and uses the psf object to do postprocessing.
         """
         # calulate initial values if none are given
-        self.mu = 1
+        #self.mu = 1
         if variables is None:
             variables, start_time = self.psf.calc_initials(self.data,start_time = start_time)
 
@@ -157,7 +157,7 @@ class Fitter(FitterInterface):
         psf_fit = self.forward_images
         mydiff = psf_fit-psf_data
         mse1 = np.mean(np.square(mydiff), axis = (-2,-1))/np.mean(psf_data, axis = (-2,-1))
-        if channeltype == 'multi':
+        if channeltype == 'multi' or channeltype == '4pi':
             intensity = np.min(intensity,axis=0,keepdims=False)
             mse1 = np.sum(mse1,axis=0,keepdims=False)
         a = threshold[0]
@@ -206,6 +206,8 @@ class Fitter(FitterInterface):
                 var[0] = initres[-1][0][mask] # pos
                 var[1] = initres[-1][1][:,mask] # bg
                 var[2] = initres[-1][2][:,mask] # intensity
+                if channeltype == '4pi':
+                    var[3] = initres[-1][3][:,mask]# intensity (phase)
 
                 res,toc = self.learn_psf(var,start_time=start_time)
         else:
@@ -317,7 +319,7 @@ class Fitter(FitterInterface):
             T = np.squeeze(res[-2])
             zT = np.array([self.data.channels[0].zT])
             locres = dll.loc_4pi(psf_data,I_model,A_model,pz,cor,imgcenter,T,zT,initz=initz,plot=plot)
-            
+
         else:
             raise TypeError('supported psftype is:',str(['single','multi','4pi']))
 

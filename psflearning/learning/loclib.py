@@ -254,7 +254,7 @@ class localizationlib:
         return P, CRLB, LL, Iall, msezRatio,toc, loc_dict
 
 
-    def loc_4pi(self,psf_data,I_model,A_model,pixelsize_z,cor,imgcenter,T,zT,initz=None,initphi=None,plot=False,start_time=None):
+    def loc_4pi(self,psf_data,I_model,A_model,pixelsize_z,cor,imgcenter,T,zT,initz=None,initphi=None,plot=False,start_time=0, linkxy=True):
         rsz = psf_data.shape[-1]
         Nbead = cor.shape[1]
         Nchannel = cor.shape[0]
@@ -263,6 +263,11 @@ class localizationlib:
             Nphase = psf_data.shape[-4]
         else:
             Nphase = 1
+        if len(psf_data.shape)>4:
+            Nz = psf_data.shape[-3]
+        else:
+            Nz = 1
+
         Nfit = Nbead*Nz*Nphase
         Nparam = 6
         offset = np.min(I_model-2*np.abs(A_model))
@@ -306,7 +311,10 @@ class localizationlib:
         dTS[:,:,:,0] = np.expand_dims(dx1,axis=1)
         dTS[:,:,:,1] = np.expand_dims(dy1,axis=1)
         dTS = dTS.reshape((Nfit,Nchannel,Nparam)).astype(np.float32)
-        shared = np.array([1,1,1,1,1,1])
+        if linkxy:
+            shared = np.array([1,1,1,1,1,1])
+        else:
+            shared = np.array([0,0,1,1,1,1])
         sharedA = np.repeat(np.expand_dims(shared,axis=0),Nfit,axis = 0).astype(np.int32)
 
         phic = np.array([0,0,0,0])
@@ -314,6 +322,9 @@ class localizationlib:
         
         ccz = IABall.shape[-3]//2
         if initz is None:
+            #Nzm = Imd.shape[-3]
+            #initz = np.linspace(-Nzm*pixelsize_z/2,Nzm*pixelsize_z/2,np.int32(Nzm*pixelsize_z/0.5))*0.8/pixelsize_z+ccz
+
             initz = np.array([-1,1])*0.15/pixelsize_z+ccz
         else:
             initz = np.array(initz)*0.15/pixelsize_z+ccz
@@ -331,7 +342,7 @@ class localizationlib:
         Pk = np.zeros((Nparam+1+(Nchannel-1)*(Nparam-np.sum(shared)),Nfit)).astype(np.float32)
         CRLBk = np.zeros((Nparam+(Nchannel-1)*(Nparam-np.sum(shared)),Nfit)).astype(np.float32)
         LLk = np.zeros((Nfit)).astype(np.float32)
-        iterations = np.int32(100)
+        iterations = np.int32(50)
         P = np.zeros((Nparam+1+(Nchannel-1)*(Nparam-np.sum(shared)),Nfit)).astype(np.float32)
         CRLB = np.zeros((Nparam+(Nchannel-1)*(Nparam-np.sum(shared)),Nfit)).astype(np.float32)
         LL = np.zeros((Nfit)).astype(np.float32)-1e10
@@ -375,32 +386,40 @@ class localizationlib:
         toc = pbar.postfix[1]['time']
         pbar.close()
 
-        
-        zf = np.mean(P[4].reshape((Nbead,Nphase,Nz)),axis=1)
-        
-        zg = np.linspace(0,Nz-1,Nz)
-        zf = zf-np.median(zf-zg,axis=1,keepdims=True)
-        phif = np.mean(np.unwrap(P[5].reshape((Nbead,Nphase*Nz)),axis=1).reshape((Nbead,Nphase,Nz)),axis=1)*zT/2/np.pi
-        phif = phif-np.median(phif-zg,axis=1,keepdims=True)
-        zdiff = zf-zg
-        phidiff = phif-zg
-
-        xf = np.mean(P[1].reshape((Nbead,Nphase,Nz)),axis=1)
-        xf = xf-np.median(xf,axis=1,keepdims=True)
-
-        yf = np.mean(P[0].reshape((Nbead,Nphase,Nz)),axis=1)
-        yf = yf-np.median(yf,axis=1,keepdims=True)
-
-        if Nz>4:
-            zind = range(2,Nz-2,1)
+        if linkxy:
+            yf = np.mean(P[0].reshape((Nbead,Nphase,Nz)),axis=1)
+            xf = np.mean(P[1].reshape((Nbead,Nphase,Nz)),axis=1)
+            zf = np.mean(P[4].reshape((Nbead,Nphase,Nz)),axis=1)
+            phif = np.mean(np.unwrap(P[5].reshape((Nbead,Nphase*Nz)),axis=1).reshape((Nbead,Nphase,Nz)),axis=1)*zT/2/np.pi
         else:
-            zind = range(0,Nz,1)
-    
-        zdiff = zdiff-np.mean(zdiff[:,zind],axis=1,keepdims=True)        
-        phidiff = phidiff-np.mean(phidiff[:,zind],axis=1,keepdims=True)
-        msez = np.mean(np.square((np.median(zf-zg,axis=0)-(zf-zg))[:,zind]),axis=1)
-   
+            yf = P[0:4]
+            xf = P[4:8]
+            zf = P[10]
+            phif = P[11]*zT/2/np.pi
 
+        if Nz>1:
+            zg = np.linspace(0,Nz-1,Nz)
+            zf = zf-np.median(zf-zg,axis=1,keepdims=True)
+            phif = phif-np.median(phif-zg,axis=1,keepdims=True)
+            zdiff = zf-zg
+            phidiff = phif-zg
+
+            xf = xf-np.median(xf,axis=1,keepdims=True)
+
+            yf = yf-np.median(yf,axis=1,keepdims=True)
+
+            if Nz>4:
+                zind = range(2,Nz-2,1)
+            else:
+                zind = range(0,Nz,1)
+        
+            zdiff = zdiff-np.mean(zdiff[:,zind],axis=1,keepdims=True)        
+            phidiff = phidiff-np.mean(phidiff[:,zind],axis=1,keepdims=True)
+            msez = np.mean(np.square((np.median(zf-zg,axis=0)-(zf-zg))[:,zind]),axis=1)
+   
+        else:
+            msez = np.array([1.0])
+    
         msezRatio =msez/np.median(msez)
         if plot & (Nz>1):
             fig = plt.figure(figsize=[12,6])

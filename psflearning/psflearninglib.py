@@ -262,9 +262,7 @@ class psflearninglib:
         
         if channeltype == '4pi':
             if 'insitu' in PSFtype:
-                imagesall = np.expand_dims(imagesall,axis=0)
-                images = np.concatenate((imagesall,imagesall[:,:,[2,3,0,1]]),axis=0)
-                images = np.transpose(images,(2,0,1,3,4,5)) 
+                images = np.transpose(imagesall,(1,0,2,3,4)) 
             else:
                 if varname:
                     images = np.transpose(imagesall,(1,0,2,3,4,5))
@@ -284,7 +282,7 @@ class psflearninglib:
             elif channeltype == 'multi':
                 images = images.reshape(images.shape[0],-1,images.shape[-2],images.shape[-1])
             elif channeltype == '4pi':
-                images = images.reshape(images.shape[0],-1,images.shape[1],images.shape[-2],images.shape[-1])
+                images = images.reshape(images.shape[0],-1,images.shape[-2],images.shape[-1])
         
         
         if param.swaptif:
@@ -414,6 +412,8 @@ class psflearninglib:
                 Nchannels = len(dataobj.channels)
                 psfobj.initpupil = [None]*Nchannels
                 psfobj.initpsf = [None]*Nchannels
+                if channeltype == '4pi':
+                    psfobj.initA = [None]*Nchannels
                 for k in range(0,Nchannels):
                     try:
                         psfobj.initpupil[k] = np.array(f['res']['channel'+str(k)]['pupil'])
@@ -424,6 +424,8 @@ class psflearninglib:
                     except:
                         pass
                     psfobj.initpsf[k] = np.array(f['res']['channel'+str(k)]['I_model']).astype(np.float32)
+                    if channeltype == '4pi':
+                        psfobj.initA[k] = np.array(f['res']['channel'+str(k)]['A_model']).astype(np.complex64)
 
 
         optimizer = L_BFGS_B(maxiter=maxiter)
@@ -515,7 +517,10 @@ class psflearninglib:
                         plt.axis('off')
                     plt.show()
             else:
-                self.param.option.insitu.stage_pos = float(res['channel0']['stagepos'])
+                try:
+                    self.param.option.insitu.stage_pos = float(res['channel0']['stagepos'])
+                except:
+                    pass
                 if self.param.plotall:
                     for j in range(0,len(dataobj.channels)):
                         I_model = res['channel'+str(j)]['I_model']

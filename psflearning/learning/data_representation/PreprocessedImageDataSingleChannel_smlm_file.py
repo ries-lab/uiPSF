@@ -30,8 +30,8 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
             self.dim_names = "images, y, x"
         elif is4pi is True:
             self.is4pi = True
-            self.num_dims = 4
-            self.dim_names = "images,phase, y, x"
+            self.num_dims = 3
+            self.dim_names = "images, y, x"
         else:
             raise ValueError("is4pi should be True or False.")
 
@@ -43,6 +43,7 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         self.rois_available = False
         self.min_border_dist = None # needed in cut_new_rois()
         self.zT = None
+        self.patterns = None
         return
 
     def check_and_init_images(self, images):
@@ -74,8 +75,7 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         for frame, image in enumerate(self.images):
             # TODO: try/except, since nip.extractMuliPeaks throws error if no roi is found
             if self.is4pi:
-                im = np.mean(image,axis=0)
-                image = image[0]
+                im = image + self.patterns[frame]
             else:
                 ed = np.min((frame+100,self.images.shape[0]))
                 im = image-np.mean(self.images[frame:ed],axis=0)

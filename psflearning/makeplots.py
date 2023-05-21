@@ -56,6 +56,9 @@ def showlearnedparam_insitu(f,p):
         pos = f.res.channel0.pos
         photon = f.res.channel0.intensity
         bg = f.res.channel0.bg
+    if p.channeltype == '4pi':
+        phi = np.angle(f.res.channel0.intensity)
+        photon = np.abs(f.res.channel0.intensity)
 
     fig = plt.figure(figsize=[16,8])
     ax = fig.add_subplot(2,4,1)
@@ -67,6 +70,13 @@ def showlearnedparam_insitu(f,p):
     ax = fig.add_subplot(2,4,3)
     plt.plot(pos[:,0],'.')
     plt.title('z')
+    if p.channeltype == '4pi':
+        ax = fig.add_subplot(2,4,4)
+        plt.plot(phi,'.')
+        ax.set_title('phi')
+        ax = fig.add_subplot(2,4,7)
+        plt.plot(pos[:,0],phi,'.')
+        plt.title('phi vs z')
     ax = fig.add_subplot(2,4,5)
     plt.plot(photon,'.')
     plt.title('photon')
@@ -345,14 +355,22 @@ def showpsfvsdata(f,p,index):
 def psfcompare(im1,im2):
     Nz = im1.shape[0]
     zind = range(0,Nz,4)
-    fig = plt.figure(figsize=[3*len(zind),6])
+    cc = im1.shape[-1]//2
+    N = len(zind)+1
+    fig = plt.figure(figsize=[3*N,6])
     for i,id in enumerate(zind):
-        ax = fig.add_subplot(2,len(zind),i+1)
+        ax = fig.add_subplot(2,N,i+1)
         plt.imshow(im1[id],cmap='twilight')
         plt.axis('off')
-        ax = fig.add_subplot(2,len(zind),i+1+len(zind))
+        ax = fig.add_subplot(2,N,i+1+N)
         plt.imshow(im2[id],cmap='twilight')
         plt.axis('off')
+    ax = fig.add_subplot(2,N,N)
+    plt.imshow(im1[:,cc],cmap='twilight')
+    plt.axis('off')
+    ax = fig.add_subplot(2,N,2*N)
+    plt.imshow(im2[:,cc],cmap='twilight')
+    plt.axis('off')
     plt.show()
     return
 
@@ -379,6 +397,8 @@ def showpsfvsdata_insitu(f,p):
         for ch in range(0,Nchannel):
             rois = f.rois.psf_data[ch]
             I_model = f.res['channel'+str(ch)].I_model
+            if p.channeltype == '4pi':
+                I_model = f.res['channel'+str(ch)].psf_model
             zf = f.res.channel0.pos[:,0]
             Nz = I_model.shape[0]
             edge = np.real(zoffset)+range(0,Nz+1)
@@ -390,6 +410,7 @@ def showpsfvsdata_insitu(f,p):
                     rois_avg[ii-1] = np.mean(rois[mask],axis=0)
             print('channel '+str(ch))
             psfcompare(rois_avg,I_model)
+
     return
 
 def showlocalization(f,p):
