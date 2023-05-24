@@ -463,7 +463,6 @@ class localizationlib:
         Imd = Imd/normf
         pbar = tqdm(total=1,desc='4/6: calculating spline coefficients',bar_format = "{desc}: {n_fmt}/{total_fmt} [{elapsed}s] {rate_fmt} {postfix[0]}{postfix[1][time]:>4.2f}s",postfix=["total time: ", dict(time=start_time)])
                   
-    
         coeff = psf2cspline_np(Imd)
                          
         pbar.postfix[1]['time'] = start_time+pbar._time()-pbar.start_t    
