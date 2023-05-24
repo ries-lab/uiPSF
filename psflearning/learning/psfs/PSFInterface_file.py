@@ -56,7 +56,7 @@ class PSFInterface():
             self = pickle.load(f)
         return self
 
-    def calpupilfield(self,fieldtype,Nz=None,datatype='bead'):
+    def calpupilfield(self,fieldtype='vector',Nz=None,datatype='bead'):
         if Nz is None:
             Nz = self.bead_kernel.shape[0]
         bin = self.options.model.bin
@@ -136,10 +136,10 @@ class PSFInterface():
             #self.normf = np.complex64(((pixelsize_x*NA/emission_wavelength)**2)/6.0)
             self.normf = np.complex64(pixelsize_x*pixelsize_y/np.sum(pupil*tf.math.conj(pupil)*kpixelsize*kpixelsize))
 
-        if datatype == 'bead':
-            self.Zrange = -1*np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.complex64).reshape((Nz,1,1))
-        elif datatype == 'insitu':
-            self.Zrange = np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.complex64).reshape((Nz,1,1))
+        #if datatype == 'bead':
+        #    self.Zrange = -1*np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.complex64).reshape((Nz,1,1))
+        #elif datatype == 'insitu':
+        self.Zrange = np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.complex64).reshape((Nz,1,1))
         self.kx = np.complex64(xx*NA/emission_wavelength)*pixelsize_x
         self.ky = np.complex64(yy*NA/emission_wavelength)*pixelsize_y
         self.kz = np.complex64(kz)*self.data.pixelsize_z

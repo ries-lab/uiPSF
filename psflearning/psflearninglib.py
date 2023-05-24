@@ -23,7 +23,7 @@ from PIL import Image
 from omegaconf import OmegaConf
 import os
 from tkinter import EXCEPTION, messagebox as mbox
-
+from dotted_dict import DottedDict
 #sys.path.append("..")
 
 from .learning import ( PreprocessedImageDataSingleChannel,
@@ -49,6 +49,7 @@ from .learning import ( PreprocessedImageDataSingleChannel,
                         PSFMultiChannel4pi_smlm,
                         PSFZernikeBased4pi_smlm,
                         L_BFGS_B,
+                        psf2cspline_np,
                         mse_real,
                         mse_real_zernike,
                         mse_real_zernike_FD,
@@ -375,6 +376,21 @@ class psflearninglib:
         
         return dataobj
 
+    def initializepsf(self):
+        param = self.param
+        w = list(param.loss_weight.values())
+        optionparam = param.option
+        batchsize = param.batch_size
+
+        if self.psf_class_multi is None:
+            psfobj = self.psf_class(options=optionparam)
+        else:
+            optimizer_single = L_BFGS_B(maxiter=50)
+            optimizer_single.batch_size = batchsize
+            psfobj = self.psf_class_multi(self.psf_class,optimizer_single,options=optionparam,loss_weight=w)
+
+        return psfobj
+    
     def learn_psf(self,dataobj,time=None):
         param = self.param
         rej_threshold = list(param.rej_threshold.values())
@@ -388,12 +404,7 @@ class psflearninglib:
         roi_size = param.roi.roi_size
         batchsize = param.batch_size
         pupilfile = optionparam.model.init_pupil_file
-        if self.psf_class_multi is None:
-            psfobj = self.psf_class(options=optionparam)
-        else:
-            optimizer_single = L_BFGS_B(maxiter=50)
-            optimizer_single.batch_size = batchsize
-            psfobj = self.psf_class_multi(self.psf_class,optimizer_single,options=optionparam,loss_weight=w)
+        psfobj = self.initializepsf()
 
         if pupilfile:
             f = h5.File(pupilfile, 'r')
@@ -406,7 +417,10 @@ class psflearninglib:
                     psfobj.Zoffset = np.array(f['res']['zoffset'])
                 except:
                     pass
-                psfobj.initpsf = np.array(f['res']['I_model']).astype(np.float32)
+                try:
+                    psfobj.initpsf = np.array(f['res']['I_model_reverse']).astype(np.float32)
+                except:
+                    psfobj.initpsf = np.array(f['res']['I_model']).astype(np.float32)
                 
             else:
                 Nchannels = len(dataobj.channels)
@@ -549,17 +563,29 @@ class psflearninglib:
         folder = param.datapath
         savename = param.savename+'_'+param.PSFtype+'_'+param.channeltype
         res_dict = psfobj.res2dict(res)
+        coeff_reverse = self.gencspline(res_dict,psfobj,keyname='I_model_reverse')
+        coeff = self.gencspline(res_dict,psfobj)
+
         if self.loc_FD is not None:
-            locres_dict = dict(P=locres[0],CRLB = locres[1],LL=locres[2],coeff=locres[3],loc=locres[-1],loc_FD=self.loc_FD)
+            locres_dict = dict(P=locres[0],CRLB = locres[1],LL=locres[2],coeff=coeff,coeff_bead=locres[3],loc=locres[-1],loc_FD=self.loc_FD,coeff_reverse=coeff_reverse)
         else:
-            locres_dict = dict(P=locres[0],CRLB = locres[1],LL=locres[2],coeff=locres[3],loc=locres[-1])
+            locres_dict = dict(P=locres[0],CRLB = locres[1],LL=locres[2],coeff=coeff,coeff_bead=locres[3],loc=locres[-1],coeff_reverse=coeff_reverse)
         img, _, centers, file_idxs = dataobj.get_image_data()
         img = np.stack(img)
         rois_dict = dict(cor=np.stack(centers),fileID=np.stack(file_idxs),psf_data=fitter.rois,
                         psf_fit=fitter.forward_images,image_size=img.shape)
         resfile = savename+'.h5'
-        with h5.File(resfile, "w") as f:
-            f.attrs["params"] = json.dumps(OmegaConf.to_container(param))
+        self.writeh5file(resfile,res_dict,locres_dict,rois_dict)
+
+        self.result_file = resfile
+        pbar.postfix[1]['time'] = toc +pbar._time()-pbar.start_t
+        pbar.update()
+        pbar.close
+        return resfile
+    
+    def writeh5file(self,filename,res_dict,locres_dict,rois_dict):
+        with h5.File(filename, "w") as f:
+            f.attrs["params"] = json.dumps(OmegaConf.to_container(self.param))
             g3 = f.create_group("rois")
             g1 = f.create_group("res")
             g2 = f.create_group("locres")
@@ -580,9 +606,99 @@ class psflearninglib:
                     g1[k] = v
             for k, v in rois_dict.items():
                 g3[k] = v
+        
+        return
 
-        self.result_file = resfile
-        pbar.postfix[1]['time'] = toc +pbar._time()-pbar.start_t
-        pbar.update()
-        pbar.close
-        return resfile
+
+    def gencspline(self, res_dict,psfobj,keyname='I_model'):
+        param = self.param
+        coeff = []
+        if param.channeltype == 'single':
+            if keyname in res_dict:
+                I_model = res_dict[keyname]
+                offset = np.min(I_model)
+                Imd = I_model-offset
+                normf = np.median(np.sum(Imd,axis = (-1,-2)))
+                Imd = Imd/normf
+                coeff = psf2cspline_np(Imd)
+                coeff = coeff.astype(np.float32)
+        if param.channeltype == 'multi':
+            if keyname in res_dict['channel0']:
+                Nchannel = len(psfobj.sub_psfs)
+                I_model = []
+                for i in range(Nchannel):
+                    I_model.append(res_dict['channel'+str(i)][keyname])       
+                I_model = np.stack(I_model)
+                offset = np.min(I_model)
+                Iall = []
+                Imd = I_model-offset
+                normf = np.max(np.median(np.sum(Imd,axis = (-1,-2)),axis=-1))
+                Imd = Imd/normf
+                for i in range(Nchannel):                                             
+                    coeff = psf2cspline_np(Imd[i])
+                    Iall.append(coeff)
+                coeff = np.stack(Iall).astype(np.float32)
+        if param.channeltype == '4pi':
+            if keyname in res_dict['channel0']:
+                Nchannel = len(psfobj.sub_psfs)
+                I_model = []
+                A_model = []
+                for i in range(Nchannel):
+                    I_model.append(res_dict['channel'+str(i)][keyname])    
+                    A_model.append(res_dict['channel'+str(i)]['A_model_reverse'])       
+                I_model = np.stack(I_model)
+                A_model = np.stack(A_model)
+                offset = np.min(I_model-2*np.abs(A_model))
+                Imd = I_model-offset
+                normf = np.max(np.median(np.sum(Imd[:,1:-1],axis = (-1,-2)),axis=-1))*2.0
+                Imd = Imd/normf
+                Amd = A_model/normf
+                IABall = []
+                for i in range(Nchannel):                         
+                    Ii = Imd[i]
+                    Ai = 2*np.real(Amd[i])
+                    Bi = -2*np.imag(Amd[i]) 
+                    IAB = [psf2cspline_np(Ai),psf2cspline_np(Bi),psf2cspline_np(Ii)]  
+                    IAB = np.stack(IAB)
+                    IABall.append(IAB)
+                coeff = np.stack(IABall).astype(np.float32)
+
+        return coeff
+    
+    def genpsf(self,f,Nz=21,xsz=21,stagepos=1.0):
+        p = self.param
+        dataobj = DottedDict(pixelsize_x = p.pixel_size.x,
+                            pixelsize_y = p.pixel_size.y,
+                            pixelsize_z = p.pixel_size.z,
+                            rois = np.zeros((Nz,xsz,xsz)))
+        self.getpsfclass()
+        psfobj = self.initializepsf()
+        if p.channeltype == 'single':
+            sigma = f.res.sigma
+            Zcoeff = f.res.zernike_coeff
+            Zcoeff = Zcoeff.reshape((Zcoeff.shape+(1,1)))
+            psfobj.data = dataobj
+            psfobj.stagepos = stagepos/p.pixel_size.z
+            psfobj.estzoffset(Nz=Nz)
+            I_model,_ = psfobj.genpsfmodel(Zcoeff,sigma)
+            f.res.I_model = I_model
+            coeff = self.gencspline(f.res,psfobj)
+            f.locres.coeff = coeff
+        elif p.channeltype == 'multi':
+            Nchannel = f.rois.cor.shape[0]
+            psfobj.sub_psfs = [None]*Nchannel
+            for i in range(Nchannel):
+                psf = psfobj.psftype(options = psfobj.options)
+                psfobj.sub_psfs[i] = psf
+                sigma = f.res['channel'+str(i)].sigma
+                Zcoeff = f.res['channel'+str(i)].zernike_coeff
+                Zcoeff = Zcoeff.reshape((Zcoeff.shape+(1,1)))
+                psf.data = dataobj
+                psf.stagepos = stagepos/p.pixel_size.z
+                psf.estzoffset(Nz=Nz)
+                I_model,_ = psf.genpsfmodel(Zcoeff,sigma)
+                f.res['channel'+str(i)].I_model = I_model
+            coeff = self.gencspline(f.res,psfobj)
+            f.locres.coeff = coeff
+
+        return f

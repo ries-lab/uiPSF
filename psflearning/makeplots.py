@@ -454,3 +454,37 @@ def showtransform(f):
         plt.plot(f.res.imgcenter[0],f.res.imgcenter[1],'*')
     
     ax.legend(['ref','target','center'])
+
+
+
+def showpsf(f,p):
+    if p.channeltype == 'single':
+        im1 = f.res.I_model
+        psfdisp(im1)
+    else:
+        Nchannel = f.rois.psf_data.shape[0]
+        for ch in range(0,Nchannel):
+            if p.channeltype == '4pi':
+                im1 = f.res['channel'+str(ch)].psf_model
+            else:
+                im1 = f.res['channel'+str(ch)].I_model
+            print('channel '+str(ch))
+            psfdisp(im1)
+    return
+
+
+def psfdisp(im1):
+    Nz = im1.shape[0]
+    zind = range(0,Nz,4)
+    cc = im1.shape[-1]//2
+    N = len(zind)+1
+    fig = plt.figure(figsize=[3*N,3])
+    for i,id in enumerate(zind):
+        ax = fig.add_subplot(1,N,i+1)
+        plt.imshow(im1[id],cmap='twilight')
+        plt.axis('off')
+    ax = fig.add_subplot(1,N,N)
+    plt.imshow(im1[:,cc],cmap='twilight')
+    plt.axis('off')
+    plt.show()
+    return
