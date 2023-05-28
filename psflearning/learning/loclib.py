@@ -235,7 +235,7 @@ class localizationlib:
         if Nbead == 1:
             msezRatio = np.array([1.0])
         else:
-            msezRatio =msez/np.median(msez)
+            msezRatio =msez/(np.median(msez)+1e-6)
 
         if plot & (Nz>1):
             fig = plt.figure(figsize=[12,6])
@@ -420,7 +420,7 @@ class localizationlib:
         else:
             msez = np.array([1.0])
     
-        msezRatio =msez/np.median(msez)
+        msezRatio =msez/(np.median(msez)+1e-6)
         if plot & (Nz>1):
             fig = plt.figure(figsize=[12,6])
             ax = fig.add_subplot(2,2,1)
@@ -540,7 +540,7 @@ class localizationlib:
         if Nbead == 1:
             msezRatio = np.array([1.0])
         else:
-            msezRatio =msez/np.median(msez)
+            msezRatio =msez/(np.median(msez)+1e-6)
         if plot & (Nz>1):
             fig = plt.figure(figsize=[12,6])
             ax = fig.add_subplot(1,2,1)

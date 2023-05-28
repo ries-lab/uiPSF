@@ -92,7 +92,7 @@ class Fitter(FitterInterface):
 
     def relearn(self,initres, channeltype, threshold,start_time=None):
         metric = self.reject_metric
-        mask = metric[0]>0
+        mask = metric[0]>-1
         for i,val in enumerate(metric):
             mask = (val<threshold[i]) & mask
         mask = (self.minI>0) & mask
@@ -162,7 +162,7 @@ class Fitter(FitterInterface):
             mse1 = np.sum(mse1,axis=0,keepdims=False)
         a = threshold[0]
         if self.psf.options.insitu.backgroundROI:
-            mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) 
+            mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp<np.quantile(zp,a))
         else:
             mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp>np.quantile(zp,1-a)) & (zp<np.quantile(zp,a))
 

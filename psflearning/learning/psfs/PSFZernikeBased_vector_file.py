@@ -103,10 +103,10 @@ class PSFZernikeBased_vector(PSFInterface):
                 
         pos = tf.complex(tf.reshape(pos,pos.shape+(1,1,1)),0.0)
 
-        phiz = 1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
+        phiz = -1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
         if pos.shape[1]>3:
             phixy = 1j*2*np.pi*self.ky*pos[:,2]+1j*2*np.pi*self.kx*pos[:,3]
-            phiz = 1j*2*np.pi*(self.kz_med*pos[:,1]-self.kz*(pos[:,0]-self.Zrange))
+            phiz = 1j*2*np.pi*(self.kz_med*pos[:,1]-self.kz*(pos[:,0]+self.Zrange))
         else:
             phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
 
@@ -141,13 +141,13 @@ class PSFZernikeBased_vector(PSFInterface):
         return forward_images
 
 
-    def genpsfmodel(self,sigma,Zcoeff,pupil=None):
+    def genpsfmodel(self,sigma,Zcoeff,pupil=None,addbead=False):
         if pupil is None:
             pupil_mag = tf.abs(tf.reduce_sum(self.Zk*Zcoeff[0],axis=0))
             pupil_phase = tf.reduce_sum(self.Zk*Zcoeff[1],axis=0)
             pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
         
-        phiz = 1j*2*np.pi*self.kz*self.Zrange
+        phiz = -1j*2*np.pi*self.kz*self.Zrange
         I_res = 0.0
         for h in self.dipole_field:
             PupilFunction = pupil*tf.exp(phiz)*h
@@ -157,7 +157,10 @@ class PSFZernikeBased_vector(PSFInterface):
         bin = self.options.model.bin
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
-        I_blur = im.ifft3d(im.fft3d(I_res)*filter2)       
+        if addbead:
+            I_blur = im.ifft3d(im.fft3d(I_res)*filter2*self.bead_kernel)
+        else:
+            I_blur = im.ifft3d(im.fft3d(I_res)*filter2)       
         I_blur = tf.expand_dims(tf.math.real(I_blur),axis=-1)
         kernel = np.ones((bin,bin,1,1),dtype=np.float32)
         I_model = tf.nn.convolution(I_blur,kernel,strides=(1,bin,bin,1),padding='SAME',data_format='NHWC')
@@ -173,14 +176,16 @@ class PSFZernikeBased_vector(PSFInterface):
         """
         positions, backgrounds, intensities, Zcoeff,sigma,gxy = variables
         z_center = (self.Zrange.shape[-3] - 1) // 2
-        Zcoeff[0]*=self.weight[4]
-        Zcoeff[1]*=self.weight[3]
+        Zcoeff[0]=Zcoeff[0]*self.weight[4]
+        Zcoeff[1]=Zcoeff[1]*self.weight[3]
 
         if self.initpupil is not None:
             pupil = self.initpupil
             I_model, _ = self.genpsfmodel(sigma,pupil=pupil)
+            I_model_bead, _ = self.genpsfmodel(sigma,pupil=pupil,addbead=True)
         else:
             I_model, pupil = self.genpsfmodel(sigma,Zcoeff=Zcoeff)
+            I_model_bead,_ = self.genpsfmodel(sigma,Zcoeff=Zcoeff,addbead=True)
         
         #I_model_bead = np.real(im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2))
         # calculate global positions in images since positions variable just represents the positions in the rois
@@ -194,11 +199,13 @@ class PSFZernikeBased_vector(PSFInterface):
         return [global_positions.astype(np.float32),
                 backgrounds*self.weight[1], # already correct
                 intensities*self.weight[0], # already correct
+                I_model_bead,
                 I_model,
                 np.complex64(pupil),
                 Zcoeff,     
                 sigma,           
                 gxy*self.weight[2],
+                np.flip(I_model,axis=-3),
                 variables] # already correct
     
 
@@ -206,12 +213,14 @@ class PSFZernikeBased_vector(PSFInterface):
         res_dict = dict(pos=res[0],
                         bg=np.squeeze(res[1]),
                         intensity=np.squeeze(res[2]),
-                        I_model = res[3],
-                        pupil = res[4],
-                        zernike_coeff = np.squeeze(res[5]),
-                        sigma = np.squeeze(res[6])/np.pi,
-                        drift_rate=res[7],
-                        offset=np.min(res[3]),
+                        I_model_bead = res[3],
+                        I_model = res[4],
+                        pupil = res[5],
+                        zernike_coeff = np.squeeze(res[6]),
+                        sigma = np.squeeze(res[7])/np.pi,
+                        drift_rate=res[8],
+                        I_model_reverse = res[9],
+                        offset=np.min(res[4]),
                         zernike_polynomial = self.Zk,
                         apodization = self.apoid,
                         cor_all = self.data.centers_all,

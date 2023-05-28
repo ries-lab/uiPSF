@@ -90,7 +90,9 @@ class PSFVolumeBased(PSFInterface):
         psf and adapts intensities and background accordingly.
         """
         positions, backgrounds, intensities, I_model,gxy = variables
+        
         I_model = I_model*self.weight[3]
+        I_model_bead = np.real(im.ifft3d(im.fft3d(I_model)*self.bead_kernel))
         z_center = (I_model.shape[-3] - 1) // 2
         images, _, centers, _ = self.data.get_image_data()
         centers_with_z = np.concatenate((np.full((centers.shape[0], 1), z_center), centers[:,-2:]), axis=1)
@@ -100,17 +102,21 @@ class PSFVolumeBased(PSFInterface):
         return [global_positions.astype(np.float32),
                 backgrounds*self.weight[1], # already correct
                 intensities*self.weight[0], # already correct
+                I_model_bead,
                 I_model,
                 gxy*self.weight[2],
+                np.flip(I_model,axis=-3),
                 variables] # already correct
 
     def res2dict(self,res):
         res_dict = dict(pos=res[0],
-                        I_model=res[3],
+                        I_model_bead =res[3],
+                        I_model = res[4],
                         bg=np.squeeze(res[1]),
                         intensity=np.squeeze(res[2]),
-                        drift_rate=res[4],
-                        offset=np.min(res[3]),
+                        drift_rate=res[5],
+                        I_model_reverse = res[6],
+                        offset=np.min(res[4]),
                         cor_all = self.data.centers_all,
                         cor = self.data.centers)
 

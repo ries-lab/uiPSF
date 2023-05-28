@@ -97,11 +97,12 @@ class PSFInterface():
         cos_cov = np.lib.scimath.sqrt(1-(kr*NA/ncov)**2)
         kz_med = nmed/emission_wavelength*cos_med
         FresnelPmedcov = 2*nmed*cos_med/(nmed*cos_cov+ncov*cos_med)
-        FresnelSmedcov = 2*nmed*cos_med/(nmed*cos_med+nmed*cos_med)
+        FresnelSmedcov = 2*nmed*cos_med/(nmed*cos_med+ncov*cos_cov)
         FresnelPcovimm = 2*ncov*cos_cov/(ncov*cos_imm+nimm*cos_cov)
         FresnelScovimm = 2*ncov*cos_cov/(ncov*cos_cov+nimm*cos_imm)
         Tp = FresnelPmedcov*FresnelPcovimm
         Ts = FresnelSmedcov*FresnelScovimm
+        Tavg = (Tp+Ts)/2
 
         phi = np.arctan2(yy,xx)
         cos_phi = np.cos(phi)
@@ -115,9 +116,12 @@ class PSFInterface():
         hy = sin_phi*pvec+cos_phi*svec
         h = np.concatenate((hx,hy),axis=0)
         if self.options.model.with_apoid:
-            apoid = 1/np.lib.scimath.sqrt(cos_med)
+            #apoid = 1/np.lib.scimath.sqrt(cos_med)
+            apoid = np.lib.scimath.sqrt(cos_imm)/cos_med
+            if fieldtype=='scalar':
+                apoid=apoid*Tavg
         else:
-            apoid = 1/np.lib.scimath.sqrt(1.0)
+            apoid = 1
 
         imszx = Lx*pixelsize_x/2.0*NA/emission_wavelength
         imszy = Lx*pixelsize_y/2.0*NA/emission_wavelength
@@ -129,12 +133,14 @@ class PSFInterface():
 
         self.aperture = np.complex64(kr<1)
         pupil = self.aperture*apoid
-        if fieldtype=='scalar':
+        #if fieldtype=='scalar':
             #self.normf = np.complex64(((pixelsize_x*NA/emission_wavelength)**2)/3.0)
-            self.normf = np.complex64(pixelsize_x*pixelsize_y/np.sum(pupil*tf.math.conj(pupil)*kpixelsize*kpixelsize))
-        elif fieldtype=='vector':
+        #    apoid = apoid*Tavg
+           # self.normf = np.complex64(pixelsize_x*pixelsize_y/np.sum(pupil*tf.math.conj(pupil)*kpixelsize*kpixelsize))
+        #elif fieldtype=='vector':
             #self.normf = np.complex64(((pixelsize_x*NA/emission_wavelength)**2)/6.0)
-            self.normf = np.complex64(pixelsize_x*pixelsize_y/np.sum(pupil*tf.math.conj(pupil)*kpixelsize*kpixelsize))
+            
+        self.normf = np.complex64(pixelsize_x*pixelsize_y/np.sum(pupil*tf.math.conj(pupil)*kpixelsize*kpixelsize))
 
         #if datatype == 'bead':
         #    self.Zrange = -1*np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.complex64).reshape((Nz,1,1))

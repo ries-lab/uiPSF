@@ -40,7 +40,7 @@ Params:
   LLS:                           # parameters only for lattice light-sheet psfs
     skew_const: [0,0]            # unit: pixel
   insitu:               
-    frame_range: [1000,5000]     # set the frames to be loaded
+    frame_range: [1000,3000]     # set the frames to be loaded
 
   option:                         # mainly for pupil and zernike, insitu  learning
     imaging:                       
@@ -52,9 +52,9 @@ Params:
       NA: 1.43
     insitu:
       stage_pos: 0.8               # 0 at the coverslip, positive when move towards the coverslip
-      min_photon: 0.4              # quantile for rejecting low photon emitters
+      min_photon: 0.2              # quantile for rejecting low photon emitters
       partition_data: true         # select best emitters from each partition
-      partition_size: [13,100]     # number of z segments, maximum number of emitter per segment
+      partition_size: [13,200]     # number of z segments, maximum number of emitter per segment
       zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
       zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 
       z_range: 1.4                # unit: micron, z range of insitu psf model
@@ -82,7 +82,7 @@ Params:
 
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
   PSFtype: insitu_FD                 # voxel, zernike, pupil, zernike_vector, pupil_vector, insitu
-  channeltype: multi            # single, multi, 4pi
+  channeltype: single            # single, multi, 4pi
   datatype: smlm                 # bead, smlm
   
   loss_weight:                   # weighting factor for each loss term

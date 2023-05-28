@@ -71,60 +71,13 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
 
         self.I_model = I_model
         self.A_model = A_model
-        # pixelsize_z = np.array(self.data.pixelsize_z)
-        # cor = centers*np.ones((4,1,1))
-        # imgcenter = np.array(self.data.image_size[-2:]+(0.0,))/2.0
-        # T = np.eye(3)*np.ones((3,1,1))
-        # roisL = rois*np.ones((4,1,1,1))
-        # I_modelL = I_model*np.ones((4,1,1,1))
-        # A_modelL = A_model*np.ones((4,1,1,1))
-        # zT = np.array([self.data.zT])
-        # dll = localizationlib(usecuda=True)
-        
-        # locres = dll.loc_4pi(roisL,I_modelL,A_modelL,pixelsize_z,cor,imgcenter,T,zT,start_time=0)
 
-        # xp = locres[-1]['x']
-        # yp = locres[-1]['y']
-        # phip = locres[-1]['z']*2*np.pi/zT     
-        # zp = locres[-1]['zast']
-        # photon = locres[0][2]  
-        # bg = locres[0][3]
-        # a = 0.99
-        # a1 = options.insitu.min_photon
-        # mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp>np.quantile(zp,1-a)) & (zp<np.quantile(zp,a))
-        # mask = mask.flatten() & (locres[2]>np.quantile(locres[2],0.1)) #& (photon>np.quantile(photon,a1))
-        
-
-        # self.data.rois = rois[mask]
-        # self.data.centers = centers[mask,:]
-        # self.data.frames = frames[mask]
-        # initz = zp.flatten()[mask]
-        # initphoton = photon.flatten()[mask]
-        # initbg = bg.flatten()[mask]
-        # initphi = phip.flatten()[mask]
-        # LL = locres[2][mask]
-
-        # if self.options.insitu.partition_data:
-        #     initz, roisavg, indexs = self.partitiondata(initz,LL)
-        # else:
-        #     indexs = np.array(range(0,initz.shape[0]))
-        # _, rois, centers, frames = self.data.get_image_data()
-        # N = rois.shape[0]
         if self.options.model.const_pupilmag:
             self.n_max_mag = 0
         else:
             self.n_max_mag = 100
 
 
-
-
-        
-       
-        #init_positions[:,0] = initz + self.Zoffset
-
-        #init_intensities = initphoton[indexs].reshape((N,1,1))
-        #init_backgrounds = initbg[indexs].reshape((N,1,1))
-        #init_phi = initphi[indexs].reshape((N,1,1))
 
         self.weight = np.array([1e4, 100, 20, 0.2,0.2,0.1],dtype=np.float32)
         self.pos_weight = self.weight[2]
@@ -140,7 +93,6 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
 
         
         init_backgrounds[init_backgrounds<0.1] = 0.1
-        #init_backgrounds = np.ones((N,1,1),dtype = np.float32)*np.median(init_backgrounds) / self.weight[1]
         init_backgrounds = init_backgrounds / self.weight[1]
         
         alpha = np.array([0.8])/self.weight[5]

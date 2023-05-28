@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 import numpy as np
 
 def showlearnedparam(f,p):
@@ -19,28 +20,44 @@ def showlearnedparam(f,p):
         photon = np.abs(f.res.channel0.intensity)
 
     fig = plt.figure(figsize=[16,8])
-    ax = fig.add_subplot(2,4,1)
+    spec = gridspec.GridSpec(ncols=4, nrows=2,
+                         width_ratios=[3, 3,3,3], wspace=0.4,
+                         hspace=0.3, height_ratios=[4, 4])
+    ax = fig.add_subplot(spec[0])
     plt.plot(pos[:,2]-cor[:,1])
-    plt.title('x')
-    ax = fig.add_subplot(2,4,2)
+    plt.xlabel('bead number')
+    plt.ylabel('x (pixel)')
+    ax = fig.add_subplot(spec[1])
     plt.plot(pos[:,1]-cor[:,0])
-    plt.title('y')
-    ax = fig.add_subplot(2,4,3)
+    plt.xlabel('bead number')
+    plt.ylabel('y (pixel)')
+    ax = fig.add_subplot(spec[2])
     plt.plot(pos[:,0])
-    plt.title('z')
+    plt.xlabel('bead number')
+    plt.ylabel('z (pixel)')
     if p.channeltype == '4pi':
-        ax = fig.add_subplot(2,4,4)
+        ax = fig.add_subplot(spec[3])
         plt.plot(phi)
-        ax.set_title('phi')
-    ax = fig.add_subplot(2,4,5)
+        ax.set_xlabel('bead number')
+        ax.set_ylabel('phi (radian)')
+    ax = fig.add_subplot(spec[4])
     plt.plot(photon)
-    plt.title('photon')
-    ax = fig.add_subplot(2,4,6)
+    if len(photon.shape)>1:
+        plt.xlabel('z slice')
+        plt.legend(['bead 1'])
+    else:
+        plt.xlabel('bead number')
+    plt.ylabel('photon')
+    ax = fig.add_subplot(spec[5])
     plt.plot(bg)
-    plt.title('background')
-    ax = fig.add_subplot(2,4,7)
+    plt.xlabel('bead number')
+    plt.ylabel('background')
+    ax = fig.add_subplot(spec[6])
     plt.plot(drift)
-    plt.title('drift')
+    plt.xlabel('bead number')
+    plt.ylabel('drift per z slice (pixel)')
+    plt.legend(['x','y'])
+    plt.show()
 
     return
 
@@ -61,28 +78,40 @@ def showlearnedparam_insitu(f,p):
         photon = np.abs(f.res.channel0.intensity)
 
     fig = plt.figure(figsize=[16,8])
-    ax = fig.add_subplot(2,4,1)
-    plt.plot(pos[:,1]-cor[:,0],'.')
-    plt.title('y')
-    ax = fig.add_subplot(2,4,2)
+    spec = gridspec.GridSpec(ncols=4, nrows=2,
+                         width_ratios=[3, 3,3,3], wspace=0.4,
+                         hspace=0.3, height_ratios=[4, 4])
+    ax = fig.add_subplot(spec[0])
     plt.plot(pos[:,2]-cor[:,1],'.')
-    plt.title('x')
-    ax = fig.add_subplot(2,4,3)
+    plt.xlabel('emitter number')
+    plt.ylabel('x (pixel)')
+
+    ax = fig.add_subplot(spec[1])
+    plt.plot(pos[:,1]-cor[:,0],'.')
+    plt.xlabel('emitter number')
+    plt.ylabel('y (pixel)')
+
+    ax = fig.add_subplot(spec[2])
     plt.plot(pos[:,0],'.')
-    plt.title('z')
+    plt.xlabel('emitter number')
+    plt.ylabel('z (pixel)')
     if p.channeltype == '4pi':
-        ax = fig.add_subplot(2,4,4)
+        ax = fig.add_subplot(spec[3])
         plt.plot(phi,'.')
-        ax.set_title('phi')
-        ax = fig.add_subplot(2,4,7)
+        ax.set_xlabel('emitter number')
+        ax.set_ylabel('phi (radian)')
+        ax = fig.add_subplot(spec[6])
         plt.plot(pos[:,0],phi,'.')
-        plt.title('phi vs z')
-    ax = fig.add_subplot(2,4,5)
+        ax.set_xlabel('z (pixel)')
+        ax.set_ylabel('phi (radian)')
+    ax = fig.add_subplot(spec[4])
     plt.plot(photon,'.')
-    plt.title('photon')
-    ax = fig.add_subplot(2,4,6)
+    plt.xlabel('emitter number')
+    plt.ylabel('photon')
+    ax = fig.add_subplot(spec[5])
     plt.plot(bg,'.')
-    plt.title('background')
+    plt.xlabel('emitter number')
+    plt.ylabel('background')
 
     return
 
@@ -316,12 +345,14 @@ def zernikemap(f,index,zmap,zcoeff,pupil,Zk):
     plt.xlabel('zernike polynomial')
     plt.ylabel('coefficient')
     plt.title('pupil magnitude')
+    plt.legend(['bead 1'])
     ax = fig.add_subplot(1,2,2)
     plt.plot(zcoeff[1].transpose(),'k',alpha=0.1)
     plt.plot(index,zcoeff[1,0,index],'ro')
     plt.xlabel('zernike polynomial')
     plt.ylabel('coefficient')
     plt.title('pupil phase')
+    plt.legend(['bead 1'])
 
     if len(pupil.shape)>2:
         aperture=np.float32(np.abs(pupil[0])>0.0)
@@ -441,17 +472,23 @@ def showlocalization(f,p):
 def plotlocbias(loc,p):
     Nz = loc.z.shape[1]
     fig = plt.figure(figsize=[16,4])
-    ax = fig.add_subplot(1,3,1)
+    spec = gridspec.GridSpec(ncols=3, nrows=1,
+                         width_ratios=[3, 3,3], wspace=0.3,
+                         hspace=0.3, height_ratios=[1])
+    ax = fig.add_subplot(spec[0])
     plt.plot(loc.x.transpose()*p.pixel_size.x*1e3,'k',alpha=0.1)
     plt.plot(loc.x[0]*0.0,'r')
+    ax.set_xlabel('z slice')
     ax.set_ylabel('x bias (nm)')
-    ax = fig.add_subplot(1,3,2)
+    ax = fig.add_subplot(spec[1])
     plt.plot(loc.y.transpose()*p.pixel_size.y*1e3,'k',alpha=0.1)
     plt.plot(loc.y[0]*0.0,'r')
+    ax.set_xlabel('z slice')
     ax.set_ylabel('y bias (nm)')
-    ax = fig.add_subplot(1,3,3)
+    ax = fig.add_subplot(spec[2])
     plt.plot(np.transpose(loc.z-np.linspace(0,Nz-1,Nz))*p.pixel_size.z*1e3,'k',alpha=0.1)
     plt.plot(loc.z[0]*0.0,'r')
+    ax.set_xlabel('z slice')
     ax.set_ylabel('z bias (nm)')
     ax.set_ylim([-40,40])
     plt.show()

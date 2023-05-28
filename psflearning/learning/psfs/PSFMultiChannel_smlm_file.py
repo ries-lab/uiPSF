@@ -91,7 +91,7 @@ class PSFMultiChannel_smlm(PSFInterface):
 
 
         # get current status of image data
-        images, rois, centers, _ = self.data.get_image_data()
+        images, rois, centers, frames = self.data.get_image_data()
         num_channels = len(images)
         dll = localizationlib(usecuda=True)
         cor = np.stack(centers)
@@ -102,9 +102,33 @@ class PSFMultiChannel_smlm(PSFInterface):
         pixelsize_z = np.array(self.data.pixelsize_z)
         locres = dll.loc_ast_dual(data,I_init,pixelsize_z,cor,imgcenter,T)
         LL = locres[2]
-        initz = locres[-1]['z'].flatten()+self.sub_psfs[0].Zoffset 
+        zp = locres[-1]['z'].flatten()+np.float32(self.sub_psfs[0].Zoffset.flatten()) 
+        xp = locres[-1]['x'].flatten()
+        yp = locres[-1]['y'].flatten()
+        
+        photon = locres[0][2]  
+        bg = locres[0][3]
+        a = 0.99
+        a1 = options.insitu.min_photon
+        mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp>np.quantile(zp,1-a)) & (zp<np.quantile(zp,a))
+        mask = mask.flatten() & (LL>np.quantile(LL,0.1)) & (photon>np.quantile(photon,a1))
+        
+        for k in range(0,num_channels):
+            self.data.channels[k].rois = rois[k][mask]
+            self.data.channels[k].centers = centers[k][mask]
+            self.data.channels[k].frames = frames[k][mask]
+
+
+        zp = zp[mask]
+        LL = LL[mask]
+
+        for j,vars in enumerate(init_params):
+            for k,var in enumerate(vars):
+                if self.sub_psfs[0].varinfo[k]['type'] == 'Nfit':
+                    init_params[j][k] = var[mask]
+        
         if partition_data:
-            initz, rois_id,_ = self.partitiondata(initz,LL)
+            initz, rois_id,_ = self.partitiondata(zp,LL)
 
         _, _, centers, _ = self.data.get_image_data()
 
@@ -142,6 +166,8 @@ class PSFMultiChannel_smlm(PSFInterface):
 
         if partition_data:
             param[0][:,0] = initz/self.weight[0]
+        else:
+            param[0][:,0] = zp/self.weight[0]
         
         return param, toc
 

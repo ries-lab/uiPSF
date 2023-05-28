@@ -126,7 +126,7 @@ class PSFZernikeBased_FD(PSFInterface):
 
         pos = tf.complex(tf.reshape(pos,pos.shape+(1,1,1)),0.0)
 
-        phiz = 1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
+        phiz = -1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
         phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
 
         PupilFunction = pupil*tf.exp(phiz+phixy)
@@ -152,7 +152,7 @@ class PSFZernikeBased_FD(PSFInterface):
 
         return forward_images
 
-    def genpsfmodel(self,sigma,Zmap=None,cor=None,pupil=None):
+    def genpsfmodel(self,sigma,Zmap=None,cor=None,pupil=None,addbead=False):
         Zcoeff = None
         if pupil is None:
             imsz = self.data.image_size
@@ -178,11 +178,14 @@ class PSFZernikeBased_FD(PSFInterface):
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
 
-        phiz = 1j*2*np.pi*self.kz*self.Zrange
+        phiz = -1j*2*np.pi*self.kz*self.Zrange
         PupilFunction = pupil*tf.exp(phiz)
         I_res = im.cztfunc1(PupilFunction,self.paramxy)      
         I_res = I_res*tf.math.conj(I_res)*self.normf
-        I_model = np.real(im.ifft3d(im.fft3d(I_res)*filter2))
+        if addbead:
+            I_model = np.real(im.ifft3d(im.fft3d(I_res)*filter2*self.bead_kernel))
+        else:
+            I_model = np.real(im.ifft3d(im.fft3d(I_res)*filter2))
 
         return I_model, Zcoeff, pupil
 
@@ -202,12 +205,13 @@ class PSFZernikeBased_FD(PSFInterface):
     
         
         I_model, Zcoeff, pupil = self.genpsfmodel(sigma,Zmap,cor[:,-2:])
+        #I_model_bead, _, _ = self.genpsfmodel(sigma,Zmap,cor[:,-2:],addbead=True)
 
         pupil_mag = tf.reduce_sum(self.Zk*Zcoeff[0],axis=(0,1))/Nbead
         pupil_phase = tf.reduce_sum(self.Zk*Zcoeff[1],axis=(0,1))/Nbead
         pupil_avg = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
 
-        I_model_avg, _, _ = self.genpsfmodel(sigma,pupil=pupil_avg)
+        I_model_avg, _, _ = self.genpsfmodel(sigma,pupil=pupil_avg,addbead=True)
 
         # calculate global positions in images since positions variable just represents the positions in the rois
         images, _, centers, _ = self.data.get_image_data()
@@ -237,14 +241,14 @@ class PSFZernikeBased_FD(PSFInterface):
         res_dict = dict(pos=res[0],
                         bg=np.squeeze(res[1]),
                         intensity=np.squeeze(res[2]),
-                        I_model = res[3],
+                        I_model_bead = res[3],
                         I_model_all = res[4],
                         pupil = np.squeeze(res[5]),
                         zernike_map = np.squeeze(res[6]),
                         zernike_coeff = np.squeeze(res[7]),
                         sigma = res[8]/np.pi,
                         drift_rate=res[9],
-                        offset=np.min(res[3]),
+                        offset=np.min(res[4]),
                         zernike_polynomial = self.Zk,
                         apodization = self.apoid,
                         cor_all = self.data.centers_all,

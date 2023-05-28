@@ -55,26 +55,9 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
         ref_psf.dphase = 0.0
         self.sub_psfs[0] = ref_psf
 
-        #fitter_ref_channel = Fitter(self.data.get_channel(0), ref_psf,self.init_optimizer, ref_psf.default_loss_func,loss_weight=self.loss_weight) # TODO: redesign multiData        
         
-        #res_ref, toc = fitter_ref_channel.learn_psf(start_time=start_time)
         ref_var, start_time = ref_psf.calc_initials(self.data.get_channel(0),start_time = start_time)
 
-        #ref_pos = res_ref[0]        
-        #ref_pos_yx1 = np.concatenate((ref_pos[:, 1:], np.ones((ref_pos.shape[0], 1))), axis=1)
-        #self.ref_pos_yx = ref_pos_yx1
-   
-        # create empty initial guess lists
-        # and fill in values for first channel
-
-        
-        #ref_zpos = np.transpose(np.expand_dims(-ref_pos[:,0]+self.data.channels[0].rois.shape[-3]//2,axis=0))       
-        
-  
-        #init_params = [res_ref[-1]]
-        #I_init = [res_ref[3]]
-        #A_init = [res_ref[4]]
-        #target_pos_yx1 = [None]*num_channels
 
         init_params = [ref_var]
         I_init = [ref_psf.I_model]
@@ -90,11 +73,7 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
             current_psf.dphase = -i*np.pi/2
             self.sub_psfs[i] = current_psf
 
-            #fitter_current_channel = Fitter(self.data.get_channel(i), current_psf, self.init_optimizer,current_psf.default_loss_func,loss_weight=self.loss_weight)
-            #res_cur, toc = fitter_current_channel.learn_psf(start_time=toc)
-            #current_pos = res_cur[0]
             # calculate transformation
-            #target_pos_yx1[i] = np.concatenate((current_pos[:, 1:], np.ones((current_pos.shape[0], 1))), axis=1)  
             cur_var, start_time = current_psf.calc_initials(self.data.get_channel(i),start_time = start_time)
             
             self.sub_psfs[i].weight = self.sub_psfs[0].weight
@@ -103,16 +82,6 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
             I_init.append(current_psf.I_model)
             A_init.append(current_psf.A_model)
 
-        # pair_id = self.data.pair_coordinates()            
-
-        # init_trafos = []
-        # for i in range(1,num_channels):
-        #     current_trafo = np.linalg.lstsq(ref_pos_yx1[pair_id[0]]-self.imgcenter, target_pos_yx1[i][pair_id[i]]-self.imgcenter, rcond=None)[0]
-        #     init_trafos.append(current_trafo)
-
-        # for j in range(0,num_channels):    
-        #     for k in range(0,4):
-        #         init_params[j][k] = init_params[j][k][pair_id[j]] # pos
 
         # get current status of image data
         images, rois, centers, frames = self.data.get_image_data()
@@ -189,12 +158,6 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
             init_trafos.append(current_trafo)
             init_params1.append(res_cur[-1])
 
-        # ref_pos_yx1 = np.vstack((cor[0][:,0]+yp[0],cor[0][:,1]+xp[0], np.ones((xp.shape[1])))).transpose()
-        # init_trafos = []
-        # for i in range(1,num_channels):
-        #      target_pos_yx1 = np.vstack((cor[i][:,0]+yp[i],cor[i][:,1]+xp[i], np.ones((xp.shape[1])))).transpose()
-        #      current_trafo = np.linalg.lstsq(ref_pos_yx1-self.imgcenter, target_pos_yx1-self.imgcenter, rcond=None)[0]
-        #      init_trafos.append(current_trafo)
 
         if partition_data:
             initz, rois_id,_ = self.partitiondata(zp,LL)
@@ -204,7 +167,6 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
         # stack centers of ref channel num_channels-1 times for easier calc in calc_forward_images
         cor_ref = np.concatenate((centers[0], np.ones((centers[0].shape[0], 1))), axis=1)
         self.cor_ref_channel = np.stack([cor_ref] * (num_channels-1)).astype(np.float32)
-        # self.pos_ref_channel_yx1 = np.stack([ref_pos_yx1] * (num_channels-1)).astype(np.float32)
         # centers of other channels needed to calculate diffs in objective
         self.cor_other_channels = np.stack(centers[1:]).astype(np.float32)
                 
@@ -219,9 +181,7 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
         param = map(list, zip(*init_params1)) # a way to tranpose the first two dimensions of a list of iterateables
         param = [np.stack(var) for var in param]
         param[0] = param[0][0]
-        #init_subpixel_pos_ref_channel = np.concatenate((param[0][:,0:1], centers[0]-ref_pos[:, 1:]), axis=1)
 
-        #param.insert(0,init_subpixel_pos_ref_channel.astype(np.float32))
         param.append(self.init_trafos)
         self.weight = np.ones((len(param)))
         self.weight[-1] = 1e-3

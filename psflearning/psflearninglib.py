@@ -682,8 +682,6 @@ class psflearninglib:
             psfobj.estzoffset(Nz=Nz)
             I_model,_ = psfobj.genpsfmodel(Zcoeff,sigma)
             f.res.I_model = I_model
-            coeff = self.gencspline(f.res,psfobj)
-            f.locres.coeff = coeff
         elif p.channeltype == 'multi':
             Nchannel = f.rois.cor.shape[0]
             psfobj.sub_psfs = [None]*Nchannel
@@ -698,7 +696,5 @@ class psflearninglib:
                 psf.estzoffset(Nz=Nz)
                 I_model,_ = psf.genpsfmodel(Zcoeff,sigma)
                 f.res['channel'+str(i)].I_model = I_model
-            coeff = self.gencspline(f.res,psfobj)
-            f.locres.coeff = coeff
 
-        return f
+        return f, psfobj
