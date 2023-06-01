@@ -427,6 +427,7 @@ class L_BFGS_B(OptimizerABC):
             gradvec = tf.concat((gradvec,tf.reshape(g,[-1])),axis = 0)
         
         self.mu*=self.rate
+        self.mu = np.min([1e7,self.mu])
         return loss, gradvec
         
     def objective_wrapper_for_gradient_copy(self, var, pbar,start_time=None):

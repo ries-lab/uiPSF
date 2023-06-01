@@ -79,15 +79,15 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
             initz, roisavg = self.partitiondata(initz,LL)
             
         _, rois, cor, _ = self.data.get_image_data()
-        if options.insitu.backgroundROI:
-            bgroi = options.insitu.backgroundROI
-            maskcor = (cor[:,-1]>bgroi[2]) & (cor[:,-1]<bgroi[3]) & (cor[:,-2]>bgroi[0]) & (cor[:,-2]<bgroi[1]) 
-            zw = np.ones(initz.shape,dtype = np.float32)
-            zw[maskcor] = 0.0
-            initz *= zw
-            self.zweight = zw.reshape(zw.shape+(1,1))
-        else:
-            self.zweight = np.ones(initz.shape+(1,1),dtype=np.float32)
+        # if options.insitu.backgroundROI:
+        #     bgroi = options.insitu.backgroundROI
+        #     maskcor = (cor[:,-1]>bgroi[2]) & (cor[:,-1]<bgroi[3]) & (cor[:,-2]>bgroi[0]) & (cor[:,-2]<bgroi[1]) 
+        #     zw = np.ones(initz.shape,dtype = np.float32)
+        #     zw[maskcor] = 0.0
+        #     initz *= zw
+        #     self.zweight = zw.reshape(zw.shape+(1,1))
+        # else:
+        self.zweight = np.ones(initz.shape+(1,1),dtype=np.float32)
 
         init_positions = np.zeros((rois.shape[0], 3))
        

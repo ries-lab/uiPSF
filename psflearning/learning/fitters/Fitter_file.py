@@ -162,7 +162,7 @@ class Fitter(FitterInterface):
             mse1 = np.sum(mse1,axis=0,keepdims=False)
         a = threshold[0]
         if self.psf.options.insitu.backgroundROI:
-            mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp<np.quantile(zp,a))
+            mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) 
         else:
             mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp>np.quantile(zp,1-a)) & (zp<np.quantile(zp,a))
 
@@ -185,7 +185,20 @@ class Fitter(FitterInterface):
                 var[0] = initres[-1][0][mask] # pos
                 var[1] = initres[-1][1][mask] # bg
                 var[2] = initres[-1][2][mask] # intensity
-                self.psf.zweight = self.psf.zweight[mask]
+                zw = self.psf.zweight[mask]
+                if self.psf.options.insitu.backgroundROI:
+                    bgroi = self.psf.options.insitu.backgroundROI
+                    maskcor = (cor[:,-1]>bgroi[2]) & (cor[:,-1]<bgroi[3]) & (cor[:,-2]>bgroi[0]) & (cor[:,-2]<bgroi[1]) 
+                    try:
+                        zmin = np.quantile(var[0][maskcor,0],0.05)
+                    except:
+                        zmin = np.quantile(var[0][:,0],0.002)
+                    maskz = var[0][:,0]<zmin
+                    zw[maskz] = 0.0
+                    var[0][maskz,0] = 0.0
+
+                #self.psf.options.insitu.backgroundROI = []
+                self.psf.zweight = zw
                 res,toc = self.learn_psf(var,start_time=start_time)
             else:
                 _, rois, centers, frames = self.data.get_image_data() 
