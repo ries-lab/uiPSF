@@ -363,16 +363,24 @@ def zernikemap(f,index,zmap,zcoeff,pupil,Zk):
 
     scale = (imsz[-2:]-1)/(np.array(zmap.shape[-2:])-1)
 
-    fig = plt.figure(figsize=[3*len(index),6])
+    N = len(index)
+    Nx = 4
+    Ny = N//Nx+1
+    fig = plt.figure(figsize=[4.5*Nx,7*Ny])
+    spec = gridspec.GridSpec(ncols=Nx, nrows=2*Ny,
+                        width_ratios=list(np.ones(Nx)), wspace=0.1,
+                        hspace=0.2, height_ratios=list(np.ones(2*Ny)))
+
     for i,id in enumerate(index):
-        ax = fig.add_subplot(2,len(index),i+1)
+        j = i//Nx
+        ax = fig.add_subplot(spec[i+j*Nx])
         #plt.imshow(Zmap[1,id],cmap='twilight',vmin=-0.05,vmax=0.5)
         plt.imshow(zmap[1,id],cmap='twilight')
         #plt.plot(cor[:,-1]/scale[-1],cor[:,-2]/scale[-2],'ro',markersize=5)
         plt.axis('off')
         plt.title('mode '+str(id))
         plt.colorbar()
-        ax = fig.add_subplot(2,len(index),i+1+len(index))
+        ax = fig.add_subplot(spec[i+(j+1)*Nx])
         plt.imshow(Zk[id]*aperture,cmap='viridis')
         plt.axis('off')
         plt.colorbar()
