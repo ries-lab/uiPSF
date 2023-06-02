@@ -108,7 +108,7 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
                 noll_index[j] = im.nl2noll(nl[0],nl[1])
             self.noll_index = noll_index-1
         
-        self.weight = np.array([np.median(init_intensities)*10, 100, 20, 1, 10],dtype=np.float32) # [I, bg, pos, Zmap, stagepos]
+        self.weight = np.array([np.median(init_intensities), 10, 20, 2, 10],dtype=np.float32) # [I, bg, pos, Zmap, stagepos]
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.pos_weight = self.weight[2]
 
@@ -148,7 +148,7 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
         c1 = self.spherical_terms
         n_max = self.n_max_mag
         Nk = np.min(((n_max+1)*(n_max+2)//2,self.Zk.shape[0]))
-        mask = c1<Nk
+        mask = (c1<Nk) & (c1>0)
         c1 = c1[mask]
 
         cor = np.float32(self.data.centers)
@@ -156,6 +156,7 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
         Zcoeff1 = [None] * Zmap.shape[-3]
         Zcoeff2 = [None] * Zmap.shape[-3]
         Zmap = Zmap*self.weight[3]
+        
         cor = np.float32(self.data.centers)
         for i in range(0,Zmap.shape[-3]):
             Zcoeff1[i] = tfp.math.batch_interp_regular_nd_grid(cor[self.ind[0]:self.ind[1],-2:],[0,0],imsz[-2:],Zmap[0,i],axis=-2)
@@ -167,12 +168,14 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
         Zcoeff2 = tf.reshape(Zcoeff2,Zcoeff2.shape+(1,1))
 
         if self.options.model.symmetric_mag:
-            pupil_mag = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff1,indices=c1,axis=1),axis=1))
+            if c1:
+                pupil_mag = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff1,indices=c1,axis=1),axis=1)
         else:
             if self.options.model.zernike_nl:
-                pupil_mag = tf.abs(tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff1,indices=self.noll_index,axis=1),axis=1))
+                pupil_mag = tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff1,indices=self.noll_index,axis=1),axis=1)
             else:
-                pupil_mag = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeff1[:,0:Nk],axis=1))
+                pupil_mag = tf.reduce_sum(self.Zk[1:Nk]*Zcoeff1[:,1:Nk],axis=1)
+        pupil_mag = pupil_mag + self.Zk[0]*tf.reduce_mean(Zcoeff1[:,0])
         if self.options.model.zernike_nl:
             pupil_phase = tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff1,indices=self.noll_index,axis=1),axis=1)
         else:
@@ -355,6 +358,7 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
         positions = positions*self.weight[2]
         stagepos = stagepos*self.weight[4]
         Zmap = Zmap*self.weight[3]
+        Zmap[0,0] = Zmap[0,0,0,0]
         cor = np.float32(self.data.centers)
 
         Nbead = positions.shape[0]

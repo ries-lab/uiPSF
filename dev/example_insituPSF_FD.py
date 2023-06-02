@@ -16,7 +16,7 @@ maindatadir = io.param.load('../config/path/config_path.yaml').main_data_dir
 #%% load parameters
 L = psflearninglib()
 L.param = io.param.load('../config/config_insitu_FD.yaml').Params
-L.param.datapath = r'C:\Users\Sheng\Documents\MATLAB\data\UNM-TIRF\05-10-2023\cell8/'
+L.param.datapath = r'E:\EMBL files\data for PSF learning\insitu data\from Yiming\In-situ PSF learing data\DMO3um/'
 L.param.savename = L.param.datapath + L.param.savename
 images = L.load_data()
 
