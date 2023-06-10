@@ -24,13 +24,12 @@ setup(
             "Natural Language :: English",
             "Operating System :: Microsoft :: Windows",
             "Operating System :: POSIX :: Linux",
-            "Programming Language :: Python :: 3.9",
+            "Programming Language :: Python :: 3.7",
             "Topic :: Scientific/Engineering :: Bio-Informatics",
             "Topic :: Scientific/Engineering :: Image Processing",
             "Topic :: Scientific/Engineering :: Physics"              
       ],
 
-      #scripts=['bin/learn_psf'],
 
       packages=['psflearning'], # TODO: put correct name here # what's actually imported by people later
       python_requires='>=3.7',
@@ -46,26 +45,7 @@ setup(
             "hdfdict",
             "dotted_dict",
             "omegaconf",
-            "pytest"
-            #"NanoImagingPack"
-            # TODO: right now it is not even possible to install NIP into an empty environment...
-            # so either write Rainer and fixes this or get rid of these packages
+            "ipykernel"
             # TODO: what else?, add version numbers, test which versions work
       ],
-      extras_require={  # can be used by pip install -e .[examples]
-                        # then these additional packages are installed
-            "examples": [
-                  "ipykernel" # this seems not easy to be installed with pip
-                  "napari",
-                  # TODO: what else?, add version numbers, test which versions work
-            ],
-            "gpu": [
-                  "tensorflow-gpu"
-            ],
-            "dev": [
-                  "check-manifest",
-                  "pytest"
-                  # TODO: can be used for developers, only we needed if we are going to use any testing framework
-            ]
-      }
 )
