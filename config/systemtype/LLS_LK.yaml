@@ -1,15 +1,15 @@
 Params:
-  format: .tiff                  # .mat, .tif, .czi
+  format: .czi                  # .mat, .tif, .czi
   pixel_size:                   # unit: micron
-    x: 0.104
-    y: 0.104
+    x: 0.145
+    y: 0.145
   roi:
-    roi_size: [37,27,27]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
+    roi_size: [31,19,19]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [6,2,2]          # blur kernel size, corresponding to dimensions defined in roi_size
     max_kernel: [9,3,3]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
 
   LLS:                           # parameters only for lattice light-sheet psfs
-    skew_const: [0,-0.7845]            # unit: pixel
+    skew_const: [-1.194,0]            # unit: pixel
   insitu:               
     frame_range: []     # set the frames to be loaded, only for .tif format
 
