@@ -142,7 +142,8 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
             print(f"rois shape channel {i}: {rois[i].shape}")
 
         # find channel shift
-        self.find_channel_shift_cor(plot=False)
+        if self.shiftxy is None:
+            self.find_channel_shift_cor(plot=False)
         
         _, _, centers, _ = self.get_image_data()
         self.centers_all = centers
@@ -227,7 +228,7 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
             for k in range(0,5):
                 dist = np.sqrt(np.sum((cor1.reshape((N1,1,2))-cor0-pv)**2,axis=-1))
                 q = 1/(dist+1e-3)
-                ind1,ind0 = np.where(q>=np.quantile(q.flatten(),0.975))
+                ind1,ind0 = np.where(q>=np.quantile(q.flatten(),0.985))
                 pv = np.mean(cor1[ind1],axis=0)-np.mean(cor0[ind0],axis=0)
             if plot:
                 plt.figure(figsize=[6,6])

@@ -356,6 +356,8 @@ class psflearninglib:
             fov = None
         if (skew_const[0]==0.0) & (skew_const[1]==0.0):
             skew_const = None
+            
+        #dataobj.shiftxy = np.array([[0,0],[0.3,1.6]])
         dataobj.process( roi_size = roi_size,
                         gaus_sigma=gaus_sigma,
                         min_border_dist=list(np.array(roi_size)//2+1),

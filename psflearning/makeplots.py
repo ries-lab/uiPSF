@@ -494,11 +494,12 @@ def plotlocbias(loc,p):
     ax.set_xlabel('z slice')
     ax.set_ylabel('y bias (nm)')
     ax = fig.add_subplot(spec[2])
-    plt.plot(np.transpose(loc.z-np.linspace(0,Nz-1,Nz))*p.pixel_size.z*1e3,'k',alpha=0.1)
+    bias_z = (loc.z-np.linspace(0,Nz-1,Nz))*p.pixel_size.z*1e3
+    plt.plot(bias_z.transpose(),'k',alpha=0.1)
     plt.plot(loc.z[0]*0.0,'r')
     ax.set_xlabel('z slice')
     ax.set_ylabel('z bias (nm)')
-    ax.set_ylim([-40,40])
+    ax.set_ylim([np.quantile(bias_z[:,2:-2],0.001),np.quantile(bias_z[:,2:-2],0.999)])
     plt.show()
     return
 
@@ -506,17 +507,37 @@ def showtransform(f):
     Nchannel = f.rois.psf_data.shape[0]
     ref_pos = f.res.channel0.pos
     dxy = f.res.xyshift 
-    fig = plt.figure(figsize=[6*Nchannel,6])
+    fig = plt.figure(figsize=[5*Nchannel,10])
+    spec = gridspec.GridSpec(ncols=Nchannel, nrows=2,
+                        width_ratios=list(np.ones(Nchannel)), wspace=0.3,
+                        hspace=0.2, height_ratios=[1,1])
+
+    cor_ref = np.concatenate((ref_pos[:,1:], np.ones((ref_pos.shape[0], 1))), axis=1)
 
     for i in range(1,Nchannel):
         pos = f.res['channel'+str(i)].pos
-        ax = fig.add_subplot(1,Nchannel,i+1)
+        if Nchannel<3:
+            cor_target = np.matmul(cor_ref-f.res.imgcenter, f.res.T)[..., :-1]+f.res.imgcenter[:-1]
+        else:
+            cor_target = np.matmul(cor_ref-f.res.imgcenter, f.res.T[i])[..., :-1]+f.res.imgcenter[:-1]
+
+        ax = fig.add_subplot(spec[i])
         plt.plot(ref_pos[:,1],ref_pos[:,2],'.')
         plt.plot(pos[:,1]-dxy[i][0],pos[:,2]-dxy[i][1],'o',markersize = 8,mfc='none')
         plt.plot(f.res.imgcenter[0],f.res.imgcenter[1],'*')
+        ax.set_xlabel('x (pixel)')
+        ax.set_ylabel('y (pixel)')
+        plt.title('channel'+str(i))
+        ax1 = fig.add_subplot(spec[Nchannel+i])
+        plt.plot(cor_target[:,0],cor_target[:,1],'.')
+        plt.plot(pos[:,1],pos[:,2],'o',markersize = 8,mfc='none')
+        plt.plot(f.res.imgcenter[0],f.res.imgcenter[1],'*')
+        ax1.set_xlabel('x (pixel)')
+        ax1.set_ylabel('y (pixel)')
+
     
     ax.legend(['ref','target','center'])
-
+    ax1.legend(['ref_trans','target','center'])
 
 
 def showpsf(f,p):
@@ -551,3 +572,36 @@ def psfdisp(im1):
     plt.colorbar()
     plt.show()
     return
+
+
+def showcoord(f,p):
+    if p.channeltype == 'single':
+        fig = plt.figure(figsize=[5,5])
+        cor = f.res.cor
+        cor_all = f.res.cor_all
+
+        plt.plot(cor_all[:,0],cor_all[:,1],'.')
+        plt.plot(cor[:,0],cor[:,1],'o',markersize = 8,mfc='none')
+        plt.xlabel('x (pixel)')
+        plt.ylabel('y (pixel)')
+
+        plt.legend(['all','selected'])
+    else:
+        Nchannel = f.rois.psf_data.shape[0]
+        fig = plt.figure(figsize=[5*Nchannel,5])
+        spec = gridspec.GridSpec(ncols=Nchannel, nrows=1,
+                            width_ratios=list(np.ones(Nchannel)), wspace=0.3,
+                            hspace=0.2, height_ratios=[1])
+
+        for i in range(0,Nchannel):
+            cor = f.res['channel'+str(i)].cor
+            cor_all = f.res['channel'+str(i)].cor_all
+
+            ax = fig.add_subplot(spec[i])
+            plt.plot(cor_all[:,0],cor_all[:,1],'.')
+            plt.plot(cor[:,0],cor[:,1],'o',markersize = 8,mfc='none')
+            ax.set_xlabel('x (pixel)')
+            ax.set_ylabel('y (pixel)')
+            plt.title('channel'+str(i))
+
+        ax.legend(['all','selected'])

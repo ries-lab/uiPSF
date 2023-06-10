@@ -92,7 +92,9 @@ class PSFVolumeBased(PSFInterface):
         positions, backgrounds, intensities, I_model,gxy = variables
         
         I_model = I_model*self.weight[3]
+        I_model = I_model.astype(np.complex64)
         I_model_bead = np.real(im.ifft3d(im.fft3d(I_model)*self.bead_kernel))
+        I_model = I_model.astype(np.float32)
         z_center = (I_model.shape[-3] - 1) // 2
         images, _, centers, _ = self.data.get_image_data()
         centers_with_z = np.concatenate((np.full((centers.shape[0], 1), z_center), centers[:,-2:]), axis=1)
