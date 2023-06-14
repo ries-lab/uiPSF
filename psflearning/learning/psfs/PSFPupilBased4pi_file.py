@@ -139,7 +139,7 @@ class PSFPupilBased4pi(PSFInterface):
         
         pupil2 = tf.complex(tf.math.cos(pupilI2*self.weight[3]),tf.math.sin(pupilI2*self.weight[3]))*pupil_mag2*self.aperture*self.apoid
 
-        phiz = 1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
+        phiz = -1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
         phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
         phiz_d = 1j*2*np.pi*self.kz*(pos_d[:,0]+self.Zrange)
         phixy_d = 1j*2*np.pi*self.ky*pos_d[:,1]+1j*2*np.pi*self.kx*pos_d[:,2]
@@ -183,7 +183,7 @@ class PSFPupilBased4pi(PSFInterface):
         phase0 = np.reshape(np.array([-2/3,0,2/3])*np.pi+self.dphase,(3,1,1,1)).astype(np.float32)
         phase0 = tf.complex(tf.math.cos(phase0),tf.math.sin(phase0))
 
-        phiz = 1j*2*np.pi*self.kz*(self.Zrange)
+        phiz = -1j*2*np.pi*self.kz*(self.Zrange)
         PupilFunction = (pupil1*tf.exp(-phiz) + pupil2*tf.exp(phiz)*phase0)
         I_m = im.cztfunc1(PupilFunction,self.paramxy)   
         I_m = I_m*tf.math.conj(I_m)*self.normf/2.0
@@ -254,6 +254,8 @@ class PSFPupilBased4pi(PSFInterface):
                 pos_d,
                 phasec,
                 gxy,
+                np.flip(I_model,axis=-3),
+                np.flip(A_model,axis=-3),
                 variables]
 
     
@@ -270,6 +272,8 @@ class PSFPupilBased4pi(PSFInterface):
                         obj_misalign = res[9],
                         phase_dm = np.squeeze(res[10]),
                         drift_rate=res[11],
+                        I_model_reverse=res[12],
+                        A_model_reverse=res[13],
                         offset=np.min(res[3]-2*np.abs(res[4])),
                         Zphase = np.array(self.Zphase),
                         cor_all = self.data.centers_all,

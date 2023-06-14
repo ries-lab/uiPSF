@@ -138,7 +138,7 @@ class PSFZernikeBased4pi(PSFInterface):
         pupil_phase = tf.reduce_sum(self.Zk*Zcoeffphase[1]*self.weight[3],axis=0)
         pupil2 = tf.complex(pupil_mag2*tf.math.cos(pupil_phase),pupil_mag2*tf.math.sin(pupil_phase))*self.aperture*(self.apoid)   
 
-        phiz = 1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
+        phiz = -1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
         phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
         phiz_d = 1j*2*np.pi*self.kz*(pos_d[:,0]+self.Zrange)
         phixy_d = 1j*2*np.pi*self.ky*pos_d[:,1]+1j*2*np.pi*self.kx*pos_d[:,2]
@@ -189,7 +189,7 @@ class PSFZernikeBased4pi(PSFInterface):
         pupil_phase = tf.reduce_sum(self.Zk*Zcoeffphase[1],axis=0)
         pupil2 = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*(self.apoid)  
 
-        phiz = 1j*2*np.pi*self.kz*(self.Zrange)
+        phiz = -1j*2*np.pi*self.kz*(self.Zrange)
 
         PupilFunction = (pupil1*tf.exp(-phiz) + pupil2*tf.exp(phiz)*phase0)
         I_m = im.cztfunc1(PupilFunction,self.paramxy)   
@@ -234,8 +234,8 @@ class PSFZernikeBased4pi(PSFInterface):
         intensities = intensity_abs*self.weight[0]*intensity_phase
         alpha = tf.complex(alpha*self.weight[5],0.0)
 
-        Zcoeffmag*=self.weight[4]
-        Zcoeffphase*=self.weight[3]
+        Zcoeffmag=Zcoeffmag*self.weight[4]
+        Zcoeffphase=Zcoeffphase*self.weight[3]
         psf_model, I_model, A_model, pupil1, pupil2 = self.genpsfmodel(Zcoeffmag,Zcoeffphase,sigma,alpha)
         gxy = gxy*self.weight[2]
 
@@ -261,6 +261,8 @@ class PSFZernikeBased4pi(PSFInterface):
                 gxy,
                 Zcoeffmag,
                 Zcoeffphase,
+                np.flip(I_model,axis=-3),
+                np.flip(A_model,axis=-3),
                 variables]
 
     
@@ -279,6 +281,8 @@ class PSFZernikeBased4pi(PSFInterface):
                         drift_rate=res[11],
                         zernike_coeff_mag = np.squeeze(res[12]),
                         zernike_coeff_phase = np.squeeze(res[13]),
+                        I_model_reverse=res[14],
+                        A_model_reverse=res[15],
                         offset=np.min(res[3]-2*np.abs(res[4])),
                         Zphase = np.array(self.Zphase),
                         zernike_polynomial = self.Zk,

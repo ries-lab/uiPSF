@@ -147,7 +147,16 @@ class PSFVolumeBased4pi(PSFInterface):
 
         centers_with_z = np.concatenate((np.full((centers.shape[0], 1), z_center), centers), axis=1)
         global_positions = centers_with_z - positions
-        return [global_positions, backgrounds, intensities, I_model, A_model, phase,gxy,variables]
+        return [global_positions, 
+                backgrounds, 
+                intensities, 
+                I_model, 
+                A_model, 
+                phase,
+                gxy,
+                np.flip(I_model,axis=-3),
+                np.flip(A_model,axis=-3),
+                variables]
 
     
     def res2dict(self,res):
@@ -158,6 +167,8 @@ class PSFVolumeBased4pi(PSFInterface):
                         A_model=res[4],
                         phase_dm = np.squeeze(res[5]),
                         drift_rate=res[6],
+                        I_model_reverse=res[7],
+                        A_model_reverse=res[8],
                         offset=np.min(res[3]-2*np.abs(res[4])),
                         Zphase = self.Zphase,
                         cor_all = self.data.centers_all,

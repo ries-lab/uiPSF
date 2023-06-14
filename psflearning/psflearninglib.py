@@ -24,6 +24,7 @@ from omegaconf import OmegaConf
 import os
 from tkinter import EXCEPTION, messagebox as mbox
 from dotted_dict import DottedDict
+from .dataloader import dataloader
 #sys.path.append("..")
 
 from .learning import ( PreprocessedImageDataSingleChannel,
@@ -140,126 +141,31 @@ class psflearninglib:
 
     def load_data(self,frange=None):
         param = self.param
-        folder = param.datapath
-        keyword = param.keyword
         varname = param.varname
-        gain = param.gain
-        ccdoffset = param.ccd_offset
-        subfolder = param.subfolder
         format = param.format
         channeltype = param.channeltype
         PSFtype = param.PSFtype
-        datatype = param.datatype
-        channel_arrange = param.dual.channel_arrange
-        mirrortype = param.dual.mirrortype
         ref_channel = param.ref_channel
         filelist = param.filelist
-        framerange = param.insitu.frame_range
 
+        loader = dataloader(param)
         if not filelist:
-            if not subfolder:
-                filelist = glob.glob(folder+'/*'+keyword+'*'+format)
-            else:
-                filelist = []
-                folderlist = glob.glob(folder+'/*'+subfolder+'*/')
-                for f in folderlist:
-                    filelist.append(glob.glob(f+'/*'+keyword+'*'+format)[0])
+            filelist = loader.getfilelist()
 
         if frange:
             filelist = filelist[frange[0]:frange[1]]
-        imageraw = []
-        for filename in filelist:
-            print(filename)
-            if channeltype == 'single':
-                if format == '.mat':
-                    fdata = h5.File(filename,'r')
-                    if varname:
-                        name = [varname]
-                    else:
-                        name = list(fdata.keys())       
-                    try:
-                        name.remove('metadata')
-                    except:
-                        pass
-                    try:
-                        name.remove('#refs#')
-                    except:
-                        pass
-                    dat = np.squeeze(np.array(fdata.get(name[0])).astype(np.float32))
-                elif (format == '.tif') or (format == '.tiff'):
-                    if datatype == 'smlm':
-                        dat = []
-                        fID = Image.open(filename)
-                        #fmax = fID.n_frames 
-                        
-                        for ii in range(framerange[0],framerange[1]):
-                            fID.seek(ii)
-                            dat.append(np.asarray(fID))
-                        dat = np.stack(dat).astype(np.float32)
-                    else:
-                        dat = np.squeeze(io.imread(filename).astype(np.float32))
-                       
-                elif format == '.czi':
-                    dat = np.squeeze(czi.imread(filename).astype(np.float32))
-                else:
-                    raise TypeError('supported data format (single channel) is '+'.mat,'+'.tif,'+'.czi.')
-            else:
-                if format == '.mat':
-                    fdata = h5.File(filename,'r')
-                    if varname:
-                        name = [varname]
-                    else:
-                        name = list(fdata.keys())     
-                        
-                    try:
-                        name.remove('metadata')
-                    except:
-                        pass
-                    try:
-                        name.remove('#refs#')
-                    except:
-                        pass
-                    dat = []
-                    for ch in name:            
-                        datai = np.squeeze(np.array(fdata.get(ch)).astype(np.float32))
-                        dat.append(datai)
-                    dat = np.squeeze(np.stack(dat))
-                elif format == '.tif':
-                    if datatype == 'smlm':
-                        dat = []
-                        fID = Image.open(filename)
-                        #fmax = fID.n_frames 
-                        
-                        for ii in range(framerange[0],framerange[1]):
-                            fID.seek(ii)
-                            dat.append(np.asarray(fID))
-                        dat = np.stack(dat).astype(np.float32)
-                    else:
-                        dat = np.squeeze(io.imread(filename).astype(np.float32))
-                else:
-                    raise TypeError('supported data format (multi channel) is '+'.mat,'+'.tif.')
-                if len(dat.shape)<4:
-                    if channel_arrange == 'up-down':
-                        cc = dat.shape[-2]//2
-                        if mirrortype == 'up-down':
-                            dat = np.stack([dat[:,:-cc],np.flip(dat[:,cc:],axis=-2)])
-                        elif mirrortype == 'left-right':
-                            dat = np.stack([dat[:,:-cc],np.flip(dat[:,cc:],axis=-1)])
-                        else:
-                            dat = np.stack([dat[:,:-cc],dat[:,cc:]])
-                    else:
-                        cc = dat.shape[-1]//2
-                        if mirrortype == 'up-down':
-                            dat = np.stack([dat[...,:-cc],np.flip(dat[...,cc:],axis=-2)])
-                        elif mirrortype == 'left-right':
-                            dat = np.stack([dat[...,:-cc],np.flip(dat[...,cc:],axis=-1)])  
-                        else:
-                            dat = np.stack([dat[...,:-cc],dat[...,cc:]])    
-                
-            
-            dat = (dat-ccdoffset)*gain
-            imageraw.append(dat)
-        imagesall = np.stack(imageraw)
+        
+        if format == '.mat':
+            imagesall = loader.loadmat(filelist)
+        elif (format == '.tif') or (format == '.tiff'):
+            imagesall = loader.loadtiff(filelist)
+        elif format == '.czi':
+            imagesall = loader.loadczi(filelist)
+        elif format == '.h5':
+            imagesall = loader.loadh5(filelist)
+        else:
+            raise TypeError('supported data format is '+'.mat,'+'.tif,'+'.czi,'+'.h5.')
+
         
         if channeltype == '4pi':
             if 'insitu' in PSFtype:
@@ -286,12 +192,11 @@ class psflearninglib:
                 images = images.reshape(images.shape[0],-1,images.shape[-2],images.shape[-1])
         
         
-        if param.swaptif:
-            if format == '.tif':
-                #images = np.swapaxes(images,-1,-2)
-                tmp = np.zeros(images.shape[:-2]+(images.shape[-1],images.shape[-2]),dtype=np.float32)            
-                tmp[0:] = np.swapaxes(images[0:],-1,-2)
-                images = tmp
+        if param.swapxy:
+            #if format == '.tif':
+            tmp = np.zeros(images.shape[:-2]+(images.shape[-1],images.shape[-2]),dtype=np.float32)            
+            tmp[0:] = np.swapaxes(images[0:],-1,-2)
+            images = tmp
 
         
 
@@ -646,8 +551,11 @@ class psflearninglib:
                 I_model = []
                 A_model = []
                 for i in range(Nchannel):
-                    I_model.append(res_dict['channel'+str(i)][keyname])    
-                    A_model.append(res_dict['channel'+str(i)]['A_model_reverse'])       
+                    I_model.append(res_dict['channel'+str(i)][keyname])   
+                    if keyname=='I_model':
+                        A_model.append(res_dict['channel'+str(i)]['A_model'])      
+                    else: 
+                        A_model.append(res_dict['channel'+str(i)]['A_model_reverse'])       
                 I_model = np.stack(I_model)
                 A_model = np.stack(A_model)
                 offset = np.min(I_model-2*np.abs(A_model))

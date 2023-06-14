@@ -303,8 +303,8 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         positions, backgrounds, intensities, Zcoeff,sigma, stagepos = variables
         res = variables.copy()
         positions = positions*self.weight[2]
-        Zcoeff[0]*=self.weight[4]
-        Zcoeff[1]*=self.weight[3]
+        Zcoeff[0]=Zcoeff[0]*self.weight[4]
+        Zcoeff[1]=Zcoeff[1]*self.weight[3]
         stagepos = stagepos*self.weight[5]
         
         I_model,pupil = self.genpsfmodel(Zcoeff,sigma,stagepos)

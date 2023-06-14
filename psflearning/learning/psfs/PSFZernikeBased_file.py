@@ -174,8 +174,8 @@ class PSFZernikeBased(PSFInterface):
         """
         positions, backgrounds, intensities, Zcoeff,sigma,gxy = variables
         z_center = (self.Zrange.shape[-3] - 1) // 2
-        Zcoeff[0]*=self.weight[4]
-        Zcoeff[1]*=self.weight[3]
+        Zcoeff[0]=Zcoeff[0]*self.weight[4]
+        Zcoeff[1]=Zcoeff[1]*self.weight[3]
 
         if self.initpupil is not None:
             pupil = self.initpupil

@@ -519,7 +519,7 @@ def showtransform(f):
         if Nchannel<3:
             cor_target = np.matmul(cor_ref-f.res.imgcenter, f.res.T)[..., :-1]+f.res.imgcenter[:-1]
         else:
-            cor_target = np.matmul(cor_ref-f.res.imgcenter, f.res.T[i])[..., :-1]+f.res.imgcenter[:-1]
+            cor_target = np.matmul(cor_ref-f.res.imgcenter, f.res.T[i-1])[..., :-1]+f.res.imgcenter[:-1]
 
         ax = fig.add_subplot(spec[i])
         plt.plot(ref_pos[:,1],ref_pos[:,2],'.')
