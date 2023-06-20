@@ -42,6 +42,7 @@ class PSFMultiChannel_smlm(PSFInterface):
         # choose first channel as reference and run first round of optimization
         options = self.options.copy()
         options.insitu.partition_data = False
+        options.insitu.min_photon = 0.0
         partition_data = self.options.insitu.partition_data
         ref_psf = self.psftype(options = options)
         if hasattr(self,'initpsf'):
@@ -108,10 +109,10 @@ class PSFMultiChannel_smlm(PSFInterface):
         xp = locres[-1]['x'].flatten()
         yp = locres[-1]['y'].flatten()
         
-        photon = locres[0][2]  
-        bg = locres[0][3]
+        photon = locres[0][3]  
+        bg = locres[0][4]
         a = 0.99
-        a1 = options.insitu.min_photon
+        a1 = self.options.insitu.min_photon
         mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp>np.quantile(zp,1-a)) & (zp<np.quantile(zp,a))
         mask = mask.flatten() & (LL>np.quantile(LL,0.1)) & (photon>np.quantile(photon,a1))
         

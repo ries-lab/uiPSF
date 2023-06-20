@@ -52,7 +52,7 @@ Params:
       NA: 1.43
     insitu:
       stage_pos: 1               # 0 at the coverslip, positive when move towards the coverslip
-      min_photon: 0.2              # quantile for rejecting low photon emitters
+      min_photon: 0.4              # quantile for rejecting low photon emitters
       partition_data: true         # select best emitters from each partition
       partition_size: [21,100]     # number of z segments, maximum number of emitter per segment
       zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
