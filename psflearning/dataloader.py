@@ -42,7 +42,7 @@ class dataloader:
                 dat = []
                 fID = Image.open(filename)
                 
-                for ii in range(param.insitu.framerange[0],param.insitu.framerange[1]):
+                for ii in range(param.insitu.frame_range[0],param.insitu.frame_range[1]):
                     fID.seek(ii)
                     dat.append(np.asarray(fID))
                 dat = np.stack(dat).astype(np.float32)

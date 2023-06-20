@@ -200,7 +200,7 @@ class psflearninglib:
 
         
 
-        if param['stage_mov_dir']=='reverse':
+        if (param.stage_mov_dir=='reverse') & (param.datatype == 'bead'):
             images = np.flip(images,axis=-3)
         
         print(images.shape)
@@ -341,7 +341,7 @@ class psflearninglib:
                     except:
                         pass
                     try:
-                        psfobj.sub_psfs[k].Zoffset = np.array(f['res']['channel'+str(k)]['zoffset'])
+                        psfobj.Zoffset = np.array(f['res']['channel'+str(k)]['zoffset'])
                     except:
                         pass
                     psfobj.initpsf[k] = np.array(f['res']['channel'+str(k)]['I_model']).astype(np.float32)
@@ -422,7 +422,7 @@ class psflearninglib:
             self.param.savename = savename + str(nn)
             resfile = self.save_result(psfobj,dataobj,fitter)
             self.param.option.model.init_pupil_file = resfile
-            self.param.option.insitu.min_photon = max([min_photon-nn*0.1,0.4])
+            self.param.option.insitu.min_photon = max([min_photon-nn*0.1,0.2])
             res = psfobj.res2dict(self.learning_result)
             
             if channeltype == 'single':
@@ -444,7 +444,10 @@ class psflearninglib:
                     pass
                 if self.param.plotall:
                     for j in range(0,len(dataobj.channels)):
-                        I_model = res['channel'+str(j)]['I_model']
+                        if channeltype == '4pi':
+                            I_model = res['channel'+str(j)]['psf_model']
+                        else:
+                            I_model = res['channel'+str(j)]['I_model']
                         Nz = I_model.shape[-3]
                         zind = range(0,Nz,4)
 

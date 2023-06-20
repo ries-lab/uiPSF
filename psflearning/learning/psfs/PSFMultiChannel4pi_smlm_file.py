@@ -52,6 +52,7 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
         if hasattr(self,'initpsf'):
             ref_psf.initpsf = self.initpsf[0]
             ref_psf.initA = self.initA[0]
+            ref_psf.Zoffset = self.Zoffset
         ref_psf.dphase = 0.0
         self.sub_psfs[0] = ref_psf
 
@@ -70,7 +71,11 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
             if hasattr(self,'initpsf'):
                 current_psf.initpsf = self.initpsf[i]
                 current_psf.initA = self.initA[i]
-            current_psf.dphase = -i*np.pi/2
+                current_psf.Zoffset = self.Zoffset
+            if options.fpi.phase_delay_dir == 'ascend':
+                current_psf.dphase = i*np.pi/2
+            else:
+                current_psf.dphase = -i*np.pi/2
             self.sub_psfs[i] = current_psf
 
             # calculate transformation
@@ -100,7 +105,7 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
         locres = dll.loc_4pi(data,I_init,A_init,pixelsize_z,cor,imgcenter,T,zT,start_time=0, linkxy=False)
         toc = locres[-2]
         LL = locres[2]
-        zp = locres[-1]['zast'].flatten()+self.sub_psfs[0].Zoffset
+        zp = locres[-1]['zast'].flatten()+np.float32(self.sub_psfs[0].Zoffset.flatten()) 
         phip = locres[-1]['z'].flatten()*2*np.pi/zT   
         ccx = rois[0].shape[-1]/2-1
         xp = locres[-1]['x']-ccx
@@ -202,8 +207,8 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
                 param[2][i,:,0,0] = photon[rois_id]/self.sub_psfs[0].weight[0]
 
         if self.options.fpi.link_zernikecoeff:
-            param[4][0]=np.hstack((param[4][0][:,0:1],np.mean(param[4][:,:,1:],axis=0)))
-            param[5][0]=np.hstack((param[5][0][:,0:4],np.mean(param[5][:,:,4:],axis=0)))
+            param[6][0]=np.hstack((param[6][0][:,0:1],np.mean(param[6][:,:,1:],axis=0)))
+            param[7][0]=np.hstack((param[7][0][:,0:4],np.mean(param[7][:,:,4:],axis=0)))
 
 
         return param, toc
@@ -226,15 +231,15 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
         for i, sub_psf in enumerate(self.sub_psfs):
             pos = positions[i]/self.weight[0]   
             #link pos, intensity, phase
-            sub_variables = [pos, variables[1][i], variables[2][0], variables[3][0]]
+            sub_variables = [pos, variables[1][i], variables[2][0], variables[3][0], variables[4][0], variables[5][0]]
             if self.options.fpi.link_zernikecoeff:
-                sub_variables.append(tf.concat((variables[4][i][:,0:1],variables[4][0][:,1:]),axis=1))
-                sub_variables.append(tf.concat((variables[5][i][:,0:4],variables[5][0][:,4:]),axis=1))
+                sub_variables.append(tf.concat((variables[6][i][:,0:1],variables[6][0][:,1:]),axis=1))
+                sub_variables.append(tf.concat((variables[7][i][:,0:4],variables[7][0][:,4:]),axis=1))
 
-                for k in range(6,len(variables)-1):
+                for k in range(8,len(variables)-1):
                     sub_variables.append(variables[k][i])
             else:
-                for k in range(4,len(variables)-1):
+                for k in range(6,len(variables)-1):
                     sub_variables.append(variables[k][i])
 
             forward_images[i] = sub_psf.calc_forward_images(sub_variables)
@@ -303,14 +308,14 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
         results = []
         for i, sub_psf in enumerate(self.sub_psfs):
             
-            sub_variables = [positions[i]/self.weight[0],res[1][i], res[2][0], res[3][0]]
+            sub_variables = [positions[i]/self.weight[0],res[1][i], res[2][0], res[3][0], res[4][0], res[5][0]]
             if self.options.fpi.link_zernikecoeff:
-                sub_variables.append(np.hstack((res[4][i][:,0:1],res[4][0][:,1:])))
-                sub_variables.append(np.hstack((res[5][i][:,0:4],res[5][0][:,4:])))
-                for k in range(6,len(variables)-1):
+                sub_variables.append(np.hstack((res[6][i][:,0:1],res[6][0][:,1:])))
+                sub_variables.append(np.hstack((res[7][i][:,0:4],res[7][0][:,4:])))
+                for k in range(8,len(variables)-1):
                     sub_variables.append(res[k][i])
             else:
-                for k in range(4,len(variables)-1):
+                for k in range(6,len(variables)-1):
                     sub_variables.append(res[k][i])
             results.append(sub_psf.postprocess(sub_variables)[:-1])
         

@@ -46,6 +46,7 @@ class PSFMultiChannel_smlm(PSFInterface):
         ref_psf = self.psftype(options = options)
         if hasattr(self,'initpsf'):
             ref_psf.initpsf = self.initpsf[0]
+            ref_psf.Zoffset = self.Zoffset
         self.sub_psfs[0] = ref_psf
         fitter_ref_channel = Fitter(self.data.get_channel(0), ref_psf,self.init_optimizer, ref_psf.default_loss_func,loss_weight=self.loss_weight) # TODO: redesign multiData        
         res_ref, toc = fitter_ref_channel.learn_psf(start_time=start_time)
@@ -69,6 +70,7 @@ class PSFMultiChannel_smlm(PSFInterface):
             current_psf = self.psftype(options = options)
             if hasattr(self,'initpsf'):
                 current_psf.initpsf = self.initpsf[i]
+                current_psf.Zoffset = self.Zoffset
             self.sub_psfs[i] = current_psf
             fitter_current_channel = Fitter(self.data.get_channel(i), current_psf, self.init_optimizer,current_psf.default_loss_func,loss_weight=self.loss_weight)
             res_cur,toc = fitter_current_channel.learn_psf(start_time=toc)

@@ -96,7 +96,7 @@ class PSFZernikeBased_FD(PSFInterface):
         c1 = self.spherical_terms
         n_max = self.n_max_mag
         Nk = np.min(((n_max+1)*(n_max+2)//2,self.Zk.shape[0]))
-        mask = c1<Nk
+        mask = (c1<Nk) & (c1>0)
         c1 = c1[mask]
 
         cor = np.float32(self.data.centers)
@@ -116,9 +116,12 @@ class PSFZernikeBased_FD(PSFInterface):
         Zcoeff2 = tf.reshape(Zcoeff2,Zcoeff2.shape+(1,1))
 
         if self.options.model.symmetric_mag:
-            pupil_mag = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff1,indices=c1,axis=1),axis=1,keepdims=True)
+            if c1:
+                pupil_mag = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff1,indices=c1,axis=1),axis=1,keepdims=True)
         else:
             pupil_mag = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeff1[:,0:Nk],axis=1,keepdims=True))
+        pupil_mag = pupil_mag + self.Zk[0]*tf.reduce_mean(Zcoeff1[:,0])
+
         pupil_phase = tf.reduce_sum(self.Zk[3:]*Zcoeff2[:,3:],axis=1,keepdims=True)
         pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
                 
@@ -199,6 +202,7 @@ class PSFZernikeBased_FD(PSFInterface):
         z_center = (self.Zrange.shape[-3] - 1) // 2
 
         Zmap = Zmap*self.weight[3]
+        Zmap[0,0] = Zmap[0,0,0,0]
         cor = np.float32(self.data.centers)
 
         Nbead = positions.shape[0]

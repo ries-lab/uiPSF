@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 gpus = tf.config.list_physical_devices('GPU')
 #tf.config.experimental.set_memory_growth(gpus[0], True)
-tf.config.experimental.set_virtual_device_configuration(gpus[0],[tf.config.experimental.VirtualDeviceConfiguration(memory_limit=6600)])
+tf.config.experimental.set_virtual_device_configuration(gpus[0],[tf.config.experimental.VirtualDeviceConfiguration(memory_limit=6000)])
 sys.path.append("..")
 from psflearning.psflearninglib import psflearninglib
 from psflearning import io
@@ -37,6 +37,7 @@ showpupil(f,p)
 showzernike(f,p,index=0)
 
 #%%
+print(f.res.channel0.stagepos)
 showlearnedparam_insitu(f,p)
 
 # %%
@@ -45,6 +46,5 @@ np.set_printoptions(precision=4,suppress=True)
 print(f.res.T)
 
 # %%
-zT = p.fpi.modulation_period/p.pixel_size.z
-plt.plot(f.locres.loc.zast,np.mod(f.locres.loc.z,zT),'.')
+showcoord(f,p)
 # %%

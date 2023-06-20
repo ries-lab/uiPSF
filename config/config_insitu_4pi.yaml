@@ -4,7 +4,7 @@
 Params:
   # ------data specific parameters, should be updated for different data
   datapath: E:/EMBL files/data 2022/230202_Nup96SNAP_NC_M2/Nup96SNAP_BME_i50SM_ex200_zpos5um_NC_1                 # full path to your data
-  keyword: cell1__560                 # keyword for your data file, used for automatic finding files with the same keyword
+  keyword: cell1                 # keyword for your data file, used for automatic finding files with the same keyword
   savename: test            # full path to your result foder/filename
   subfolder: ""                # keyword for subfolder name if each bead data is saved in a individual folder
   format: .mat                  # .mat, .tif, .czi
@@ -15,7 +15,7 @@ Params:
     roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [4,4]          # blur kernel size, corresponding to dimensions defined in roi_size
     max_kernel: [5,5]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
-    peak_height: 0.2            # relative to maximum bead intensity, bead intensity below which are rejected
+    peak_height: 0.4            # relative to maximum bead intensity, bead intensity below which are rejected
     max_bead_number: 40        # ignored by insitu PSF learning
     bead_radius: 0.0            # unit: micron
   pixel_size:                   # unit: micron
@@ -36,7 +36,7 @@ Params:
     mirrortype: up-down          # up-down, left-right
     channel_arrange: up-down     # up-down, left-right
   fpi:                           # parameters only for 4pi systems
-    modulation_period: 0.26      # unit: micron
+    modulation_period: 0.29      # unit: micron
   LLS:                           # parameters only for lattice light-sheet psfs
     skew_const: [0,0]            # unit: pixel
   insitu:               
@@ -44,14 +44,14 @@ Params:
 
   option:                         # mainly for pupil and zernike, insitu  learning
     imaging:                       
-      emission_wavelength: 0.6    # unit: micron
+      emission_wavelength: 0.68    # unit: micron
       RI: 
         imm: 1.406
         med: 1.406
         cov: 1.516
       NA: 1.35
     insitu:
-      stage_pos: 0.8               # 0 at the coverslip, positive when move towards the coverslip
+      stage_pos: 0.6               # 0 at the coverslip, positive when move towards the coverslip
       min_photon: 0.4              # quantile for rejecting low photon emitters
       partition_data: true         # select best emitters from each partition
       partition_size: [11,400]     # number of z segments, maximum number of emitter per segment
@@ -59,12 +59,15 @@ Params:
       zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 
       z_range: 1.0                # unit: micron, z range of insitu psf model
       zkorder_rank: L             # L, H: searching range of zernike coefficient (4,21), (21,45)    
-      var_stagepos: true          # estimate stage position
-      repeat: 3                   # iteration number for insitu learning, the previous psf model will be used for the next iteration
+      var_stagepos: false          # estimate stage position
+      repeat: 2                   # iteration number for insitu learning, the previous psf model will be used for the next iteration
       backgroundROI: []           # define the region where the emitters are at the coverslip, only for imaging close to the coverslip    
     fpi:
       link_zernikecoeff: true
       phase_dm: [2,0,-2]           # unit: radian
+      sampleheight: 2
+      var_sampleheight: false
+      phase_delay_dir: descend     # phase delay between four channels, 'descend' or 'ascend'
     model:
       pupilsize: 64                # unit: pixel
       n_max: 8                     # maximum zernike order
@@ -108,6 +111,6 @@ Params:
   iteration: 200                 # number of iterations for learning
   varname: ""                    # only for simulated data from matlab, the variable name for the data
   filelist: []                   # user can also give a list of data files, instead of giving the keyword or subfolder, data loading will skip automatic populate filelist 
-  swaptif: true                  # permute x,y dimension of tif file
+  swapxy: true                  # permute x,y dimension of tif file
 
   

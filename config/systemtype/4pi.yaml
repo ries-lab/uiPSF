@@ -25,8 +25,11 @@ Params:
     fpi:
       link_zernikecoeff: true
       phase_dm: [2,0,-2]           # unit: radian
+      sampleheight: 2
+      var_sampleheight: false
+      phase_delay_dir: descend     # phase delay between four channels, 'descend' or 'ascend'
     insitu:
       zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
       zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 
-      partition_size: [21,100]     # number of z segments, maximum number of emitter per segment
-      z_range: 2.0                 # unit: micron, z range of insitu psf model
+      partition_size: [11,400]     # number of z segments, maximum number of emitter per segment
+      z_range: 1.2                 # unit: micron, z range of insitu psf model

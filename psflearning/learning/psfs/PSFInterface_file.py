@@ -150,7 +150,7 @@ class PSFInterface():
         self.ky = np.complex64(yy*NA/emission_wavelength)*pixelsize_y
         self.kz = np.complex64(kz)*self.data.pixelsize_z
         self.kz_med = np.complex64(kz_med)*self.data.pixelsize_z
-        self.k = np.complex64(nimm/emission_wavelength)*self.data.pixelsize_z
+        self.k = np.complex64(nmed/emission_wavelength)*self.data.pixelsize_z
         self.dipole_field = np.complex64(h)
         #self.dipole_field = np.complex64([1.0])
         self.apoid = np.complex64(apoid)

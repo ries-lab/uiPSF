@@ -108,6 +108,6 @@ Params:
   iteration: 200                 # number of iterations for learning
   varname: ""                    # only for simulated data from matlab, the variable name for the data
   filelist: []                   # user can also give a list of data files, instead of giving the keyword or subfolder, data loading will skip automatic populate filelist 
-  swaptif: true                  # permute x,y dimension of tif file
+  swapxy: true                  # permute x,y dimension of tif file
 
   

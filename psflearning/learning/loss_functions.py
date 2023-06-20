@@ -256,20 +256,24 @@ def mse_zernike_4pi_smlm(model,data,variables=None,mu=None,w=None):
     bg = variables[1]
     intensity = variables[2]
     intensity_phase = variables[3]
-    zcoeff1 = variables[4]
-    zcoeff2 = variables[5]
-    alpha = variables[7]
+    zcoeff1 = variables[6]
+    zcoeff2 = variables[7]
+    alpha = variables[8]
+    zpos = variables[0][:,0,...]
+    stagepos = variables[4]
+    sampleheight = variables[5]
 
     bgmin = tf.reduce_sum(tf.math.square(tf.math.minimum(bg,0)))
     intensitymin = tf.reduce_sum(tf.math.square(tf.math.minimum(intensity,0)))
     alphamin = tf.reduce_sum(tf.math.square(tf.math.minimum(alpha,0)))
+    zmin = tf.reduce_mean(tf.math.square(tf.math.minimum(zpos,0))) + tf.reduce_mean(tf.math.square(tf.math.minimum(stagepos,0))) + tf.reduce_mean(tf.math.square(tf.math.minimum(sampleheight,0)))
 
     g1 = tf.reduce_sum(tf.abs(zcoeff1[1][1:]))
     g2 = tf.reduce_sum(tf.abs(zcoeff1[0][1:]))*2 + tf.reduce_sum(tf.abs(zcoeff2[0][1:]))*2
     g3 = tf.reduce_sum(tf.abs(zcoeff2[1][1:]))
 
     #loss = mse_norm1*w[0] + mse_norm2*w[1] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + alphamin*w[4]*mu + (g1+g2)*w[2]
-    loss = LL*w[0] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + alphamin*w[4]*mu 
+    loss = LL*w[0] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + alphamin*w[4]*mu +zmin*w[4]*mu
 
     return loss
 

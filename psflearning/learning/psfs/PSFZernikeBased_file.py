@@ -91,6 +91,9 @@ class PSFZernikeBased(PSFInterface):
         c1 = self.spherical_terms
         n_max = self.n_max_mag
         Nk = np.min(((n_max+1)*(n_max+2)//2,self.Zk.shape[0]))
+        mask = c1<Nk
+        c1 = c1[mask]
+
         if self.options.model.symmetric_mag:
             pupil_mag = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff[0],indices=c1)*self.weight[4],axis=0))
         else:

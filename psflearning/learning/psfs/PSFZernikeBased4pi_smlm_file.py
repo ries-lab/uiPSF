@@ -39,7 +39,8 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
         _, rois, centers, frames = self.data.get_image_data()
         options = self.options
         alpha = np.array([0.8])
-        #self.stagepos = options.insitu.stage_pos/self.data.pixelsize_z
+        self.stagepos = options.insitu.stage_pos/self.data.pixelsize_z
+        self.sampleheight = options.fpi.sampleheight/self.data.pixelsize_z
         init_sigma = np.ones((2,),dtype=np.float32)*options.model.blur_sigma*np.pi
 
         if hasattr(self,'initpsf'):
@@ -47,20 +48,21 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
             A_model = self.initA
             Nz = I_model.shape[0]
             if self.Zoffset is None:
-            #    self.estzoffset(Nz)
-                self.Zoffset = -Nz/2+0.5
+                self.estzoffset(Nz)
+                #self.Zoffset = -Nz/2+0.5
             self.calpupilfield('scalar', Nz,'insitu')
+            self.Zrange -=self.Zrange[0]-self.Zoffset
             self.Zphase = (np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.float32).reshape(Nz,1,1))*2*np.pi
             self.zT = self.data.zT
             
         else:
-            #self.estzoffset()
-            #self.Zrange -=self.Zrange[0]-self.Zoffset
-            Nz = np.int32(self.options.insitu.z_range/self.data.pixelsize_z+1)
-            self.calpupilfield('scalar', Nz,'insitu')
-            self.Zphase = (np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.float32).reshape(Nz,1,1))*2*np.pi
-            self.zT = self.data.zT
-            self.Zoffset = -Nz/2+0.5
+            self.estzoffset()
+            self.Zrange -=self.Zrange[0]-self.Zoffset
+            #Nz = np.int32(self.options.insitu.z_range/self.data.pixelsize_z+1)
+            #self.calpupilfield('scalar', Nz,'insitu')
+            #self.Zphase = (np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.float32).reshape(Nz,1,1))*2*np.pi
+            #self.zT = self.data.zT
+            #self.Zoffset = -Nz/2+0.5
             init_Zcoeffmag = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
             init_Zcoeffmag[:,0,0,0] = 1
             init_Zcoeffphase = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
@@ -79,7 +81,7 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
 
 
 
-        self.weight = np.array([1e4, 100, 20, 0.2,0.2,0.1],dtype=np.float32)
+        self.weight = np.array([1e4, 100, 20, 0.2,0.2,0.1, 10],dtype=np.float32)
         self.pos_weight = self.weight[2]
         init_Zcoeff_mag = np.zeros((2,self.Zk.shape[0],1,1))
         init_Zcoeff_mag[:,0,0,0] = [1,1]/self.weight[4]
@@ -90,6 +92,10 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
         init_phi = np.zeros((rois.shape[0], 1,1))
         init_positions = np.zeros((rois.shape[0], 3))
 
+        init_stagepos = np.ones((1,))*self.stagepos / self.weight[6]
+        self.init_stagepos = init_stagepos.astype(np.float32)
+        init_sampleheight = np.ones((1,))*self.sampleheight / self.weight[6]
+        self.init_sampleheight = init_sampleheight.astype(np.float32)
 
         
         init_backgrounds[init_backgrounds<0.1] = 0.1
@@ -103,6 +109,8 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
             dict(type='shared'),
             dict(type='shared'),
             dict(type='shared'),
+            dict(type='shared'),
+            dict(type='shared'),
             dict(type='shared')]
 
         init_Intensity = init_intensities / self.weight[0]
@@ -111,6 +119,8 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
                 init_backgrounds.astype(np.float32), 
                 init_Intensity.astype(np.float32),
                 init_phi.astype(np.float32),
+                init_stagepos.astype(np.float32),
+                init_sampleheight.astype(np.float32),
                 init_Zcoeff_mag.astype(np.float32),
                 init_Zcoeff_phase.astype(np.float32),
                 init_sigma.astype(np.float32),
@@ -122,7 +132,7 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
         Calculate forward images from the current guess of the variables.
         """
                 
-        pos, bg, intensity_abs,intensity_phase, Zcoeffmag, Zcoeffphase, sigma,alpha = variables
+        pos, bg, intensity_abs,intensity_phase, stagepos, sampleheight,Zcoeffmag, Zcoeffphase, sigma,alpha = variables
         intensity_phase = tf.complex(tf.math.cos(intensity_phase*self.weight[2]),tf.math.sin(intensity_phase*self.weight[2]))
         phase0 = tf.complex(tf.math.cos(self.dphase),tf.math.sin(self.dphase))
         pos = tf.complex(tf.reshape(pos*self.weight[2],pos.shape+(1,1)),0.0)
@@ -146,14 +156,26 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
         pupil_phase = tf.reduce_sum(self.Zk*Zcoeffphase[1]*self.weight[3],axis=0)
         pupil2 = tf.complex(pupil_mag2*tf.math.cos(pupil_phase),pupil_mag2*tf.math.sin(pupil_phase))*self.aperture*(self.apoid)   
 
-        phiz = 1j*2*np.pi*(self.kz-self.k)*(pos[:,0])
+        # consider index mismatch
+        if self.options.insitu.var_stagepos:
+            stagepos = tf.complex(stagepos*self.weight[6],0.0)
+        else:
+            stagepos = tf.complex(self.init_stagepos*self.weight[6],0.0)
+
+        if self.options.fpi.var_sampleheight:
+            sampleheight = tf.complex(sampleheight*self.weight[6],0.0)
+        else:
+            sampleheight = tf.complex(self.init_sampleheight*self.weight[6],0.0)
+
+        phid = 1j*2*np.pi*(self.kz_med-self.kz*self.nimm/self.nmed)*sampleheight
+        phiz = 1j*2*np.pi*((self.kz_med-self.k)*pos[:,0]-self.kz*stagepos)
         phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
 
-        PupilFunction = (pupil1*tf.exp(-phiz)*intensity_phase + pupil2*tf.exp(phiz)*phase0)*tf.exp(phixy)
+        PupilFunction = (pupil1*tf.exp(phid-phiz)*intensity_phase + pupil2*tf.exp(phiz)*phase0)*tf.exp(phixy)
         I_m = im.cztfunc1(PupilFunction,self.paramxy)   
         I_m = I_m*tf.math.conj(I_m)*self.normf/2.0
 
-        PupilFunction1 = pupil1*tf.exp(-phiz)*tf.exp(phixy)
+        PupilFunction1 = pupil1*tf.exp(phid-phiz)*tf.exp(phixy)
         I1 = im.cztfunc1(PupilFunction1,self.paramxy)   
         I1 = I1*tf.math.conj(I1)*self.normf/2.0
 
@@ -175,7 +197,34 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
 
         return forward_images
 
-    def genpsfmodel(self,Zcoeffmag, Zcoeffphase, sigma, alpha):
+    def estzoffset(self,Nz=None):
+        if Nz is None:
+            Nz = np.int32(self.options.insitu.z_range/self.data.pixelsize_z+1)
+        self.calpupilfield('scalar', Nz,'insitu')
+        self.Zrange += self.stagepos*self.nmed/self.nimm
+        if self.Zrange[0]<0:
+            self.Zrange -=self.Zrange[0]
+        init_sigma = np.ones((2,),dtype=np.float32)*self.options.model.blur_sigma*np.pi
+        alpha = np.array([0.8])
+
+
+        self.Zphase = (np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.float32).reshape(Nz,1,1))*2*np.pi
+        self.zT = self.data.zT
+        init_Zcoeffmag = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
+        init_Zcoeffmag[:,0,0,0] = 1
+        init_Zcoeffphase = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
+            
+        I_init, I_model,A_model,_,_ = self.genpsfmodel(init_Zcoeffmag,init_Zcoeffphase,init_sigma,alpha)
+
+        ccz = np.argmax(np.max(I_model,axis=(-1,-2)))
+        self.Zrange += self.Zrange[ccz]-self.Zrange[Nz//2]
+        if self.Zrange[0]<0:
+            self.Zrange -=self.Zrange[0]
+        self.Zoffset = self.Zrange[0]
+
+        return
+
+    def genpsfmodel(self,Zcoeffmag, Zcoeffphase, sigma, alpha, stagepos=None, sampleheight=None):
         phase0 = np.reshape(np.array([-2/3,0,2/3])*np.pi+self.dphase,(3,1,1,1)).astype(np.float32)
         phase0 = tf.complex(tf.math.cos(phase0),tf.math.sin(phase0))
 
@@ -187,13 +236,20 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
         pupil_phase = tf.reduce_sum(self.Zk*Zcoeffphase[1],axis=0)
         pupil2 = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*(self.apoid)  
 
-        phiz = 1j*2*np.pi*self.kz*(self.Zrange)
+        if stagepos is None:
+            stagepos = self.stagepos
+        
+        if sampleheight is None:
+            sampleheight = self.sampleheight
 
-        PupilFunction = (pupil1*tf.exp(-phiz) + pupil2*tf.exp(phiz)*phase0)
+        phid = 1j*2*np.pi*(self.kz_med-self.kz*self.nimm/self.nmed)*sampleheight
+        phiz = 1j*2*np.pi*(self.kz_med*self.Zrange-self.kz*stagepos)
+
+        PupilFunction = (pupil1*tf.exp(phid-phiz) + pupil2*tf.exp(phiz)*phase0)
         I_m = im.cztfunc1(PupilFunction,self.paramxy)   
         I_m = I_m*tf.math.conj(I_m)*self.normf/2.0
 
-        PupilFunction1 = pupil1*tf.exp(-phiz)
+        PupilFunction1 = pupil1*tf.exp(phid-phiz)
         I1 = im.cztfunc1(PupilFunction1,self.paramxy)   
         I1 = I1*tf.math.conj(I1)*self.normf/2.0
 
@@ -262,16 +318,18 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
         real positions in the image from the positions in the roi. Also, normalizes
         psf and adapts intensities and background accordingly.
         """
-        pos, bg, intensity_abs,intensity_phase, Zcoeffmag, Zcoeffphase, sigma, alpha = variables
+        pos, bg, intensity_abs,intensity_phase, stagepos,sampleheight, Zcoeffmag, Zcoeffphase, sigma, alpha = variables
         res = variables.copy()
         intensity_phase = tf.complex(tf.math.cos(intensity_phase*self.weight[2]),tf.math.sin(intensity_phase*self.weight[2]))
         intensities = intensity_abs*self.weight[0]*intensity_phase
         alpha = tf.complex(alpha*self.weight[5],0.0)
         pos = pos*self.weight[2]
+        stagepos = stagepos*self.weight[6]
+        sampleheight = sampleheight*self.weight[6]
 
         Zcoeffmag=Zcoeffmag*self.weight[4]
         Zcoeffphase=Zcoeffphase*self.weight[3]
-        psf_model, I_model, A_model, pupil1, pupil2 = self.genpsfmodel(Zcoeffmag,Zcoeffphase,sigma,alpha)
+        psf_model, I_model, A_model, pupil1, pupil2 = self.genpsfmodel(Zcoeffmag,Zcoeffphase,sigma,alpha,stagepos,sampleheight)
 
         #z_center = (I_model.shape[-3] - 1) // 2
 
@@ -293,6 +351,8 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
                 np.real(alpha),
                 Zcoeffmag,
                 Zcoeffphase,
+                stagepos*self.data.pixelsize_z,
+                sampleheight*self.data.pixelsize_z,
                 res]
 
     
@@ -309,6 +369,8 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
                         modulation_depth = res[9],
                         zernike_coeff_mag = np.squeeze(res[10]),
                         zernike_coeff_phase = np.squeeze(res[11]),
+                        stagepos = res[12],
+                        sampleheight = res[13],
                         offset=np.min(res[3]-2*np.abs(res[4])),
                         Zphase = np.array(self.Zphase),
                         zernike_polynomial = self.Zk,

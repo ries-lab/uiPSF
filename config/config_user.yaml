@@ -65,6 +65,9 @@ Params:
     fpi:
       link_zernikecoeff: true
       phase_dm: [2,0,-2]           # unit: radian
+      sampleheight: 2
+      var_sampleheight: false
+      phase_delay_dir: descend     # phase delay between four channels, 'descend' or 'ascend'
     model:
       pupilsize: 64                # unit: pixel
       n_max: 8                     # maximum zernike order
@@ -108,6 +111,6 @@ Params:
   iteration: 200                 # number of iterations for learning
   varname: ""                    # only for simulated data from matlab, the variable name for the data
   filelist: []                   # user can also give a list of data files, instead of giving the keyword or subfolder, data loading will skip automatic populate filelist 
-  swaptif: true                  # permute x,y dimension of tif file
+  swapxy: true                  # permute x,y dimension of tif file
 
   
