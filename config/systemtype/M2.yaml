@@ -10,7 +10,7 @@ Params:
   FOV:                           # define FOV for bead selection, if x_center, y_center, radius are 0, select the full FOV
     z_start: 1
     z_end: -1
-
+  swapxy: true                  # permute x,y dimension 
 
   insitu:               
     frame_range: [8000,10000]     # set the frames to be loaded, only for .tif format
