@@ -1,0 +1,9 @@
+Params:
+  channeltype: multi            # single, multi, 4pi
+  dual:                          # parameters only for dual channel systems
+    mirrortype: ''          # up-down, left-right
+    channel_arrange: ''     # up-down, left-right
+  option:
+    model:
+      bin: 1
+  

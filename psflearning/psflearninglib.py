@@ -167,6 +167,8 @@ class psflearninglib:
             raise TypeError('supported data format is '+'.mat,'+'.tif,'+'.czi,'+'.h5.')
 
         
+        
+
         if channeltype == '4pi':
             if 'insitu' in PSFtype:
                 images = np.transpose(imagesall,(1,0,2,3,4)) 
@@ -177,6 +179,13 @@ class psflearninglib:
                     images = np.transpose(imagesall,(1,0,3,2,4,5))
         elif channeltype == 'multi':
             images = np.transpose(imagesall,(1,0,2,3,4))
+            Nchannel = images.shape[0]
+            defocus = []
+            for i in range(0,Nchannel):
+                defocus.append(param.option.multi.defocus_offset+i*param.option.multi.defocus_delay)
+            
+            defocus[0],defocus[ref_channel] = defocus[ref_channel],defocus[0]
+            self.param.option.multi.defocus = defocus
             id = list(range(images.shape[0]))
             id[0],id[ref_channel] = id[ref_channel],id[0]
             images = images[id]

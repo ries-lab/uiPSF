@@ -35,6 +35,8 @@ Params:
   dual:                          # parameters only for dual channel systems
     mirrortype: up-down          # up-down, left-right
     channel_arrange: up-down     # up-down, left-right
+  multi:
+    channel_size: []
   fpi:                           # parameters only for 4pi systems
     modulation_period: 0.26      # unit: micron
   LLS:                           # parameters only for lattice light-sheet psfs
@@ -68,6 +70,9 @@ Params:
       sampleheight: 2
       var_sampleheight: false
       phase_delay_dir: descend     # phase delay between four channels, 'descend' or 'ascend'
+    multi:
+      defocus_offset: 0     # micron
+      defocus_delay: -0.0    # micron
     model:
       pupilsize: 64                # unit: pixel
       n_max: 8                     # maximum zernike order

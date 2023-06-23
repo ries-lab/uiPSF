@@ -220,9 +220,12 @@ def showzernike(f,p,index=None):
         plt.title('pupil phase')
     elif p.channeltype == 'multi':
         Nchannel = f.rois.psf_data.shape[0]
-        fig = plt.figure(figsize=[6*Nchannel,6])
+        fig = plt.figure(figsize=[12,6])
         ax1 = fig.add_subplot(2,2,1)
         ax2 = fig.add_subplot(2,2,2)
+        fig1 = plt.figure(figsize=[5*Nchannel,4])
+        fig2 = plt.figure(figsize=[5*Nchannel,4])
+        Zk = f.res.channel0.zernike_polynomial
         for i in range(0,Nchannel):
             if index is None:
                 zcoeff = f.res['channel'+str(i)].zernike_coeff
@@ -244,23 +247,19 @@ def showzernike(f,p,index=None):
             line.set_label('channel '+str(i))
             ax1.legend()
         
-        Zk = f.res.channel0.zernike_polynomial
-
-        fig = plt.figure(figsize=[5*Nchannel,4])
-        fig1 = plt.figure(figsize=[5*Nchannel,4])
-        for i in range(0,Nchannel):
-            ax = fig.add_subplot(1,Nchannel,i+1)
+        
+            ax3 = fig1.add_subplot(1,Nchannel,i+1)
             pupil_mag = np.sum(Zk*zcoeff[0].reshape((-1,1,1)),axis=0)*aperture
-            h = ax.imshow(pupil_mag,)
-            ax.axis('off')
-            ax.set_title('pupil magnitude ' + str(i))
-            fig.colorbar(h,ax=ax)
-            ax1 = fig1.add_subplot(1,Nchannel,i+1)
+            h = ax3.imshow(pupil_mag,)
+            ax3.axis('off')
+            ax3.set_title('pupil magnitude ' + str(i))
+            fig1.colorbar(h,ax=ax3)
+            ax4 = fig2.add_subplot(1,Nchannel,i+1)
             pupil_phase = np.sum(Zk[4:]*zcoeff[1][4:].reshape((-1,1,1)),axis=0)*aperture
-            h1=ax1.imshow(pupil_phase)
-            ax1.axis('off')
-            ax1.set_title('pupil phase ' + str(i))
-            fig1.colorbar(h1,ax=ax1)
+            h1=ax4.imshow(pupil_phase)
+            ax4.axis('off')
+            ax4.set_title('pupil phase ' + str(i))
+            fig2.colorbar(h1,ax=ax4)
     elif p.channeltype == '4pi':
         Nchannel = f.rois.psf_data.shape[0]
         fig = plt.figure(figsize=[16,8])
@@ -499,7 +498,7 @@ def plotlocbias(loc,p):
     plt.plot(loc.z[0]*0.0,'r')
     ax.set_xlabel('z slice')
     ax.set_ylabel('z bias (nm)')
-    ax.set_ylim([np.quantile(bias_z[:,2:-2],0.001),np.quantile(bias_z[:,2:-2],0.999)])
+    ax.set_ylim([np.maximum(np.quantile(bias_z[:,2:-2],0.001),-300),np.minimum(np.quantile(bias_z[:,2:-2],0.999),300)])
     plt.show()
     return
 
@@ -522,16 +521,16 @@ def showtransform(f):
             cor_target = np.matmul(cor_ref-f.res.imgcenter, f.res.T[i-1])[..., :-1]+f.res.imgcenter[:-1]
 
         ax = fig.add_subplot(spec[i])
-        plt.plot(ref_pos[:,1],ref_pos[:,2],'.')
-        plt.plot(pos[:,1]-dxy[i][0],pos[:,2]-dxy[i][1],'o',markersize = 8,mfc='none')
-        plt.plot(f.res.imgcenter[0],f.res.imgcenter[1],'*')
+        plt.plot(ref_pos[:,-1],ref_pos[:,-2],'.')
+        plt.plot(pos[:,-1]-dxy[i][-1],pos[:,-2]-dxy[i][-2],'o',markersize = 8,mfc='none')
+        plt.plot(f.res.imgcenter[1],f.res.imgcenter[0],'*')
         ax.set_xlabel('x (pixel)')
         ax.set_ylabel('y (pixel)')
         plt.title('channel'+str(i))
         ax1 = fig.add_subplot(spec[Nchannel+i])
-        plt.plot(cor_target[:,0],cor_target[:,1],'.')
-        plt.plot(pos[:,1],pos[:,2],'o',markersize = 8,mfc='none')
-        plt.plot(f.res.imgcenter[0],f.res.imgcenter[1],'*')
+        plt.plot(cor_target[:,-1],cor_target[:,-2],'.')
+        plt.plot(pos[:,-1],pos[:,-2],'o',markersize = 8,mfc='none')
+        plt.plot(f.res.imgcenter[1],f.res.imgcenter[0],'*')
         ax1.set_xlabel('x (pixel)')
         ax1.set_ylabel('y (pixel)')
 
@@ -580,8 +579,8 @@ def showcoord(f,p):
         cor = f.res.cor
         cor_all = f.res.cor_all
 
-        plt.plot(cor_all[:,0],cor_all[:,1],'.')
-        plt.plot(cor[:,0],cor[:,1],'o',markersize = 8,mfc='none')
+        plt.plot(cor_all[:,-1],cor_all[:,-2],'.')
+        plt.plot(cor[:,-1],cor[:,-2],'o',markersize = 8,mfc='none')
         plt.xlabel('x (pixel)')
         plt.ylabel('y (pixel)')
 
@@ -598,8 +597,8 @@ def showcoord(f,p):
             cor_all = f.res['channel'+str(i)].cor_all
 
             ax = fig.add_subplot(spec[i])
-            plt.plot(cor_all[:,0],cor_all[:,1],'.')
-            plt.plot(cor[:,0],cor[:,1],'o',markersize = 8,mfc='none')
+            plt.plot(cor_all[:,-1],cor_all[:,-2],'.')
+            plt.plot(cor[:,-1],cor[:,-2],'o',markersize = 8,mfc='none')
             ax.set_xlabel('x (pixel)')
             ax.set_ylabel('y (pixel)')
             plt.title('channel'+str(i))

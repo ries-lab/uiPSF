@@ -21,6 +21,7 @@ class PSFPupilBased_vector(PSFInterface):
         self.bead_kernel = None
         self.options = options
         self.initpupil = None
+        self.defocus = np.float32(0)
         self.default_loss_func = mse_real_pupil
         return
 
@@ -97,7 +98,7 @@ class PSFPupilBased_vector(PSFInterface):
             pupil = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*pupil_mag*self.aperture*self.apoid
        
         pos = tf.complex(tf.reshape(pos,pos.shape+(1,1,1)),0.0)
-        phiz = -1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
+        phiz = -1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange+self.defocus)
         if pos.shape[1]>3:
             phixy = 1j*2*np.pi*self.ky*pos[:,2]+1j*2*np.pi*self.kx*pos[:,3]
             phiz = 1j*2*np.pi*(self.kz_med*pos[:,1]-self.kz*(pos[:,0]+self.Zrange))
@@ -135,7 +136,7 @@ class PSFPupilBased_vector(PSFInterface):
 
     def genpsfmodel(self,sigma,pupil,addbead=False):
 
-        phiz = -1j*2*np.pi*self.kz*self.Zrange
+        phiz = -1j*2*np.pi*self.kz*(self.Zrange+self.defocus)
         I_res = 0.0
         for k,h in enumerate(self.dipole_field):
             PupilFunction = pupil*tf.exp(phiz)*h

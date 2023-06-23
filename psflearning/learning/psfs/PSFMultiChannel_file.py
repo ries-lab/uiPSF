@@ -42,6 +42,7 @@ class PSFMultiChannel(PSFInterface):
         ref_psf = self.psftype(options = self.options)
         if hasattr(self,'initpsf'):
             ref_psf.initpsf = self.initpsf[0]
+        ref_psf.defocus = np.float32(self.options.multi.defocus[0]/self.data.pixelsize_z)
         self.sub_psfs[0] = ref_psf
         fitter_ref_channel = Fitter(self.data.get_channel(0), ref_psf,self.init_optimizer, ref_psf.default_loss_func,loss_weight=self.loss_weight) # TODO: redesign multiData        
         res_ref, toc = fitter_ref_channel.learn_psf(start_time=start_time)
@@ -64,6 +65,7 @@ class PSFMultiChannel(PSFInterface):
             current_psf = self.psftype(options = self.options)
             if hasattr(self,'initpsf'):
                 current_psf.initpsf = self.initpsf[i]
+            current_psf.defocus = np.float32(self.options.multi.defocus[i]/self.data.pixelsize_z)
             self.sub_psfs[i] = current_psf
             fitter_current_channel = Fitter(self.data.get_channel(i), current_psf, self.init_optimizer,current_psf.default_loss_func,loss_weight=self.loss_weight)
             res_cur,toc = fitter_current_channel.learn_psf(start_time=toc)
@@ -85,11 +87,11 @@ class PSFMultiChannel(PSFInterface):
         num_channels = len(images)
 
         # stack centers of ref channel num_channels-1 times for easier calc in calc_forward_images
-        cor_ref = np.concatenate((centers[0], np.ones((centers[0].shape[0], 1))), axis=1)
+        cor_ref = np.concatenate((centers[0][:,-2:], np.ones((centers[0].shape[0], 1))), axis=1)
         self.cor_ref_channel = np.stack([cor_ref] * (num_channels-1)).astype(np.float32)
         # self.pos_ref_channel_yx1 = np.stack([ref_pos_yx1] * (num_channels-1)).astype(np.float32)
         # centers of other channels needed to calculate diffs in objective
-        self.cor_other_channels = np.stack(centers[1:]).astype(np.float32)
+        self.cor_other_channels = (np.stack(centers[1:])[...,-2:]).astype(np.float32)
            
         self.init_trafos = np.stack(init_trafos).astype(np.float32)
 

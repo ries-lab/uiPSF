@@ -125,9 +125,9 @@ class Fitter(FitterInterface):
                 _, rois, centers, _ = self.data.get_image_data()
                 num_channels = len(rois)
         
-                cor_ref = np.concatenate((centers[0], np.ones((centers[0].shape[0], 1))), axis=1)
+                cor_ref = np.concatenate((centers[0][:,-2:], np.ones((centers[0].shape[0], 1))), axis=1)
                 self.psf.cor_ref_channel = np.stack([cor_ref] * (num_channels-1)).astype(np.float32)        
-                self.psf.cor_other_channels = np.stack(centers[1:]).astype(np.float32)
+                self.psf.cor_other_channels = (np.stack(centers[1:])[...,-2:]).astype(np.float32)
                 for i in range(len(rois)):
                     print(f"rois shape channel {i}: {rois[i].shape}")
                 var=initres[-1]
@@ -247,7 +247,7 @@ class Fitter(FitterInterface):
 
         elif channeltype=='multi':
             _, _, centers, _ = self.data.get_image_data()
-            cor = np.stack(centers)
+            cor = np.stack(centers)[...,-2:]
             imgcenter = self.psf.imgcenter
             T = res[-2]
             locres = dll.loc_ast_dual(psf_data,I_model,pz,cor,imgcenter,T,initz=initz,plot=plot,start_time=start_time)

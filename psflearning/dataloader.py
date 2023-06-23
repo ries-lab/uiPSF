@@ -126,21 +126,33 @@ class dataloader:
 
     def splitchannel(self,dat):
         param = self.param
-        if param.dual.channel_arrange == 'up-down':
-            cc = dat.shape[-2]//2
-            if param.dual.mirrortype == 'up-down':
-                dat = np.stack([dat[:,:-cc],np.flip(dat[:,cc:],axis=-2)])
-            elif param.dual.mirrortype == 'left-right':
-                dat = np.stack([dat[:,:-cc],np.flip(dat[:,cc:],axis=-1)])
+        if param.dual.channel_arrange:
+            if param.dual.channel_arrange == 'up-down':
+                cc = dat.shape[-2]//2
+                if param.dual.mirrortype == 'up-down':
+                    dat = np.stack([dat[:,:-cc],np.flip(dat[:,cc:],axis=-2)])
+                elif param.dual.mirrortype == 'left-right':
+                    dat = np.stack([dat[:,:-cc],np.flip(dat[:,cc:],axis=-1)])
+                else:
+                    dat = np.stack([dat[:,:-cc],dat[:,cc:]])
             else:
-                dat = np.stack([dat[:,:-cc],dat[:,cc:]])
-        else:
-            cc = dat.shape[-1]//2
-            if param.dual.mirrortype == 'up-down':
-                dat = np.stack([dat[...,:-cc],np.flip(dat[...,cc:],axis=-2)])
-            elif param.dual.mirrortype == 'left-right':
-                dat = np.stack([dat[...,:-cc],np.flip(dat[...,cc:],axis=-1)])  
-            else:
-                dat = np.stack([dat[...,:-cc],dat[...,cc:]])    
+                cc = dat.shape[-1]//2
+                if param.dual.mirrortype == 'up-down':
+                    dat = np.stack([dat[...,:-cc],np.flip(dat[...,cc:],axis=-2)])
+                elif param.dual.mirrortype == 'left-right':
+                    dat = np.stack([dat[...,:-cc],np.flip(dat[...,cc:],axis=-1)])  
+                else:
+                    dat = np.stack([dat[...,:-cc],dat[...,cc:]])    
+        if param.multi.channel_size:
+            roisz = param.multi.channel_size
+            xdiv = list(range(0,dat.shape[-1],roisz[-1]))
+            ydiv = list(range(0,dat.shape[-2],roisz[-2]))
+            im = []
+            for yd in ydiv[:-1]:
+                for xd in xdiv[:-1]:
+                    im.append(dat[...,yd:yd+roisz[-2],xd:xd+roisz[-1]])
+
+            dat = np.stack(im)
+
 
         return dat

@@ -21,6 +21,7 @@ class PSFZernikeBased(PSFInterface):
         self.bead_kernel = None
         self.options = options
         self.initpupil = None
+        self.defocus = np.float32(0)
         self.default_loss_func = mse_real_zernike
         return
 
@@ -108,7 +109,7 @@ class PSFZernikeBased(PSFInterface):
 
         pos = tf.complex(tf.reshape(pos,pos.shape+(1,1,1)),0.0)
 
-        phiz = -1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
+        phiz = -1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange+self.defocus)
         if pos.shape[1]>3:
             phixy = 1j*2*np.pi*self.ky*pos[:,2]+1j*2*np.pi*self.kx*pos[:,3]
             phiz = 1j*2*np.pi*(self.kz_med*pos[:,1]-self.kz*(pos[:,0]+self.Zrange))
@@ -149,7 +150,7 @@ class PSFZernikeBased(PSFInterface):
             pupil_phase = tf.reduce_sum(self.Zk*Zcoeff[1],axis=0)
             pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
 
-        phiz = -1j*2*np.pi*self.kz*self.Zrange
+        phiz = -1j*2*np.pi*self.kz*(self.Zrange+self.defocus)
         PupilFunction = pupil*tf.exp(phiz)
         I_res = im.cztfunc1(PupilFunction,self.paramxy)      
         I_res = I_res*tf.math.conj(I_res)*self.normf

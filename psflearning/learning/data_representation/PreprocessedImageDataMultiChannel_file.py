@@ -89,7 +89,7 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
 
 
     def pair_coordinates(self,delete_id=None):
-        _, _, centers, file_idxs = self.get_image_data()
+        _, rois, centers, file_idxs = self.get_image_data()
         mask = np.ones(centers[0].shape[0])
         if delete_id is not None:
             mask[delete_id]=0
@@ -112,9 +112,9 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
                 tar_posi = tar_pos[available]
                 ref_posi = ref_pos[ref_pos_idx]
                 if self.shiftxy is None:
-                    distances = np.sqrt(np.sum(np.square(tar_posi - ref_posi), axis=1))
+                    distances = np.sqrt(np.sum(np.square(tar_posi[:,-2:] - ref_posi[-2:]), axis=1))
                 else:
-                    distances = np.sqrt(np.sum(np.square(tar_posi-self.shiftxy[i] - ref_posi), axis=1))
+                    distances = np.sqrt(np.sum(np.square(tar_posi[:,-2:]-self.shiftxy[i] - ref_posi[-2:]), axis=1))
 
                 min_idx = np.argmin(distances)
                 # TODO: is it necessary to add an additional hyperparameter for this
@@ -131,7 +131,7 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
                 pair_file_id[j] = pair_file_id[j][pairs_ref_pos_id]
 
         for i in range(0,self.numofchannel):
-            self.cut_new_rois(i, pair_pos[i], pair_file_id[i])
+            self.cut_new_rois(i, pair_pos[i], pair_file_id[i],roi_shape=rois[0].shape[-centers[0].shape[1]:])
 
     def process(self,roi_size, gaus_sigma, min_border_dist, max_threshold, max_kernel,pixelsize_x,pixelsize_z,bead_radius, 
                 min_center_dist=None,FOV=None, modulation_period=None, padPSF=True, plot=True,pixelsize_y=None, isVolume = True,skew_const=None, max_bead_number=None):
@@ -155,8 +155,8 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
         if plot:
             for i, cor1 in enumerate(centers[1:]):
                 plt.figure(figsize=[6,6])
-                plt.plot(cor0[:,1],cor0[:,0],'o',markersize = 8,markerfacecolor='none')
-                plt.plot(cor1[:,1]-pv[i,1],cor1[:,0]-pv[i,0],'x')
+                plt.plot(cor0[:,-1],cor0[:,-2],'o',markersize = 8,markerfacecolor='none')
+                plt.plot(cor1[:,-1]-pv[i,-1],cor1[:,-2]-pv[i,-2],'x')
                 plt.show()
 
         for i in range(len(rois)):
@@ -220,9 +220,10 @@ class PreprocessedImageDataMultiChannel(PreprocessedImageDataInterface):
 
     def find_channel_shift_cor(self,plot=True):
         _, _, centers, _ = self.get_image_data()
-        cor0 = centers[0]
+        cor0 = centers[0][:,-2:]
         shiftxy = []
         for cor1 in centers:
+            cor1 = cor1[:,-2:]
             pv = (np.mean(cor1,axis=0)-np.mean(cor0,axis=0))
             N1 = cor1.shape[0]
             for k in range(0,5):
