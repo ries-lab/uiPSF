@@ -108,12 +108,16 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
                 noll_index[j] = im.nl2noll(nl[0],nl[1])
             self.noll_index = noll_index-1
         
-        self.weight = np.array([np.median(init_intensities), 10, 20, 2, 10],dtype=np.float32) # [I, bg, pos, Zmap, stagepos]
+        #self.weight = np.array([np.median(init_intensities), 10, 20, 2, 10],dtype=np.float32) # [I, bg, pos, Zmap, stagepos]
+        weight = [1e5,10] + list(np.array([20,4,1])/np.median(init_intensities)*2e4)
+        self.weight = np.array(weight,dtype=np.float32)
+
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
+        self.init_sigma = sigma
         self.pos_weight = self.weight[2]
 
         imsz = self.data.image_size
-        div = 20
+        div = 40
         yy1, xx1 = tf.meshgrid(tf.linspace(0,imsz[-2],imsz[-2]//div), tf.linspace(0,imsz[-1],imsz[-1]//div),indexing='ij')
         Zmap = np.zeros((2,self.Zk.shape[0])+xx1.shape,dtype = np.float32)
         Zmap[0,0] = 1.0/self.weight[3]
@@ -168,7 +172,7 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
         Zcoeff2 = tf.reshape(Zcoeff2,Zcoeff2.shape+(1,1))
 
         if self.options.model.symmetric_mag:
-            if c1:
+            if len(c1)>0:
                 pupil_mag = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff1,indices=c1,axis=1),axis=1)
         else:
             if self.options.model.zernike_nl:
@@ -198,6 +202,8 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
             I_res += psfA*tf.math.conj(psfA)*self.normf
 
         bin = self.options.model.bin
+        if not self.options.model.var_blur:
+            sigma = self.init_sigma
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
         I_blur = im.ifft2d(im.fft2d(I_res)*filter2)

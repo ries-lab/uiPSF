@@ -166,9 +166,9 @@ class PSFMultiChannel4pi(PSFInterface):
 
     def calc_positions_from_trafos(self, init_subpixel_pos_ref_channel, trafos):
         # calculate positions from position in ref channel and transformation
-        cor_target = tf.linalg.matmul(self.cor_ref_channel-self.imgcenter, trafos)[..., :-1]
+        cor_target = tf.linalg.matmul(self.cor_ref_channel[:,self.ind[0]:self.ind[1]]-self.imgcenter, trafos)[..., :-1]
 
-        diffs = tf.math.subtract(self.cor_other_channels-self.imgcenter[:-1],cor_target)
+        diffs = tf.math.subtract(self.cor_other_channels[:,self.ind[0]:self.ind[1]]-self.imgcenter[:-1],cor_target)
         pos_other_channels = init_subpixel_pos_ref_channel + tf.concat((tf.zeros(diffs.shape[:-1] + (1,)), diffs), axis=2)
         positions = tf.concat((tf.expand_dims(init_subpixel_pos_ref_channel, axis=0), pos_other_channels), axis=0)
 

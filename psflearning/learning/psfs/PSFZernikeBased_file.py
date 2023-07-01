@@ -54,7 +54,9 @@ class PSFZernikeBased(PSFInterface):
             self.n_max_mag = 100
      
 
-        self.weight = np.array([np.median(init_intensities)*10, 100, 0.1, 0.2, 0.2],dtype=np.float32)
+        #self.weight = np.array([np.median(init_intensities)*10, 100, 0.1, 0.2, 0.2],dtype=np.float32)
+        weight = [1e5,10] + list(np.array([0.1,0.2,0.2])/np.median(init_intensities)*2e4)
+        self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.init_sigma = sigma
         init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))

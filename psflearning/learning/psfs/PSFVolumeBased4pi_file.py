@@ -44,7 +44,9 @@ class PSFVolumeBased4pi(PSFInterface):
         self.gen_bead_kernel(isVolume=True)
 
         self.zT = self.data.zT
-        self.weight = np.array([np.quantile(init_intensities,0.1), 20, 0.1, 0.1],dtype=np.float32)
+        #self.weight = np.array([np.quantile(init_intensities,0.1), 20, 0.1, 0.1],dtype=np.float32)
+        weight = [5e4,20] + list(np.array([0.3,0.3])/np.median(init_intensities)*2e4)
+        self.weight = np.array(weight,dtype=np.float32)
         I1 = np.zeros(I_data[0].shape,dtype=np.float32)+0.002 / self.weight[3]
         A1 = np.ones(I1.shape, dtype=np.float32)*(1+1j)*0.002/2/np.sqrt(2)/self.weight[3]    
         phase_dm = self.options.fpi.phase_dm

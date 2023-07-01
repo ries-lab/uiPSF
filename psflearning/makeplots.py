@@ -17,7 +17,7 @@ def showlearnedparam(f,p):
         drift = f.res.channel0.drift_rate
     if p.channeltype == '4pi':
         phi = np.angle(f.res.channel0.intensity)
-        photon = np.abs(f.res.channel0.intensity)
+        photon = np.abs(f.res.channel0.intensity.transpose())
 
     fig = plt.figure(figsize=[16,8])
     spec = gridspec.GridSpec(ncols=4, nrows=2,

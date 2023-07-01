@@ -37,7 +37,9 @@ class PSFVolumeBased(PSFInterface):
         self.calpupilfield('scalar',Nz)
         self.gen_bead_kernel(isVolume=True)
 
-        self.weight = np.array([np.median(init_intensities)*1, 10, 0.1, 0.1],dtype=np.float32)
+        #self.weight = np.array([np.median(init_intensities)*1, 10, 0.1, 0.1],dtype=np.float32)
+        weight = [1e4,10] + list(np.array([0.1,0.1])/np.median(init_intensities)*2e4)
+        self.weight = np.array(weight,dtype=np.float32)
         init_psf_model = np.zeros(rois[0].shape)+0.002/self.weight[3]
         init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]

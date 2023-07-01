@@ -1,30 +1,29 @@
-Params:  
+Params:
   format: .tif                  # .mat, .tif, .czi
   pixel_size:                   # unit: micron
-    x: 0.127
-    y: 0.116
+    x: 0.11
+    y: 0.11
   roi:
-    roi_size: [25,25]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
+    roi_size: [31,31]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [2,2]          # blur kernel size, corresponding to dimensions defined in roi_size
     max_kernel: [3,3]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
-  FOV:                           # define FOV for bead selection, if x_center, y_center, radius are 0, select the full FOV
-    z_start: 1
-    z_end: -1
   swapxy: true                  # permute x,y dimension 
 
   insitu:               
-    frame_range: [8000,10000]     # set the frames to be loaded, only for .tif format
+    frame_range: [0,800]     # set the frames to be loaded, only for .tif format
 
   option:   
     imaging:                       
-      emission_wavelength: 0.6    # unit: micron
+      emission_wavelength: 0.68    # unit: micron
       RI: 
-        imm: 1.516
-        med: 1.335
-        cov: 1.516
-      NA: 1.43
+        imm: 1.515
+        med: 1.406
+        cov: 1.525
+      NA: 1.5
     insitu:
       zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
       zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 
-      partition_size: [21,100]     # number of z segments, maximum number of emitter per segment
+      partition_size: [11,1000]     # number of z segments, maximum number of emitter per segment
       z_range: 2.0                 # unit: micron, z range of insitu psf model
+    model:
+      n_max: 6

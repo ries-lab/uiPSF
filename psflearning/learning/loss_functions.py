@@ -297,7 +297,6 @@ def mse_real_zernike_FD(model,data,variables=None,mu=None,w=None):
 
     Zmap = variables[3]
     dfxy = tf.reduce_sum(tf.math.square(tf.experimental.numpy.diff(Zmap, n = 1, axis = -1)))+ tf.reduce_sum(tf.math.square(tf.experimental.numpy.diff(Zmap, n = 1, axis = -2)))
-
     #loss = mse_norm1*w[0] + mse_norm2*w[1] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + dfxy*w[2] 
     loss = LL*w[0] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + dfxy*w[2] + gxymean*w[8]
 

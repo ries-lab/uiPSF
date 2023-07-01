@@ -51,8 +51,11 @@ class PSFPupilBased_vector(PSFInterface):
         self.calpupilfield('vector',Nz)
         self.const_mag = options.model.const_pupilmag
         #self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
-        self.weight = np.array([np.median(init_intensities), 10, 0.1, 10, 10, 1],dtype=np.float32)
-        sigma = np.ones((2,))*self.options.model.blur_sigma*self.options.model.bin*np.pi/self.weight[5]
+        #self.weight = np.array([np.median(init_intensities), 10, 0.1, 10, 10],dtype=np.float32)
+        weight = [1e5,10] + list(np.array([0.1,10,10])/np.median(init_intensities)*2e4)
+        self.weight = np.array(weight,dtype=np.float32)
+        sigma = np.ones((2,))*self.options.model.blur_sigma*self.options.model.bin*np.pi
+        self.init_sigma = sigma
 
         init_pupil = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
         init_backgrounds[init_backgrounds<0.1] = 0.1
@@ -112,6 +115,8 @@ class PSFPupilBased_vector(PSFInterface):
             I_res += psfA*tf.math.conj(psfA)*self.normf
 
         bin = self.options.model.bin
+        if not self.options.model.var_blur:
+            sigma = self.init_sigma
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
         I_blur = im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2)

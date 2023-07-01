@@ -245,7 +245,7 @@ class psflearninglib:
 
         if PSFtype == 'voxel':
             isvolume = True
-            padpsf = True
+            padpsf = False
         else:
             isvolume = False
             padpsf = False

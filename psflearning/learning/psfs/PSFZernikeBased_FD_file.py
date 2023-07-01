@@ -43,7 +43,7 @@ class PSFZernikeBased_FD(PSFInterface):
         Lx = rois.shape[-1]
      
         imsz = self.data.image_size
-        div = 20
+        div = 40
         yy1, xx1 = tf.meshgrid(tf.linspace(0,imsz[-2],imsz[-2]//div), tf.linspace(0,imsz[-1],imsz[-1]//div),indexing='ij')
 
         self.calpupilfield('scalar')
@@ -55,7 +55,9 @@ class PSFZernikeBased_FD(PSFInterface):
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
 
         
-        self.weight = np.array([np.median(init_intensities), 10, 0.1, 1],dtype=np.float32)
+        #self.weight = np.array([np.median(init_intensities), 10, 0.1, 1],dtype=np.float32)
+        weight = [1e5,10] + list(np.array([0.1,4])/np.median(init_intensities)*2e4)
+        self.weight = np.array(weight,dtype=np.float32)
         Zmap = np.zeros((2,self.Zk.shape[0])+xx1.shape,dtype = np.float32)
         Zmap[0,0] = 1.0/self.weight[3]
         
@@ -106,8 +108,8 @@ class PSFZernikeBased_FD(PSFInterface):
         Zmap = Zmap*self.weight[3]
         cor = np.float32(self.data.centers)
         for i in range(0,Zmap.shape[-3]):
-            Zcoeff1[i] = tfp.math.batch_interp_regular_nd_grid(cor[:,-2:],[0,0],imsz[-2:],Zmap[0,i],axis=-2)
-            Zcoeff2[i] = tfp.math.batch_interp_regular_nd_grid(cor[:,-2:],[0,0],imsz[-2:],Zmap[1,i],axis=-2)
+            Zcoeff1[i] = tfp.math.batch_interp_regular_nd_grid(cor[self.ind[0]:self.ind[1],-2:],[0,0],imsz[-2:],Zmap[0,i],axis=-2)
+            Zcoeff2[i] = tfp.math.batch_interp_regular_nd_grid(cor[self.ind[0]:self.ind[1],-2:],[0,0],imsz[-2:],Zmap[1,i],axis=-2)
 
 
         Zcoeff1 = tf.transpose(tf.stack(Zcoeff1),perm=(1,0))
@@ -116,7 +118,7 @@ class PSFZernikeBased_FD(PSFInterface):
         Zcoeff2 = tf.reshape(Zcoeff2,Zcoeff2.shape+(1,1))
 
         if self.options.model.symmetric_mag:
-            if c1:
+            if len(c1)>0:
                 pupil_mag = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff1,indices=c1,axis=1),axis=1,keepdims=True)
         else:
             pupil_mag = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeff1[:,0:Nk],axis=1,keepdims=True))

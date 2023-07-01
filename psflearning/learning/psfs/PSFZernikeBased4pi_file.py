@@ -61,7 +61,9 @@ class PSFZernikeBased4pi(PSFInterface):
         self.Zphase = (np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.float32).reshape(Nz,1,1))*2*np.pi
 
         self.zT = self.data.zT
-        self.weight = np.array([np.median(init_intensities), 10, 0.1, 0.2,0.2,0.1],dtype=np.float32)
+        #self.weight = np.array([np.median(init_intensities), 10, 0.1, 0.2,0.2,0.1],dtype=np.float32)
+        weight = [5e4,20] + list(np.array([0.3,0.2,0.2,0.1])/np.median(init_intensities)*2e4)
+        self.weight = np.array(weight,dtype=np.float32)
         
         init_Zcoeff_mag = np.zeros((2,self.Zk.shape[0],1,1))
         init_Zcoeff_mag[:,0,0,0] = [1,1]/self.weight[4]
