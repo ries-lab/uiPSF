@@ -11,10 +11,8 @@ from .fitters.Fitter_file import Fitter
 from .psfs.PSFInterface_file import PSFInterface
 from .psfs.PSFVolumeBased_file import PSFVolumeBased
 from .psfs.PSFPupilBased_file import PSFPupilBased
-from .psfs.PSFPupilBased_vector_file import PSFPupilBased_vector
 from .psfs.PSFZernikeBased_file import PSFZernikeBased
 from .psfs.PSFZernikeBased_FD_file import PSFZernikeBased_FD
-from .psfs.PSFZernikeBased_vector_file import PSFZernikeBased_vector
 from .psfs.PSFMultiChannel_file import PSFMultiChannel
 from .psfs.PSFVolumeBased4pi_file import PSFVolumeBased4pi
 from .psfs.PSFPupilBased4pi_file import PSFPupilBased4pi

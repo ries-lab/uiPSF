@@ -23,6 +23,7 @@ class PSFZernikeBased(PSFInterface):
         self.initpupil = None
         self.defocus = np.float32(0)
         self.default_loss_func = mse_real_zernike
+        self.psftype = 'scalar'
         return
 
     def calc_initials(self, data: PreprocessedImageDataInterface, start_time=None):
@@ -47,7 +48,10 @@ class PSFZernikeBased(PSFInterface):
         Nz = self.bead_kernel.shape[0]
         Lx = rois.shape[-1]
         
-        self.calpupilfield('scalar',Nz)
+        if self.psftype=='vector':
+            self.calpupilfield('vector')
+        else:
+            self.calpupilfield('scalar')
         if options.model.const_pupilmag:
             self.n_max_mag = 0
         else:
@@ -118,10 +122,16 @@ class PSFZernikeBased(PSFInterface):
         else:
             phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
             
-
-        PupilFunction = pupil*tf.exp(phiz+phixy)
-        I_res = im.cztfunc1(PupilFunction,self.paramxy)
-        I_res = I_res*tf.math.conj(I_res)*self.normf
+        if self.psftype == 'vector':
+            I_res = 0.0
+            for h in self.dipole_field:
+                PupilFunction = pupil*tf.exp(phiz+phixy)*h
+                psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                I_res += psfA*tf.math.conj(psfA)*self.normf
+        else:
+            PupilFunction = pupil*tf.exp(phiz+phixy)
+            I_res = im.cztfunc1(PupilFunction,self.paramxy)
+            I_res = I_res*tf.math.conj(I_res)*self.normf
         bin = self.options.model.bin
         if not self.options.model.var_blur:
             sigma = self.init_sigma
@@ -153,11 +163,18 @@ class PSFZernikeBased(PSFInterface):
             pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
 
         phiz = -1j*2*np.pi*self.kz*(self.Zrange+self.defocus)
-        PupilFunction = pupil*tf.exp(phiz)
-        I_res = im.cztfunc1(PupilFunction,self.paramxy)      
-        I_res = I_res*tf.math.conj(I_res)*self.normf
+        if self.psftype == 'vector':
+            I_res = 0.0
+            for h in self.dipole_field:
+                PupilFunction = pupil*tf.exp(phiz)*h
+                psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                I_res += psfA*tf.math.conj(psfA)*self.normf
+        else:
+            PupilFunction = pupil*tf.exp(phiz)
+            I_res = im.cztfunc1(PupilFunction,self.paramxy)      
+            I_res = I_res*tf.math.conj(I_res)*self.normf
+        
         bin = self.options.model.bin
-
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
         if addbead:

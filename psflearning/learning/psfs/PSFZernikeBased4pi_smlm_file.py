@@ -50,7 +50,7 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
             if self.Zoffset is None:
                 self.estzoffset(Nz)
                 #self.Zoffset = -Nz/2+0.5
-            self.calpupilfield('scalar', Nz,'insitu')
+            self.calpupilfield('scalar', Nz)
             self.Zrange -=self.Zrange[0]-self.Zoffset
             self.Zphase = (np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.float32).reshape(Nz,1,1))*2*np.pi
             self.zT = self.data.zT
@@ -82,6 +82,8 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
 
 
         self.weight = np.array([1e4, 100, 20, 0.2,0.2,0.1, 10],dtype=np.float32)
+        #weight = [5e4,20] + list(np.array([20,0.2,0.2,0.1,1])/np.median(init_intensities)*2e4)
+        #self.weight = np.array(weight,dtype=np.float32)
         self.pos_weight = self.weight[2]
         init_Zcoeff_mag = np.zeros((2,self.Zk.shape[0],1,1))
         init_Zcoeff_mag[:,0,0,0] = [1,1]/self.weight[4]
@@ -200,7 +202,7 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
     def estzoffset(self,Nz=None):
         if Nz is None:
             Nz = np.int32(self.options.insitu.z_range/self.data.pixelsize_z+1)
-        self.calpupilfield('scalar', Nz,'insitu')
+        self.calpupilfield('scalar', Nz)
         self.Zrange += self.stagepos*self.nmed/self.nimm
         if self.Zrange[0]<0:
             self.Zrange -=self.Zrange[0]

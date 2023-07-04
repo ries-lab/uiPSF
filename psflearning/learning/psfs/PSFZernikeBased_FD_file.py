@@ -22,6 +22,7 @@ class PSFZernikeBased_FD(PSFInterface):
         self.bead_kernel = None
         self.options = options
         self.default_loss_func = mse_real_zernike_FD
+        self.psftype = 'scalar'
         return
 
     def calc_initials(self, data: PreprocessedImageDataInterface, start_time=None):
@@ -46,7 +47,10 @@ class PSFZernikeBased_FD(PSFInterface):
         div = 40
         yy1, xx1 = tf.meshgrid(tf.linspace(0,imsz[-2],imsz[-2]//div), tf.linspace(0,imsz[-1],imsz[-1]//div),indexing='ij')
 
-        self.calpupilfield('scalar')
+        if self.psftype=='vector':
+            self.calpupilfield('vector')
+        else:
+            self.calpupilfield('scalar')
         if self.options.model.const_pupilmag:
             self.n_max_mag = 0
         else:
@@ -133,15 +137,19 @@ class PSFZernikeBased_FD(PSFInterface):
 
         phiz = -1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
         phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
-
-        PupilFunction = pupil*tf.exp(phiz+phixy)
-        I_res = im.cztfunc1(PupilFunction,self.paramxy)
-        I_res = I_res*tf.math.conj(I_res)*self.normf
+        if self.psftype == 'vector':
+            I_res = 0.0
+            for h in self.dipole_field:
+                PupilFunction = pupil*tf.exp(phiz+phixy)*h
+                psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                I_res += psfA*tf.math.conj(psfA)*self.normf
+        else:
+            PupilFunction = pupil*tf.exp(phiz+phixy)
+            I_res = im.cztfunc1(PupilFunction,self.paramxy)
+            I_res = I_res*tf.math.conj(I_res)*self.normf
 
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
-
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
-
         I_blur = im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2)
         psf_fit = tf.math.real(I_blur)*intensities*self.weight[0]
         Nz = psf_fit.shape[-3]
@@ -184,9 +192,17 @@ class PSFZernikeBased_FD(PSFInterface):
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
 
         phiz = -1j*2*np.pi*self.kz*self.Zrange
-        PupilFunction = pupil*tf.exp(phiz)
-        I_res = im.cztfunc1(PupilFunction,self.paramxy)      
-        I_res = I_res*tf.math.conj(I_res)*self.normf
+        if self.psftype == 'vector':
+            I_res = 0.0
+            for h in self.dipole_field:
+                PupilFunction = pupil*tf.exp(phiz)*h
+                psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                I_res += psfA*tf.math.conj(psfA)*self.normf
+        else:
+            PupilFunction = pupil*tf.exp(phiz)
+            I_res = im.cztfunc1(PupilFunction,self.paramxy)      
+            I_res = I_res*tf.math.conj(I_res)*self.normf
+
         if addbead:
             I_model = np.real(im.ifft3d(im.fft3d(I_res)*filter2*self.bead_kernel))
         else:

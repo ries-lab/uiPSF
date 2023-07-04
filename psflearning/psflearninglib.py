@@ -33,8 +33,6 @@ from .learning import ( PreprocessedImageDataSingleChannel,
                         PreprocessedImageDataMultiChannel_smlm,
                         Fitter,
                         PSFVolumeBased,
-                        PSFZernikeBased_vector,
-                        PSFPupilBased_vector,
                         PSFPupilBased,
                         PSFZernikeBased,
                         PSFZernikeBased_FD,
@@ -69,20 +67,22 @@ from .learning import ( PreprocessedImageDataSingleChannel,
 #%%
 PSF_DICT = dict(voxel=PSFVolumeBased, 
                 pupil=PSFPupilBased,
+                pupil_vector=PSFPupilBased,
                 zernike=PSFZernikeBased,
-                zernike_vector=PSFZernikeBased_vector,
-                pupil_vector=PSFPupilBased_vector,
+                zernike_vector=PSFZernikeBased,
                 zernike_FD=PSFZernikeBased_FD,
+                zernike_vector_FD=PSFZernikeBased_FD,
                 insitu_zernike = PSFZernikeBased_vector_smlm,
                 insitu_pupil = PSFPupilBased_vector_smlm,
                 insitu_FD = PSFZernikeBased_FD_smlm)
 
 LOSSFUN_DICT = dict(voxel=mse_real, 
                 pupil=mse_real_pupil,
+                pupil_vector=mse_real_pupil,
                 zernike=mse_real_zernike,
                 zernike_vector=mse_real_zernike,
-                pupil_vector=mse_real_pupil,
                 zernike_FD=mse_real_zernike_FD,
+                zernike_vector_FD=mse_real_zernike_FD,
                 insitu_zernike = mse_real_zernike_smlm,
                 insitu_pupil = mse_real_pupil_smlm,
                 insitu_FD = mse_real_zernike_FD_smlm)
@@ -300,10 +300,14 @@ class psflearninglib:
 
         if self.psf_class_multi is None:
             psfobj = self.psf_class(options=optionparam)
+            if 'vector' in param.PSFtype:
+                psfobj.psftype = 'vector'
         else:
             optimizer_single = L_BFGS_B(maxiter=50)
             optimizer_single.batch_size = batchsize
             psfobj = self.psf_class_multi(self.psf_class,optimizer_single,options=optionparam,loss_weight=w)
+            if 'vector' in param.PSFtype:
+                psfobj.psftype = 'vector'
 
         return psfobj
     

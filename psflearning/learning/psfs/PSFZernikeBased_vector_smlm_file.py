@@ -107,7 +107,9 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                 noll_index[j] = im.nl2noll(nl[0],nl[1])
             self.noll_index = noll_index-1
         
-        self.weight = np.array([np.median(init_intensities)*10, 100, 20, 0.2, 0.2, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
+        #self.weight = np.array([np.median(init_intensities)*10, 100, 20, 0.2, 0.2, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
+        weight = [1e5,10] + list(np.array([20,0.2,0.2,1])/np.median(init_intensities)*2e4)
+        self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.pos_weight = self.weight[2]
         init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))

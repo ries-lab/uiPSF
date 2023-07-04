@@ -93,7 +93,9 @@ class PSFPupilBased_vector_smlm(PSFInterface):
             self.n_max_mag = 100
 
         
-        self.weight = np.array([np.median(init_intensities), 10, 5, 10, 10, 5],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
+        #self.weight = np.array([np.median(init_intensities), 10, 5, 10, 10, 5],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
+        weight = [1e5,10] + list(np.array([5,10,10,5])/np.median(init_intensities)*2e4)
+        self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi*self.options.model.bin
         self.pos_weight = self.weight[2]
 
