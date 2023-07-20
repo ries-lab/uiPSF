@@ -307,7 +307,7 @@ class psflearninglib:
             optimizer_single.batch_size = batchsize
             psfobj = self.psf_class_multi(self.psf_class,optimizer_single,options=optionparam,loss_weight=w)
             if 'vector' in param.PSFtype:
-                psfobj.psftype = 'vector'
+                psfobj.PSFtype = 'vector'
 
         return psfobj
     

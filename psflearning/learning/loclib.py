@@ -21,14 +21,15 @@ from psflearning import io
 class localizationlib:
     def __init__(self,usecuda=False):
         thispath = os.path.dirname(os.path.abspath(__file__))
-        cfg = io.param.load('../config/path/config_path.yaml')
+        pkgpath = os.path.dirname(os.path.dirname(thispath))
+        cfg = io.param.load(pkgpath+'/config/path/config_path.yaml')
         if sys.platform.startswith('win'):
-            dllpath_cpu_astM = cfg.Paths.spline.win.cpu.astM
-            dllpath_gpu_astM = cfg.Paths.spline.win.cuda.astM
-            dllpath_cpu_4pi = cfg.Paths.spline.win.cpu.fpi
-            dllpath_gpu_4pi = cfg.Paths.spline.win.cuda.fpi
-            dllpath_cpu_ast = cfg.Paths.spline.win.cpu.ast
-            dllpath_gpu_ast = cfg.Paths.spline.win.cuda.ast
+            dllpath_cpu_astM = pkgpath+cfg.Paths.spline.win.cpu.astM
+            dllpath_gpu_astM = pkgpath+cfg.Paths.spline.win.cuda.astM
+            dllpath_cpu_4pi = pkgpath+cfg.Paths.spline.win.cpu.fpi
+            dllpath_gpu_4pi = pkgpath+cfg.Paths.spline.win.cuda.fpi
+            dllpath_cpu_ast = pkgpath+cfg.Paths.spline.win.cpu.ast
+            dllpath_gpu_ast = pkgpath+cfg.Paths.spline.win.cuda.ast
             
             if tf.config.list_physical_devices('GPU'):
                 lib_gpu_astM = ctypes.CDLL(dllpath_gpu_astM)            
@@ -38,17 +39,17 @@ class localizationlib:
                 usecuda = False
         elif sys.platform.startswith('darwin'):
             usecuda = False
-            dllpath_cpu_ast = cfg.Paths.spline.mac.cpu.ast
-            dllpath_cpu_astM = cfg.Paths.spline.mac.cpu.astM
-            dllpath_cpu_4pi = cfg.Paths.spline.mac.cpu.fpi
+            dllpath_cpu_ast = pkgpath+cfg.Paths.spline.mac.cpu.ast
+            dllpath_cpu_astM = pkgpath+cfg.Paths.spline.mac.cpu.astM
+            dllpath_cpu_4pi = pkgpath+cfg.Paths.spline.mac.cpu.fpi
         elif sys.platform.startswith('linux'):
             
-            dllpath_cpu_ast = cfg.Paths.spline.linux.cpu.ast
-            dllpath_gpu_ast = cfg.Paths.spline.linux.cuda.ast
-            dllpath_cpu_astM = cfg.Paths.spline.linux.cpu.astM
-            dllpath_gpu_astM = cfg.Paths.spline.linux.cuda.astM
-            dllpath_cpu_4pi = cfg.Paths.spline.linux.cpu.fpi
-            dllpath_gpu_4pi = cfg.Paths.spline.linux.cuda.fpi
+            dllpath_cpu_ast = pkgpath+cfg.Paths.spline.linux.cpu.ast
+            dllpath_gpu_ast = pkgpath+cfg.Paths.spline.linux.cuda.ast
+            dllpath_cpu_astM = pkgpath+cfg.Paths.spline.linux.cpu.astM
+            dllpath_gpu_astM = pkgpath+cfg.Paths.spline.linux.cuda.astM
+            dllpath_cpu_4pi = pkgpath+cfg.Paths.spline.linux.cpu.fpi
+            dllpath_gpu_4pi = pkgpath+cfg.Paths.spline.linux.cuda.fpi
             if tf.config.list_physical_devices('GPU'):
                 lib_gpu_astM = ctypes.CDLL(dllpath_gpu_astM)            
                 lib_gpu_4pi = ctypes.CDLL(dllpath_gpu_4pi)            

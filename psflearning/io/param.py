@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Union
-
+import os
 from omegaconf import OmegaConf, DictConfig
 
 
@@ -8,15 +8,17 @@ def load(path: Union[str, Path]) -> DictConfig:
     return OmegaConf.load(path)
 
 def combine(basefile,psftype=None,channeltype=None,sysfile=None):
-    fparam = load('../config/'+basefile+'.yaml').Params
+    thispath = os.path.dirname(os.path.abspath(__file__))
+    pkgpath = os.path.dirname(os.path.dirname(thispath))
+    fparam = load(pkgpath+'/config/'+basefile+'.yaml').Params
     if psftype is not None:
-        psfparam = load('../config/psftype/'+psftype+'.yaml').Params
+        psfparam = load(pkgpath+'/config/psftype/'+psftype+'.yaml').Params
         fparam = redefine(fparam,psfparam)
     if channeltype is not None:
-        chparam = load('../config/channeltype/'+channeltype+'.yaml').Params
+        chparam = load(pkgpath+'/config/channeltype/'+channeltype+'.yaml').Params
         fparam = redefine(fparam,chparam)
     if sysfile is not None:
-        sysparam = load('../config/systemtype/'+sysfile+'.yaml').Params
+        sysparam = load(pkgpath+'/config/systemtype/'+sysfile+'.yaml').Params
         fparam = redefine(fparam,sysparam)
     if psftype == 'zernike' and channeltype == '4pi':
         fparam.PSFtype = 'zernike'

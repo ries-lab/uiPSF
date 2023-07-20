@@ -79,11 +79,15 @@ class dataloader:
             if param.channeltype == 'single':
                 dat = np.squeeze(np.array(fdata.get(name[0])).astype(np.float32))
             else:
-                dat = []
-                for ch in name:            
-                    datai = np.squeeze(np.array(fdata.get(ch)).astype(np.float32))
-                    dat.append(datai)
-                dat = np.squeeze(np.stack(dat))
+                if len(name)>1:
+                    dat = []
+                    for ch in name:            
+                        datai = np.squeeze(np.array(fdata.get(ch)).astype(np.float32))
+                        dat.append(datai)
+                    dat = np.squeeze(np.stack(dat))
+                else:
+                    dat = np.squeeze(np.array(fdata.get(name[0])).astype(np.float32))
+                    dat = self.splitchannel(dat)
 
             dat = (dat-param.ccd_offset)*param.gain
             imageraw.append(dat)
