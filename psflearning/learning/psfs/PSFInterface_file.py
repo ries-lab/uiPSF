@@ -271,9 +271,9 @@ class PSFInterface():
 
         q = np.squeeze(1j*(a*y1-b*y2) + (a*y2+b*y1))
         if len(q.shape)>1:
-            phi = -1*np.median(np.angle(q),axis=1)
+            phi = 1*np.median(np.angle(q),axis=1)
         else:
-            phi = -1*np.median(np.angle(q))
+            phi = 1*np.median(np.angle(q))
 
 
         return I, A, B, phi

@@ -150,6 +150,8 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
         else:
             pupil_mag1 = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeffmag[0][0:Nk]*self.weight[4],axis=0))
             pupil_mag2 = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeffmag[1][0:Nk]*self.weight[4],axis=0))
+        pupil_mag1 = tf.math.maximum(pupil_mag1,0)
+        pupil_mag2 = tf.math.maximum(pupil_mag2,0)
 
         pupil_phase = tf.reduce_sum(self.Zk[1:]*Zcoeffphase[0][1:]*self.weight[3],axis=0)
         pupil1 = tf.complex(pupil_mag1*tf.math.cos(pupil_phase),pupil_mag1*tf.math.sin(pupil_phase))*self.aperture*(self.apoid)

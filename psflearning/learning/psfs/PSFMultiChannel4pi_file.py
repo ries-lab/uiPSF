@@ -43,9 +43,10 @@ class PSFMultiChannel4pi(PSFInterface):
         self.sub_psfs = [None]*num_channels
         self.imgcenter = np.hstack((np.array(images[0].shape[-2:])/2,0)).astype(np.float32)
         # choose first channel as reference and run first round of optimization
+        options = self.options.copy()
         ref_psf = self.psftype(options=self.options)
+        ref_psf.dphase = 0.0
         self.sub_psfs[0] = ref_psf
-        self.sub_psfs[0].dphase = 0.0
         fitter_ref_channel = Fitter(self.data.get_channel(0), ref_psf,self.init_optimizer, ref_psf.default_loss_func,loss_weight=self.loss_weight) # TODO: redesign multiData        
         res_ref, toc = fitter_ref_channel.learn_psf(start_time=start_time)
         ref_pos = res_ref[0]        
@@ -65,7 +66,11 @@ class PSFMultiChannel4pi(PSFInterface):
             # run first round of optimization
             current_psf = self.psftype(options=self.options)
             self.sub_psfs[i] = current_psf
-            self.sub_psfs[i].dphase = -i*np.pi/2
+            if options.fpi.phase_delay_dir == 'ascend':
+                current_psf.dphase = i*np.pi/2
+            else:
+                current_psf.dphase = -i*np.pi/2
+            #self.sub_psfs[i].dphase = -i*np.pi/2
             fitter_current_channel = Fitter(self.data.get_channel(i), current_psf, self.init_optimizer,current_psf.default_loss_func,loss_weight=self.loss_weight)
             res_cur, toc = fitter_current_channel.learn_psf(start_time=toc)
             current_pos = res_cur[0]
@@ -100,7 +105,7 @@ class PSFMultiChannel4pi(PSFInterface):
         #param.insert(0,init_subpixel_pos_ref_channel.astype(np.float32))
         param.append(self.init_trafos)
         self.weight = np.ones((len(param)))
-        self.weight[-1] = 1e-3
+        self.weight[-1] = 1e-4
         param[-1] = param[-1]/self.weight[-1]
         self.varinfo = self.sub_psfs[0].varinfo
         for k, vinfo in enumerate(self.varinfo[1:]):

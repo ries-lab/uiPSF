@@ -15,6 +15,7 @@ class PSFMultiChannel(PSFInterface):
         self.parameters = None
         self.updateflag = None        
         self.psftype = psftype
+        self.PSFtype = 'scalar'
         self.sub_psfs = [] # each element is an instance of psftype
         self.data = None
         self.weight = None
@@ -40,6 +41,7 @@ class PSFMultiChannel(PSFInterface):
         self.imgcenter = np.hstack((np.array(images[0].shape[-2:])/2,0)).astype(np.float32)
         # choose first channel as reference and run first round of optimization
         ref_psf = self.psftype(options = self.options)
+        ref_psf.psftype = self.PSFtype
         if hasattr(self,'initpsf'):
             ref_psf.initpsf = self.initpsf[0]
         ref_psf.defocus = np.float32(self.options.multi.defocus[0]/self.data.pixelsize_z)
@@ -63,6 +65,7 @@ class PSFMultiChannel(PSFInterface):
         for i in range(1, num_channels):
             # run first round of optimization
             current_psf = self.psftype(options = self.options)
+            current_psf.psftype = self.PSFtype
             if hasattr(self,'initpsf'):
                 current_psf.initpsf = self.initpsf[i]
             current_psf.defocus = np.float32(self.options.multi.defocus[i]/self.data.pixelsize_z)

@@ -80,15 +80,8 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
             initz, roisavg = self.partitiondata(initz,LL)
             
         _, rois, cor, _ = self.data.get_image_data()
-        if options.insitu.backgroundROI:
-            bgroi = options.insitu.backgroundROI
-            maskcor = (cor[:,-1]>bgroi[2]) & (cor[:,-1]<bgroi[3]) & (cor[:,-2]>bgroi[0]) & (cor[:,-2]<bgroi[1]) 
-            zw = np.ones(initz.shape,dtype = np.float32)
-            zw[maskcor] = 0.0
-            initz *= zw
-            self.zweight = zw.reshape(zw.shape+(1,1))
-        else:
-            self.zweight = np.ones(initz.shape+(1,1),dtype=np.float32)
+            
+        self.zweight = np.ones(initz.shape+(1,1),dtype=np.float32)
 
         init_positions = np.zeros((rois.shape[0], 3))
        
@@ -180,6 +173,8 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
             else:
                 pupil_mag = tf.reduce_sum(self.Zk[1:Nk]*Zcoeff1[:,1:Nk],axis=1)
         pupil_mag = pupil_mag + self.Zk[0]*tf.reduce_mean(Zcoeff1[:,0])
+        pupil_mag = tf.math.maximum(pupil_mag,0)
+
         if self.options.model.zernike_nl:
             pupil_phase = tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff1,indices=self.noll_index,axis=1),axis=1)
         else:

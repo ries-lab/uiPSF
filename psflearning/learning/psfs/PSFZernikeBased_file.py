@@ -45,7 +45,7 @@ class PSFZernikeBased(PSFInterface):
 
         self.gen_bead_kernel()
         N = rois.shape[0]
-        Nz = self.bead_kernel.shape[0]
+        Nz = rois.shape[-3]
         Lx = rois.shape[-1]
         
         if self.psftype=='vector':
@@ -59,7 +59,9 @@ class PSFZernikeBased(PSFInterface):
      
 
         #self.weight = np.array([np.median(init_intensities)*10, 100, 0.1, 0.2, 0.2],dtype=np.float32)
-        weight = [1e5,10] + list(np.array([0.1,0.2,0.2])/np.median(init_intensities)*2e4)
+        #weight = [1e5,10] + list(np.array([0.1,0.2,0.2])/np.median(init_intensities)*2e4)
+        wI = np.lib.scimath.sqrt(np.median(init_intensities))
+        weight = [wI*40,20] + list(np.array([1,1,1])/wI*40)
         self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.init_sigma = sigma
@@ -102,9 +104,10 @@ class PSFZernikeBased(PSFInterface):
         c1 = c1[mask]
 
         if self.options.model.symmetric_mag:
-            pupil_mag = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff[0],indices=c1)*self.weight[4],axis=0))
+            pupil_mag =tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff[0],indices=c1)*self.weight[4],axis=0)
         else:
-            pupil_mag = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeff[0][0:Nk]*self.weight[4],axis=0))
+            pupil_mag = tf.reduce_sum(self.Zk[0:Nk]*Zcoeff[0][0:Nk]*self.weight[4],axis=0)
+        pupil_mag = tf.math.maximum(pupil_mag,0)
         pupil_phase = tf.reduce_sum(self.Zk[3:]*Zcoeff[1][3:]*self.weight[3],axis=0)
         if self.initpupil is not None:
             pupil = self.initpupil
@@ -142,16 +145,16 @@ class PSFZernikeBased(PSFInterface):
         kernel = np.ones((1,bin,bin,1,1),dtype=np.float32)
         I_blur_bin = tf.nn.convolution(I_blur,kernel,strides=(1,1,bin,bin,1),padding='SAME',data_format='NDHWC')
 
-        psf_fit = I_blur_bin[...,0]*intensities*self.weight[0]
+        psf_fit = I_blur_bin[...,0]
         st = (self.bead_kernel.shape[0]-self.data.rois[0].shape[-3])//2
         psf_fit = psf_fit[:,st:Nz-st]
 
         if self.options.model.estimate_drift:
             gxy = gxy*self.weight[2]
             psf_shift = self.applyDrfit(psf_fit,gxy)
-            forward_images = psf_shift + backgrounds*self.weight[1]
+            forward_images = psf_shift*intensities*self.weight[0] + backgrounds*self.weight[1]
         else:
-            forward_images = psf_fit + backgrounds*self.weight[1]
+            forward_images = psf_fit*intensities*self.weight[0] + backgrounds*self.weight[1]
 
         return forward_images
 

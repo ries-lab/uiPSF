@@ -146,12 +146,14 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         mask = c1<Nk
         c1 = c1[mask]
         if self.options.model.symmetric_mag:
-            pupil_mag = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff[0],indices=c1)*self.weight[4],axis=0))
+            pupil_mag = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff[0],indices=c1)*self.weight[4],axis=0)
         else:
             if self.options.model.zernike_nl:
-                pupil_mag = tf.abs(tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff[0],indices=self.noll_index)*self.weight[4],axis=0))
+                pupil_mag = tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff[0],indices=self.noll_index)*self.weight[4],axis=0)
             else:
-                pupil_mag = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeff[0][0:Nk]*self.weight[4],axis=0))
+                pupil_mag = tf.reduce_sum(self.Zk[0:Nk]*Zcoeff[0][0:Nk]*self.weight[4],axis=0)
+        pupil_mag = tf.math.maximum(pupil_mag,0)
+
         if self.options.model.zernike_nl:
             pupil_phase = tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff[1],indices=self.noll_index)*self.weight[3],axis=0)
         else:

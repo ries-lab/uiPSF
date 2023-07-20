@@ -33,7 +33,8 @@ class PSFVolumeBased4pi(PSFInterface):
         """
         self.data = data
         _, rois, _, _ = self.data.get_image_data() # TODO: check if file_idx are returned at all
-
+        N = rois.shape[0]
+        Nz = rois.shape[-3]
         I_data, A_data, _, init_phi = self.psf2IAB(rois)
         #init_phi = np.reshape(init_phi,(I_data.shape[0],1,1,1))
         init_phi = np.zeros((I_data.shape[0],1,1,1))
@@ -45,14 +46,15 @@ class PSFVolumeBased4pi(PSFInterface):
 
         self.zT = self.data.zT
         #self.weight = np.array([np.quantile(init_intensities,0.1), 20, 0.1, 0.1],dtype=np.float32)
-        weight = [5e4,20] + list(np.array([0.3,0.3])/np.median(init_intensities)*2e4)
+        #weight = [1e4,20] + list(np.array([0.3,0.2])/np.median(init_intensities)*2e4)
+        wI = np.lib.scimath.sqrt(np.median(init_intensities))
+        weight = [N*wI,20] + list(np.array([1,1])*N/wI)
         self.weight = np.array(weight,dtype=np.float32)
         I1 = np.zeros(I_data[0].shape,dtype=np.float32)+0.002 / self.weight[3]
         A1 = np.ones(I1.shape, dtype=np.float32)*(1+1j)*0.002/2/np.sqrt(2)/self.weight[3]    
         phase_dm = self.options.fpi.phase_dm
         phase = np.reshape(np.array(phase_dm)*-1,(len(phase_dm),1,1,1,1)).astype(np.float32)
-        N = rois.shape[0]
-        Nz = rois.shape[-3]
+
         self.calpupilfield('scalar',Nz)
         self.Zphase = (np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.float32).reshape(Nz,1,1))*2*np.pi
         
@@ -115,13 +117,15 @@ class PSFVolumeBased4pi(PSFInterface):
 
         psf0 = (I_res)*tf.math.abs(phase0) + tf.math.real(A_res*phase0)*2
         psf_otfs = im.fft3d(tf.complex(psf0,0.0))*tf.expand_dims(tf.expand_dims(self.bead_kernel,axis=0),axis=0)
-        psfmodel = tf.math.real(im.ifft3d(psf_otfs)) * intensity_abs + bg*self.weight[1]
+        psfmodel = tf.math.real(im.ifft3d(psf_otfs)) 
 
         if self.options.model.estimate_drift:
             gxy = variables[8]*self.weight[2]
             psf_shift = self.applyDrfit(psfmodel,gxy)
+            psf_shift = psf_shift* intensity_abs + bg*self.weight[1]
             forward_images = tf.transpose(psf_shift, perm = [1,0,2,3,4]) 
         else:
+            psfmodel = psfmodel* intensity_abs + bg*self.weight[1]
             forward_images = tf.transpose(psfmodel, perm = [1,0,2,3,4]) 
         return forward_images
 
