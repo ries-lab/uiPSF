@@ -62,7 +62,9 @@ class PSFZernikeBased4pi(PSFInterface):
 
         self.zT = self.data.zT
         #self.weight = np.array([np.median(init_intensities), 10, 0.1, 0.2,0.2,0.1],dtype=np.float32)
-        weight = [5e4,20] + list(np.array([0.3,0.2,0.2,0.1])/np.median(init_intensities)*2e4)
+        #weight = [5e4,20] + list(np.array([0.1,0.3,0.3,0.1])/np.median(init_intensities)*2e4)
+        wI = np.lib.scimath.sqrt(np.median(init_intensities))
+        weight = [wI*40,20] + list(np.array([1,1,1,1])/wI*40)
         self.weight = np.array(weight,dtype=np.float32)
         
         init_Zcoeff_mag = np.zeros((2,self.Zk.shape[0],1,1))
@@ -77,7 +79,7 @@ class PSFZernikeBased4pi(PSFInterface):
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         
         gxy = np.zeros((N,2),dtype=np.float32) 
-        gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities
+        gI = np.ones((N,rois.shape[-3],1,1),dtype = np.float32)*init_intensities
         alpha = np.array([0.8])/self.weight[5]
         init_pos_shift = np.zeros(init_positions.shape)
         self.varinfo = [dict(type='Nfit',id=0),
@@ -126,12 +128,14 @@ class PSFZernikeBased4pi(PSFInterface):
         mask = c1<Nk
         c1 = c1[mask]
         if self.options.model.symmetric_mag:
-            pupil_mag1 = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeffmag[0],indices=c1)*self.weight[4],axis=0))
-            pupil_mag2 = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeffmag[1],indices=c1)*self.weight[4],axis=0))
+            pupil_mag1 = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeffmag[0],indices=c1)*self.weight[4],axis=0)
+            pupil_mag2 = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeffmag[1],indices=c1)*self.weight[4],axis=0)
 
         else:
-            pupil_mag1 = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeffmag[0][0:Nk]*self.weight[4],axis=0))
-            pupil_mag2 = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeffmag[1][0:Nk]*self.weight[4],axis=0))
+            pupil_mag1 = tf.reduce_sum(self.Zk[0:Nk]*Zcoeffmag[0][0:Nk]*self.weight[4],axis=0)
+            pupil_mag2 = tf.reduce_sum(self.Zk[0:Nk]*Zcoeffmag[1][0:Nk]*self.weight[4],axis=0)
+        pupil_mag1 = tf.math.maximum(pupil_mag1,0)
+        pupil_mag2 = tf.math.maximum(pupil_mag2,0)
 
         pupil_phase = tf.reduce_sum(self.Zk[1:]*Zcoeffphase[0][1:]*self.weight[3],axis=0)
         pupil1 = tf.complex(pupil_mag1*tf.math.cos(pupil_phase),pupil_mag1*tf.math.sin(pupil_phase))*self.aperture*(self.apoid)
@@ -165,7 +169,7 @@ class PSFZernikeBased4pi(PSFInterface):
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
         I_blur = im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2)
         
-        psf_fit = tf.math.real(I_blur)*intensity_abs*self.weight[0] + bg*self.weight[1]
+        psf_fit = tf.math.real(I_blur)
         Nz = psf_fit.shape[-3]
         st = (self.bead_kernel.shape[0]-self.data.rois[0].shape[-3])//2
         psf_fit = psf_fit[:,:,st:Nz-st]
@@ -174,8 +178,10 @@ class PSFZernikeBased4pi(PSFInterface):
         if self.options.model.estimate_drift:
             gxy = gxy*self.weight[2]
             psf_shift = self.applyDrfit(psf_fit,gxy)
+            psf_shift = psf_shift*intensity_abs*self.weight[0] + bg*self.weight[1]
             forward_images = tf.transpose(psf_shift, perm = [1,0,2,3,4]) 
         else:
+            psf_fit = psf_fit*intensity_abs*self.weight[0] + bg*self.weight[1]
             forward_images = tf.transpose(psf_fit,[1,0,2,3,4])
         return forward_images
 

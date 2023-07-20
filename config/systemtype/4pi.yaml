@@ -6,8 +6,8 @@ Params:
     y: 0.129
   roi:
     roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
-    gauss_sigma: [4,4]          # blur kernel size, corresponding to dimensions defined in roi_size
-    max_kernel: [5,5]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
+    gauss_sigma: [2,2]          # blur kernel size, corresponding to dimensions defined in roi_size
+    max_kernel: [3,3]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
 
   fpi:                           # parameters only for 4pi systems
     modulation_period: 0.26      # unit: micron

@@ -64,7 +64,9 @@ class PSFPupilBased(PSFInterface):
         self.const_mag = options.model.const_pupilmag
         #self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
         #self.weight = np.array([np.median(init_intensities), 10, 0.1, 10, 10],dtype=np.float32)
-        weight = [1e5,10] + list(np.array([0.1,10,10])/np.median(init_intensities)*2e4)
+        #weight = [1e4,10] + list(np.array([0.1,5,2])/np.median(init_intensities)*2e4)
+        wI = np.lib.scimath.sqrt(np.median(init_intensities))
+        weight = [wI*40,20] + list(np.array([1,30,30])/wI*40)
         self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.init_sigma = sigma
@@ -124,7 +126,7 @@ class PSFPupilBased(PSFInterface):
 
         if self.psftype == 'vector':
             I_res = 0.0
-            for h in enumerate(self.dipole_field):
+            for h in self.dipole_field:
                 PupilFunction = pupil*tf.exp(phiz+phixy)*h
                 psfA = im.cztfunc1(PupilFunction,self.paramxy)     
                 I_res += psfA*tf.math.conj(psfA)*self.normf
@@ -163,7 +165,7 @@ class PSFPupilBased(PSFInterface):
         phiz = -1j*2*np.pi*self.kz*(self.Zrange+self.defocus)
         if self.psftype == 'vector':
             I_res = 0.0
-            for h in enumerate(self.dipole_field):
+            for h in self.dipole_field:
                 PupilFunction = pupil*tf.exp(phiz)*h
                 psfA = im.cztfunc1(PupilFunction,self.paramxy)      
                 I_res += psfA*tf.math.conj(psfA)*self.normf
