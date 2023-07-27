@@ -9,8 +9,8 @@
 2. Open Anaconda Powershell Prompt, clone the PSFlearing package     
 ```
 git clone https://github.com/ries-lab/PSFLearning.git
-git checkout test_notebook
 cd .\PSFLearning\
+git checkout test_notebook
 ```
 3. Create a new conda enviroment for PSFlearning package  
 - for GPU: 
@@ -32,8 +32,8 @@ pip install -e .
 2. Open a terminal, clone the PSFlearing package     
 ```
 git clone https://github.com/ries-lab/PSFLearning.git
-git checkout test_notebook
 cd .\PSFLearning\
+git checkout test_notebook
 ```
 3. Create a new conda enviroment for PSFlearning package  
 - for GPU: 
