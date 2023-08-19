@@ -53,7 +53,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
             init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
             init_Zcoeff[0,0,0,0] = 1
             init_Zcoeff[1,options.insitu.zernike_index,0,0] = options.insitu.zernike_coeff
-            I_init, _ = self.genpsfmodel(init_Zcoeff,init_sigma)
+            I_init, _ = self.genpsfmodel(init_sigma,init_Zcoeff)
         
         dll = localizationlib(usecuda=True)
         locres = dll.loc_ast(rois,I_init,pixelsize_z,start_time=start_time)
@@ -108,7 +108,10 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
             self.noll_index = noll_index-1
         
         #self.weight = np.array([np.median(init_intensities)*10, 100, 20, 0.2, 0.2, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
-        weight = [1e5,10] + list(np.array([20,0.2,0.2,1])/np.median(init_intensities)*2e4)
+        #weight = [1e5,10] + list(np.array([20,0.2,0.2,1])/np.median(init_intensities)*2e4)
+        wI = np.lib.scimath.sqrt(np.median(init_intensities))
+        weight = [wI*100,20] + list(np.array([60,0.5,0.5,20])/wI*40)
+
         self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.pos_weight = self.weight[2]
@@ -149,10 +152,16 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
             pupil_mag = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff[0],indices=c1)*self.weight[4],axis=0)
         else:
             if self.options.model.zernike_nl:
-                pupil_mag = tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff[0],indices=self.noll_index)*self.weight[4],axis=0)
+                c2 = self.noll_index
+                if np.min(c2)>0:
+                    c2 = np.concatenate(([0],c2))
+                mask = c2<Nk
+                c2 = c2[mask]
+                pupil_mag = tf.reduce_sum(self.Zk[c2]*tf.gather(Zcoeff[0],indices=c2)*self.weight[4],axis=0)
             else:
                 pupil_mag = tf.reduce_sum(self.Zk[0:Nk]*Zcoeff[0][0:Nk]*self.weight[4],axis=0)
         pupil_mag = tf.math.maximum(pupil_mag,0)
+        
 
         if self.options.model.zernike_nl:
             pupil_phase = tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff[1],indices=self.noll_index)*self.weight[3],axis=0)
@@ -199,7 +208,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         init_sigma = np.ones((2,),dtype=np.float32)*self.options.model.blur_sigma*np.pi
         init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
         init_Zcoeff[0,0,0,0] = 1
-        I_init, _ = self.genpsfmodel(init_Zcoeff,init_sigma)
+        I_init, _ = self.genpsfmodel(init_sigma,init_Zcoeff)
         ccz = np.argmax(np.max(I_init,axis=(-1,-2)))
         self.Zrange += self.Zrange[ccz]-self.Zrange[Nz//2]
         if self.Zrange[0]<0:
@@ -223,7 +232,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                 init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
                 init_Zcoeff[0,0,0,0] = 1
                 init_Zcoeff[1,k,0,0] = val
-                I_init, _ = self.genpsfmodel(init_Zcoeff,init_sigma)
+                I_init, _ = self.genpsfmodel(init_sigma,init_Zcoeff)
                 
                 dll = localizationlib(usecuda=True)
                 locres = dll.loc_ast(self.data.rois,I_init,pixelsize_z,start_time=start_time)
@@ -237,7 +246,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                     I_init_optim = I_init
         return I_init_optim
 
-    def genpsfmodel(self,Zcoeff,sigma,stagepos=None):
+    def genpsfmodel(self,sigma,Zcoeff,stagepos=None):
 
         pupil_mag = tf.abs(tf.reduce_sum(self.Zk*Zcoeff[0],axis=0))
         pupil_phase = tf.reduce_sum(self.Zk*Zcoeff[1],axis=0)
@@ -310,8 +319,10 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         Zcoeff[0]=Zcoeff[0]*self.weight[4]
         Zcoeff[1]=Zcoeff[1]*self.weight[3]
         stagepos = stagepos*self.weight[5]
-        
-        I_model,pupil = self.genpsfmodel(Zcoeff,sigma,stagepos)
+        bin = self.options.model.bin
+        positions[:,1:] = positions[:,1:]/bin
+
+        I_model,pupil = self.genpsfmodel(sigma,Zcoeff,stagepos)
         # calculate global positions in images since positions variable just represents the positions in the rois
         images, _, centers, _ = self.data.get_image_data()
         original_shape = images.shape[-3:]

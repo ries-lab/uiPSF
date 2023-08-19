@@ -20,7 +20,7 @@ Params:
       emission_wavelength: 0.6    # unit: micron
       RI: 
         imm: 1.516
-        med: 1.335
+        med: 1.35
         cov: 1.516
       NA: 1.43
     insitu:

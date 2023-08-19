@@ -127,7 +127,7 @@ def prechirpz1(kpixelsize,pixelsize_x,pixelsize_y,N,M):
     xrange = np.linspace(-M/2+0.5,M/2-0.5,M,dtype=np.float32)
     [xxR,yyR] = np.meshgrid(xrange,xrange)
     a = 1j*np.pi*kpixelsize
-    A = np.exp(a*(pixelsize_x*xxK*xxK+pixelsize_y*yyK*yyK))*kpixelsize*kpixelsize
+    A = np.exp(a*(pixelsize_x*xxK*xxK+pixelsize_y*yyK*yyK))
     C = np.exp(a*(pixelsize_x*xxR*xxR+pixelsize_y*yyR*yyR))
 
     brange = np.linspace(-(N+M)/2+1,(N+M)/2-1,N+M-1,dtype=np.float32)
@@ -146,10 +146,10 @@ def cztfunc1(datain,param):
     L = Bh.shape[0]
     M = C.shape[0]
 
-    Apad = tf.concat((A*datain,tf.zeros(datain.shape[0:-1]+(L-N),tf.complex64)),axis=-1)
+    Apad = tf.concat((A*datain/N,tf.zeros(datain.shape[0:-1]+(L-N),tf.complex64)),axis=-1)
     Apad = tf.concat((Apad,tf.zeros(Apad.shape[0:-2]+(L-N,Apad.shape[-1]),tf.complex64)),axis=-2)
     Ah = tf.signal.fft2d(Apad)
-    cztout = tf.signal.ifft2d(Ah*Bh)
+    cztout = tf.signal.ifft2d(Ah*Bh/L)
     dataout = C*cztout[...,-M:,-M:]
 
     return dataout

@@ -43,7 +43,7 @@ def mse_real(model,data,variables=None,mu=None,w=None):
     # Inorm = tf.math.abs(tf.math.reduce_sum(f))
     Inorm = tf.reduce_mean(tf.math.square(tf.math.reduce_sum(f,axis=(-1,-2))-tf.math.reduce_sum(f)/fsz[0]))
 
-    loss = mse_norm1*w[0] + mse_norm2*w[1] + w[2]*dfz + s*w[3] + w[4]*Imin*mu + bgmin*w[5]*mu  + intensitymin*w[6]*mu + Inorm*w[7]*mu + gxymean*w[8]
+    loss = mse_norm1*w[0] + mse_norm2*w[1] + w[2]*dfz + s*w[3] + w[4]*Imin*mu + bgmin*w[5]*mu  + intensitymin*w[6]*mu + Inorm*w[7] + gxymean*w[8]
     #loss = LL*w[0] + w[2]*dfz + s*w[3] + w[4]*Imin*mu + bgmin*w[5]*mu  + intensitymin*w[6]*mu + Inorm*w[7]*mu + gxymean*w[8]
 
     return loss
@@ -299,6 +299,33 @@ def mse_real_zernike_FD(model,data,variables=None,mu=None,w=None):
     dfxy = tf.reduce_sum(tf.math.square(tf.experimental.numpy.diff(Zmap, n = 1, axis = -1)))+ tf.reduce_sum(tf.math.square(tf.experimental.numpy.diff(Zmap, n = 1, axis = -2)))
     #loss = mse_norm1*w[0] + mse_norm2*w[1] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + dfxy*w[2] 
     loss = LL*w[0] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + dfxy*w[2] + gxymean*w[8]
+
+    return loss
+
+def mse_real_zernike_IMM(model,data,variables=None,mu=None,w=None):
+    mydiff = model-data
+
+    mse_norm1 = tf.reduce_mean(tf.square(mydiff)) / tf.reduce_mean(data)     
+    mse_norm2 = tf.reduce_mean(tf.reduce_sum(tf.square(mydiff),axis=(-3,-2,-1)) / tf.math.reduce_max(tf.square(data),axis=(-3,-2,-1)))/data.shape[-3]*200
+
+    #LL = (model-data*tf.math.log(model))
+    LL = (model-data-data*tf.math.log(model)+data*tf.math.log(data))
+
+    LL = tf.reduce_mean(LL[tf.math.is_finite(LL)])
+
+    bg = variables[1]
+    intensity = variables[2]
+    gxymean = tf.reduce_mean(tf.abs(variables[-1]))   
+
+    bgmin = tf.reduce_sum(tf.math.square(tf.math.minimum(bg,0)))
+    intensitymin = tf.reduce_sum(tf.math.square(tf.math.minimum(intensity,0)))
+    zpos = variables[0][:,1,...]
+    zmin = tf.reduce_mean(tf.math.square(tf.math.minimum(zpos,0)))
+
+    Zmap = variables[3]
+    dfz = tf.reduce_sum(tf.math.square(tf.experimental.numpy.diff(Zmap, n = 1, axis = -1)))
+    #loss = mse_norm1*w[0] + mse_norm2*w[1] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + dfxy*w[2] 
+    loss = LL*w[0] + bgmin*w[5]*mu  + intensitymin*w[6]*mu + dfz*w[2] + gxymean*w[8]+ zmin*w[4]*mu
 
     return loss
 

@@ -38,7 +38,9 @@ class PSFVolumeBased(PSFInterface):
         self.gen_bead_kernel(isVolume=True)
 
         #self.weight = np.array([np.median(init_intensities)*1, 10, 0.1, 0.1],dtype=np.float32)
-        weight = [5e4,20] + list(np.array([0.1,0.2])/np.median(init_intensities)*2e4)
+        #weight = [5e4,20] + list(np.array([0.1,0.2])/np.median(init_intensities)*2e4)
+        wI = np.lib.scimath.sqrt(np.median(init_intensities))
+        weight = [1000*wI,20] + list(np.array([1,1])*40/wI)
         self.weight = np.array(weight,dtype=np.float32)
         init_psf_model = np.zeros(rois[0].shape)+0.002/self.weight[3]
         init_backgrounds[init_backgrounds<0.1] = 0.1
@@ -75,13 +77,13 @@ class PSFVolumeBased(PSFInterface):
         pos = tf.complex(tf.reshape(pos,pos.shape+(1,1,1)),0.0)
         I_res = im.ifft3d(I_otfs*self.phaseRamp(pos))
 
-        psf_fit = tf.math.real(I_res)*intensities*self.weight[0]
+        psf_fit = tf.math.real(I_res)
         if self.options.model.estimate_drift:
             gxy = gxy*self.weight[2]
             psf_shift = self.applyDrfit(psf_fit,gxy)
-            forward_images = psf_shift + backgrounds*self.weight[1]
+            forward_images = psf_shift*intensities*self.weight[0] + backgrounds*self.weight[1]
         else:
-            forward_images = psf_fit + backgrounds*self.weight[1]
+            forward_images = psf_fit*intensities*self.weight[0] + backgrounds*self.weight[1]
 
         return forward_images
 

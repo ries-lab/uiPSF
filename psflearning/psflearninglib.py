@@ -11,6 +11,7 @@ import czifile as czi
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 from skimage import io
 # append the path of the parent directory as long as it's not a real package
 import sys
@@ -596,6 +597,7 @@ class psflearninglib:
         dataobj = DottedDict(pixelsize_x = p.pixel_size.x,
                             pixelsize_y = p.pixel_size.y,
                             pixelsize_z = p.pixel_size.z,
+                            image_size = list(f.rois.image_size),
                             rois = np.zeros((Nz,xsz,xsz)))
         self.getpsfclass()
         psfobj = self.initializepsf()
@@ -604,23 +606,265 @@ class psflearninglib:
             Zcoeff = f.res.zernike_coeff
             Zcoeff = Zcoeff.reshape((Zcoeff.shape+(1,1)))
             psfobj.data = dataobj
-            psfobj.stagepos = stagepos/p.pixel_size.z
-            psfobj.estzoffset(Nz=Nz)
-            I_model,_ = psfobj.genpsfmodel(Zcoeff,sigma)
+            if 'insitu' in p.PSFtype:
+                psfobj.stagepos = stagepos/p.pixel_size.z
+                psfobj.estzoffset(Nz=Nz) 
+            else:
+                if psfobj.psftype=='vector':
+                    psfobj.calpupilfield('vector',Nz=Nz)
+                else:
+                    psfobj.calpupilfield('scalar',Nz=Nz)
+
+            if 'FD' in p.PSFtype:
+                dx = f.rois.image_size[-1]/f.res.zernike_map.shape[-1]/2
+                dy = f.rois.image_size[-2]/f.res.zernike_map.shape[-2]/2
+                xrange = np.linspace(dx,f.rois.image_size[-1]-dx,f.res.zernike_map.shape[-1],dtype=np.float32)
+                yrange = np.linspace(dy,f.rois.image_size[-2]-dy,f.res.zernike_map.shape[-2],dtype=np.float32)
+                [xx,yy] = np.meshgrid(xrange,yrange)
+                cor = np.vstack((xx.flatten(),yy.flatten())).transpose()
+                Zmap = f.res.zernike_map
+                batchsize = 200
+                ind = list(np.int32(np.linspace(0,cor.shape[0],cor.shape[0]//batchsize+2)))
+                for i in range(len(ind)-1):
+                    I0,_,_ = psfobj.genpsfmodel(sigma,Zmap,cor[ind[i]:ind[i+1]])
+                    if i == 0:
+                        I_model = I0
+                    else:
+                        I_model = np.vstack((I_model,I0))
+                #I_model, _, _ = psfobj.genpsfmodel(sigma,Zmap,cor)
+            else:
+                I_model,_ = psfobj.genpsfmodel(sigma,Zcoeff)
             f.res.I_model = I_model
         elif p.channeltype == 'multi':
             Nchannel = f.rois.cor.shape[0]
             psfobj.sub_psfs = [None]*Nchannel
             for i in range(Nchannel):
                 psf = psfobj.psftype(options = psfobj.options)
+                psf.psftype = psfobj.PSFtype
                 psfobj.sub_psfs[i] = psf
                 sigma = f.res['channel'+str(i)].sigma
                 Zcoeff = f.res['channel'+str(i)].zernike_coeff
                 Zcoeff = Zcoeff.reshape((Zcoeff.shape+(1,1)))
                 psf.data = dataobj
-                psf.stagepos = stagepos/p.pixel_size.z
-                psf.estzoffset(Nz=Nz)
-                I_model,_ = psf.genpsfmodel(Zcoeff,sigma)
+                if 'insitu' in p.PSFtype:
+                    psf.stagepos = stagepos/p.pixel_size.z
+                    psf.estzoffset(Nz=Nz)
+                else:
+                    if psf.psftype=='vector':
+                        psf.calpupilfield('vector',Nz=Nz)
+                    else:
+                        psf.calpupilfield('scalar',Nz=Nz)
+
+                I_model,_ = psf.genpsfmodel(sigma,Zcoeff)
                 f.res['channel'+str(i)].I_model = I_model
 
         return f, psfobj
+    
+    def calstrehlratio(self,f,xsz = 31):
+        f1 = f.copy()
+        p = self.param
+        if p.channeltype == 'single':
+            if 'FD' in p.PSFtype:
+                f1.res.zernike_map = f.res.zernike_map.copy()
+                f1.res.zernike_map[1,0:4] = 0.0
+                f1,psfobj = self.genpsf(f1,Nz=1,xsz=xsz)
+                I_model = f1.res.I_model/np.sum(f1.res.I_model,axis=(-1,-2),keepdims=True)
+                I1 = I_model[:,0,xsz//2,xsz//2]
+
+                f1.res.zernike_map = np.zeros(f1.res.zernike_map.shape,dtype=np.float32)
+                f1.res.zernike_map[0,0] = 1
+                f1,psfobj = self.genpsf(f1,Nz=1,xsz=xsz)
+                I_model = f1.res.I_model/np.sum(f1.res.I_model,axis=(-1,-2),keepdims=True)
+                I0 = I_model[:,0,xsz//2,xsz//2]
+                strehlratio = np.float32(I1/I0)
+                strehlratio_map = np.reshape(strehlratio,(f.res.zernike_map.shape[-2],f.res.zernike_map.shape[-1]))
+                plt.imshow(strehlratio_map)
+                plt.colorbar()
+                plt.title('Strehl ratio map',fontsize=15)
+            else:
+                f1.res.zernike_coeff[1,0:4] = 0.0
+                f1,psfobj = self.genpsf(f1,Nz=1,xsz=xsz)
+                I_model = f1.res.I_model/np.sum(f1.res.I_model)
+                I1 = I_model[0,xsz//2,xsz//2]
+
+                f1.res.zernike_coeff = np.zeros(f1.res.zernike_coeff.shape,dtype=np.float32)
+                f1.res.zernike_coeff[0,0] = 1
+                f1,psfobj = self.genpsf(f1,Nz=1,xsz=xsz)
+                I_model = f1.res.I_model/np.sum(f1.res.I_model)
+                I0 = I_model[0,xsz//2,xsz//2]
+                strehlratio = np.float32(I1/I0)
+                print('Strehl ratio: ',strehlratio)
+        elif p.channeltype == 'multi':
+            Nchannel = f1.rois.cor.shape[0]
+            I1 = []
+            I0 = []
+            for i in range(Nchannel):
+                f1.res['channel'+str(i)].zernike_coeff[1,0:4] = 0.0
+            f1,psfobj = self.genpsf(f1,Nz=1,xsz=xsz)
+            coeff = np.zeros(f1.res.channel0.zernike_coeff.shape,dtype=np.float32)
+            coeff[0,0] = 1
+
+            for i in range(Nchannel):
+                I_model = f1.res['channel'+str(i)].I_model/np.sum(f1.res['channel'+str(i)].I_model)
+                I1.append(I_model[0,xsz//2,xsz//2])
+                f1.res['channel'+str(i)].zernike_coeff = coeff
+
+
+            f1,psfobj = self.genpsf(f1,Nz=1,xsz=31)
+            for i in range(Nchannel):
+                I_model = f1.res['channel'+str(i)].I_model/np.sum(f1.res['channel'+str(i)].I_model)
+                I0.append(I_model[0,xsz//2,xsz//2])
+
+            I1 = np.stack(I1)
+            I0 = np.stack(I0)
+            strehlratio = np.float32(I1/I0)
+            print('Strehl ratio: ', strehlratio)
+        elif p.channeltype == '4pi':
+            Nchannel = f.rois.cor.shape[0]
+            mdepth = np.zeros(Nchannel)
+            for i in range(0,Nchannel):
+                mdepth[i] = f.res['channel'+str(i)].modulation_depth
+            print('modulation depth: ',np.round(mdepth,2))
+            strehlratio = mdepth
+        return strehlratio
+    
+    def calfwhm(self,f):
+        p = self.param
+        f1 = f.copy()
+        if p.channeltype == 'single':
+            if 'FD' in p.PSFtype:
+                psfsize = f.res.I_model_bead.shape
+                f1.res.zernike_map = f.res.zernike_map.copy()
+                f1.res.zernike_map[1,0:4] = 0.0
+                f1,psfobj = self.genpsf(f1,Nz=psfsize[-3],xsz=psfsize[-1])
+                I_model = f1.res.I_model
+                fwhmx = np.zeros(I_model.shape[0])
+                fwhmy = np.zeros(I_model.shape[0])
+                fwhmz = np.zeros(I_model.shape[0])
+                for i,psfi in enumerate(I_model):
+                    Ix, xh, Iy, yh, Iz, zh = self.getfwhm(psfi)
+                    fwhmx[i] = np.diff(xh)*p.pixel_size.x*1e3
+                    fwhmy[i] = np.diff(yh)*p.pixel_size.y*1e3
+                    fwhmz[i] = np.diff(zh)*p.pixel_size.z*1e3
+
+                fig = plt.figure(figsize=[12,5])
+                fwhmx_map = np.reshape(fwhmx,(f.res.zernike_map.shape[-2],f.res.zernike_map.shape[-1]))
+                fwhmy_map = np.reshape(fwhmy,(f.res.zernike_map.shape[-2],f.res.zernike_map.shape[-1]))
+                fwhmz_map = np.reshape(fwhmz,(f.res.zernike_map.shape[-2],f.res.zernike_map.shape[-1]))
+                ax = fig.add_subplot(121)
+                plt.imshow((fwhmx_map+fwhmy_map)/2)
+                clb = plt.colorbar()
+                clb.ax.set_title('nm')
+                plt.title('FWHMxy map',fontsize=15)
+                ax = fig.add_subplot(122)
+                plt.imshow(fwhmz_map)
+                clb = plt.colorbar()
+                clb.ax.set_title('nm')
+                plt.title('FWHMz map',fontsize=15)
+                fwhmx = fwhmx_map
+                fwhmy = fwhmy_map
+                fwhmz = fwhmz_map
+
+            else:
+                I_model = f.res.I_model
+                Imaxh = np.max(I_model)/2
+                Ix, xh, Iy, yh, Iz, zh = self.getfwhm(I_model)
+                fwhmx = np.diff(xh)*p.pixel_size.x*1e3
+                fwhmy = np.diff(yh)*p.pixel_size.y*1e3
+                fwhmz = np.diff(zh)*p.pixel_size.z*1e3
+                fig = plt.figure(figsize=[12,4])
+                ax = fig.add_subplot(121)
+                plt.plot(Ix,'o-')
+                plt.plot(xh,[Imaxh,Imaxh],'-')
+                plt.plot(Iy,'o-')
+                plt.plot(yh,[Imaxh,Imaxh],'-')
+                plt.title('FWHMxy: '+str(np.round((fwhmx[0]+fwhmy[0])/2,2))+' nm',fontsize=15)
+                plt.xlabel('x (pixel)')
+                plt.ylabel('intensity')
+
+                ax = fig.add_subplot(122)
+                plt.plot(Iz,'o-')
+                plt.plot(zh,[Imaxh,Imaxh],'-')
+                plt.title('FWHMz: '+str(np.round(fwhmz[0],2))+' nm',fontsize=15)
+                plt.xlabel('z (pixel)')
+                plt.ylabel('intensity')
+                
+        elif p.channeltype == 'multi':
+            Nchannel = f.rois.cor.shape[0]
+            fig = plt.figure(figsize=[4*Nchannel,8])
+            spec = gridspec.GridSpec(ncols=Nchannel, nrows=2,
+                        width_ratios=list(np.ones(Nchannel)), wspace=0.4,
+                        hspace=0.3, height_ratios=[1, 1])
+
+            fwhmx = []
+            fwhmy = []
+            fwhmz = []
+            for i in range(0,Nchannel):
+                I_model = f.res['channel'+str(i)].I_model
+                Imaxh = np.max(I_model)/2
+                Ix, xh, Iy, yh, Iz, zh = self.getfwhm(I_model)
+                fwhmxi = np.diff(xh)*p.pixel_size.x*1e3
+                fwhmyi = np.diff(yh)*p.pixel_size.y*1e3
+                fwhmzi = np.diff(zh)*p.pixel_size.z*1e3
+                
+                ax = fig.add_subplot(spec[i])
+                plt.plot(Ix,'o-')
+                plt.plot(xh,[Imaxh,Imaxh],'-')
+                plt.plot(Iy,'o-')
+                plt.plot(yh,[Imaxh,Imaxh],'-')
+                plt.title('ch'+str(i)+' FWHMxy: '+str(np.round((fwhmxi[0]+fwhmyi[0])/2,2))+' nm',fontsize=15)
+                plt.xlabel('x (pixel)')
+                plt.ylabel('intensity')
+
+                ax = fig.add_subplot(spec[Nchannel+i])
+                plt.plot(Iz,'o-')
+                plt.plot(zh,[Imaxh,Imaxh],'-')
+                plt.title('ch'+str(i)+' FWHMz: '+str(np.round(fwhmzi[0],2))+' nm',fontsize=15)
+                plt.xlabel('z (pixel)')
+                plt.ylabel('intensity')
+                
+                fwhmx.append(fwhmxi)
+                fwhmz.append(fwhmzi)
+            fwhmx = np.stack(fwhmx)
+            fwhmz = np.stack(fwhmz)
+
+        plt.show()
+        return fwhmx, fwhmy, fwhmz
+
+    def getfwhm(self,I_model):
+        cor = np.unravel_index(np.argmax(I_model),I_model.shape)
+        # lateral
+        Ix = I_model[cor[0],cor[1]]
+        xh = self.get1dfwhm(Ix,cor[2])
+
+        Iy = I_model[cor[0],:,cor[2]]
+        yh = self.get1dfwhm(Iy,cor[1])
+
+        # axial
+        Iz = I_model[:,cor[1],cor[2]]
+        zh = self.get1dfwhm(Iz,cor[0])
+
+        return Ix, xh, Iy, yh, Iz,zh
+    
+    def get1dfwhm(self,I,cor):
+        Imaxh = np.max(I)/2
+
+        x1 = np.argsort(np.abs(I[:cor]-Imaxh))[0]
+        if I[x1]>Imaxh:
+            x1=[x1,x1-1]
+        else:
+            x1=[x1,x1+1]
+        x2 = np.argsort(np.abs(I[cor:]-Imaxh))[0]+cor
+        if I[x2]>Imaxh:
+            x2=[x2,x2+1]
+        else:
+            x2=[x2,x2-1]
+        g = np.diff(x1)/np.diff(I[x1])
+        xh1 = g*(Imaxh-I[x1[0]])+x1[0]
+        x1 = np.array(x1,dtype = np.float64)
+        xh1 = np.minimum(np.maximum(xh1,np.min(x1)),np.max(x1))
+        g = np.diff(x2)/np.diff(I[x2])
+        xh2 = g*(Imaxh-I[x2[0]])+x2[0]
+        x2 = np.array(x2,dtype = np.float64)
+        xh2 = np.minimum(np.maximum(xh2,np.min(x2)),np.max(x2))
+        return np.hstack([xh1, xh2])

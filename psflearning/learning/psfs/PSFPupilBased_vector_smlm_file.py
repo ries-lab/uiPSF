@@ -293,6 +293,9 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         pupil = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*pupil_mag*self.aperture*self.apoid
         pupil_real = [pupilR*self.weight[4],pupilI*self.weight[3]]
         stagepos = stagepos*self.weight[5]
+        bin = self.options.model.bin
+        positions[:,1:] = positions[:,1:]/bin
+
         I_model = self.genpsfmodel(sigma,stagepos=stagepos,pupil=pupil)
         # calculate global positions in images since positions variable just represents the positions in the rois
         images, _, centers, _ = self.data.get_image_data()

@@ -115,33 +115,32 @@ class PSFInterface():
         hx = cos_phi*pvec-sin_phi*svec
         hy = sin_phi*pvec+cos_phi*svec
         h = np.concatenate((hx,hy),axis=0)
+        self.dipole_field = np.complex64(h)
         if self.options.model.with_apoid:
             #apoid = 1/np.lib.scimath.sqrt(cos_med)
             apoid = np.lib.scimath.sqrt(cos_imm)/cos_med
+            #apoid = np.lib.scimath.sqrt(cos_med)/cos_imm
             if fieldtype=='scalar':
                 apoid=apoid*Tavg
         else:
             apoid = 1
 
-        imszx = Lx*pixelsize_x/2.0*NA/emission_wavelength
-        imszy = Lx*pixelsize_y/2.0*NA/emission_wavelength
-
-        #self.paramx = im.prechirpz(pupilradius,imszx,xsz,Lx)
-        #self.paramy = im.prechirpz(pupilradius,imszy,xsz,Lx)
         kpixelsize = 2.0*NA/emission_wavelength/xsz
         self.paramxy = im.prechirpz1(kpixelsize,pixelsize_x,pixelsize_y,xsz,Lx)
 
         self.aperture = np.complex64(kr<1)
         pupil = self.aperture*apoid
-        #if fieldtype=='scalar':
-            #self.normf = np.complex64(((pixelsize_x*NA/emission_wavelength)**2)/3.0)
-        #    apoid = apoid*Tavg
-           # self.normf = np.complex64(pixelsize_x*pixelsize_y/np.sum(pupil*tf.math.conj(pupil)*kpixelsize*kpixelsize))
-        #elif fieldtype=='vector':
-            #self.normf = np.complex64(((pixelsize_x*NA/emission_wavelength)**2)/6.0)
-            
-        self.normf = np.complex64(pixelsize_x*pixelsize_y/np.sum(pupil*tf.math.conj(pupil)*kpixelsize*kpixelsize))
-
+        pupil = tf.cast(pupil,tf.complex64)
+        if fieldtype=='scalar':
+            psfA = im.cztfunc1(pupil,self.paramxy)   
+            self.normf = np.complex64(1/np.sum(psfA*np.conj(psfA)))
+        else:
+            I_res = 0.0
+            for h in self.dipole_field:
+                PupilFunction = pupil*h
+                psfA = im.cztfunc1(PupilFunction,self.paramxy)       
+                I_res += psfA*tf.math.conj(psfA)
+            self.normf = np.complex64(1/np.sum(I_res))
         #if datatype == 'bead':
         #    self.Zrange = -1*np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.complex64).reshape((Nz,1,1))
         #elif datatype == 'insitu':
@@ -151,8 +150,6 @@ class PSFInterface():
         self.kz = np.complex64(kz)*self.data.pixelsize_z
         self.kz_med = np.complex64(kz_med)*self.data.pixelsize_z
         self.k = np.complex64(nmed/emission_wavelength)*self.data.pixelsize_z
-        self.dipole_field = np.complex64(h)
-        #self.dipole_field = np.complex64([1.0])
         self.apoid = np.complex64(apoid)
         self.nimm = nimm
         self.nmed = nmed

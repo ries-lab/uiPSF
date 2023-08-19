@@ -116,6 +116,7 @@ class PSFMultiChannel4pi(PSFInterface):
         if self.psftype == PSFZernikeBased4pi:
             if self.options.fpi.link_zernikecoeff:
                 param[4][0]=np.hstack((param[4][0][:,0:1],np.mean(param[4][:,:,1:],axis=0)))
+                #param[5][0]=np.hstack((param[5][0][:,0:1],np.mean(param[5][:,:,1:3],axis=0),param[5][0][:,3:4],np.mean(param[5][:,:,4:],axis=0)))
                 param[5][0]=np.hstack((param[5][0][:,0:4],np.mean(param[5][:,:,4:],axis=0)))
 
 
@@ -148,6 +149,7 @@ class PSFMultiChannel4pi(PSFInterface):
             elif self.psftype == PSFZernikeBased4pi:
                 if self.options.fpi.link_zernikecoeff:
                     sub_variables.append(tf.concat((variables[4][i][:,0:1],variables[4][0][:,1:]),axis=1))
+                    #sub_variables.append(tf.concat((variables[5][i][:,0:1],variables[5][0][:,1:3],variables[5][i][:,3:4],variables[5][0][:,4:]),axis=1))
                     sub_variables.append(tf.concat((variables[5][i][:,0:4],variables[5][0][:,4:]),axis=1))
 
                     for k in range(6,len(variables)-4):
@@ -206,6 +208,7 @@ class PSFMultiChannel4pi(PSFInterface):
                 sub_variables = [positions[i],res[1][i], res[2][0], res[3][0]]
                 if self.options.fpi.link_zernikecoeff:
                     sub_variables.append(np.hstack((res[4][i][:,0:1],res[4][0][:,1:])))
+                    #sub_variables.append(np.hstack((res[5][i][:,0:1],res[5][0][:,1:3],res[5][i][:,3:4],res[5][0][:,4:])))
                     sub_variables.append(np.hstack((res[5][i][:,0:4],res[5][0][:,4:])))
                     for k in range(6,len(variables)-4):
                         sub_variables.append(res[k][i])

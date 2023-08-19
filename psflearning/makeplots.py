@@ -186,8 +186,22 @@ def showpupil(f,p, index=None):
     return
 
 def showzernike(f,p,index=None):
+    n_max = p.option.model.n_max
+    Nk = (n_max+1)*(n_max+2)//2
+    
+    indz = np.array([4,5,6,7,10,21])
+    textstr = [None]*6
+    textstr[0] = r'$\mathrm{D \ astigmatism}$'
+    textstr[1] = r'$\mathrm{astigmatism}$'
+    textstr[2] = r'$\mathrm{V \ coma}$'
+    textstr[3] = r'$\mathrm{H \ coma}$'
+    textstr[4] = r'$\mathrm{spherical}$'
+    textstr[5] = r'$\mathrm{2nd \ spherical}$'
+
+    mask = indz<Nk
+    Nzk = np.sum(mask)
     if p.channeltype == 'single':
-        fig = plt.figure(figsize=[10,4])
+        fig = plt.figure(figsize=[10,8])
         if index is None:
             zcoeff = f.res.zernike_coeff
             
@@ -198,12 +212,23 @@ def showzernike(f,p,index=None):
             aperture=np.float32(np.abs(f.res.pupil[0])>0.0)
         else:
             aperture=np.float32(np.abs(f.res.pupil)>0.0)
-        plt.plot(zcoeff.transpose(),'.-')
+        ax = fig.add_subplot(2,1,1)
+        ax.plot(zcoeff.transpose(),'.-')
+        ax.plot(indz[mask],zcoeff[1,indz[mask]],'ko',markersize = 6,mfc='none')
         plt.xlabel('zernike polynomial')
         plt.ylabel('coefficient')
         plt.legend(['pupil magnitude','pupil phase'])
         
-        
+        ax1 = fig.add_subplot(2,1,2)
+        tstr = ''
+        for i in range(0,Nzk):
+            tstr = '\n'.join((tstr, textstr[i]+'=%.2f' % (zcoeff[1][indz[i]], )))
+        tstr = tstr[1:]
+        bbox = dict(boxstyle='round', fc='blanchedalmond', ec='orange', alpha=0.5)
+        ax1.text(0.03, 0.9, tstr, fontsize=12, bbox=bbox,
+            transform=ax1.transAxes, horizontalalignment='left',verticalalignment='top')
+        ax1.set_axis_off()
+
         Zk = f.res.zernike_polynomial
 
         pupil_mag = np.sum(Zk*zcoeff[0].reshape((-1,1,1)),axis=0)*aperture
@@ -213,19 +238,21 @@ def showzernike(f,p,index=None):
         ax = fig.add_subplot(1,2,1)
         plt.imshow(pupil_mag)
         plt.colorbar()
-        plt.title('pupil magnitude')
+        plt.title('pupil magnitude',fontsize=20)
         ax = fig.add_subplot(1,2,2)
         plt.imshow(pupil_phase)
         plt.colorbar()
-        plt.title('pupil phase')
+        plt.title('pupil phase',fontsize=20)
     elif p.channeltype == 'multi':
         Nchannel = f.rois.psf_data.shape[0]
         fig = plt.figure(figsize=[12,6])
         ax1 = fig.add_subplot(2,2,1)
         ax2 = fig.add_subplot(2,2,2)
+        ax5 = fig.add_subplot(2,2,3)
         fig1 = plt.figure(figsize=[5*Nchannel,4])
         fig2 = plt.figure(figsize=[5*Nchannel,4])
         Zk = f.res.channel0.zernike_polynomial
+        
         for i in range(0,Nchannel):
             if index is None:
                 zcoeff = f.res['channel'+str(i)].zernike_coeff
@@ -246,43 +273,73 @@ def showzernike(f,p,index=None):
             ax2.set_title('pupil phase')
             line.set_label('channel '+str(i))
             ax1.legend()
-        
-        
+            if i==Nchannel-1:
+                ax1.plot(indz[mask],zcoeff[0][indz[mask]],'ko',markersize = 6,mfc='none')
+                ax2.plot(indz[mask],zcoeff[1][indz[mask]],'ko',markersize = 6,mfc='none')
+
+            for k in range(0,Nzk):
+
+                textstr[k] = '\n'.join((textstr[k],r'$\mathrm{ch}%d=%.2f$' % (i,zcoeff[1][indz[k]], ),))
+
             ax3 = fig1.add_subplot(1,Nchannel,i+1)
             pupil_mag = np.sum(Zk*zcoeff[0].reshape((-1,1,1)),axis=0)*aperture
             h = ax3.imshow(pupil_mag,)
             ax3.axis('off')
-            ax3.set_title('pupil magnitude ' + str(i))
+            ax3.set_title('pupil magnitude ' + str(i),fontsize=20)
             fig1.colorbar(h,ax=ax3)
             ax4 = fig2.add_subplot(1,Nchannel,i+1)
             pupil_phase = np.sum(Zk[4:]*zcoeff[1][4:].reshape((-1,1,1)),axis=0)*aperture
             h1=ax4.imshow(pupil_phase)
             ax4.axis('off')
-            ax4.set_title('pupil phase ' + str(i))
+            ax4.set_title('pupil phase ' + str(i),fontsize=20)
             fig2.colorbar(h1,ax=ax4)
+        
+        bbox = dict(boxstyle='round', fc='blanchedalmond', ec='orange', alpha=0.5)
+        for k in range(0,len(textstr)):
+            ax5.text(0.01+k*0.35, 0.9, textstr[k], fontsize=12, bbox=bbox,
+                    transform=ax5.transAxes, horizontalalignment='left',verticalalignment='top')
+        ax5.set_axis_off()
     elif p.channeltype == '4pi':
         Nchannel = f.rois.psf_data.shape[0]
-        fig = plt.figure(figsize=[16,8])
-        ax1 = fig.add_subplot(2,2,1)
-        ax2 = fig.add_subplot(2,2,2)
-        ax3 = fig.add_subplot(2,2,3)
-        ax4 = fig.add_subplot(2,2,4)
+        fig = plt.figure(figsize=[12,10])
+        ax1 = fig.add_subplot(3,2,1)
+        ax2 = fig.add_subplot(3,2,2)
+        ax3 = fig.add_subplot(3,2,3)
+        ax4 = fig.add_subplot(3,2,4)
+        ax5 = fig.add_subplot(3,2,5)
+
+        for k in range(0,Nzk):
+            textstr[k] = '\n'.join((textstr[k],r'$\mathrm{upper}=%.2f$' % (f.res.channel0.zernike_coeff_phase[0][indz[k]], ),
+                                    r'$\mathrm{lower}=%.2f$' % (f.res.channel0.zernike_coeff_phase[1][indz[k]], )))
+
         for i in range(0,Nchannel):
-        
-            line, = ax1.plot(f.res['channel'+str(i)].zernike_coeff_mag[0],'.-')    
-            ax2.plot(f.res['channel'+str(i)].zernike_coeff_phase[0],'.-')
+            zcoeff_mag = f.res['channel'+str(i)].zernike_coeff_mag
+            zcoeff_phase = f.res['channel'+str(i)].zernike_coeff_phase
+            line, = ax1.plot(zcoeff_mag[0],'.-')    
+            ax2.plot(zcoeff_phase[0],'.-')
             ax2.set_ylim((-0.6,0.6))
-            ax3.plot(f.res['channel'+str(i)].zernike_coeff_mag[1],'.-')
-            ax4.plot(f.res['channel'+str(i)].zernike_coeff_phase[1],'.-')
+            ax3.plot(zcoeff_mag[1],'.-')
+            ax4.plot(zcoeff_phase[1],'.-')
             ax4.set_ylim((-0.6,0.6))
             ax3.set_xlabel('zernike polynomial')
             ax3.set_ylabel('coefficient')
-            ax1.set_title('top pupil magnitude')
-            ax2.set_title('top pupil phase')
-            ax3.set_title('bottom pupil magnitude')
-            ax4.set_title('bottom pupil phase')
+            ax1.set_title('upper pupil magnitude')
+            ax2.set_title('upper pupil phase')
+            ax3.set_title('lower pupil magnitude')
+            ax4.set_title('lower pupil phase')
             line.set_label('channel '+str(i))
             ax1.legend()
+            if i==Nchannel-1:
+                ax1.plot(indz[mask],zcoeff_mag[0][indz[mask]],'ko',markersize = 6,mfc='none')
+                ax2.plot(indz[mask],zcoeff_phase[0][indz[mask]],'ko',markersize = 6,mfc='none')
+                ax3.plot(indz[mask],zcoeff_mag[1][indz[mask]],'ko',markersize = 6,mfc='none')
+                ax4.plot(indz[mask],zcoeff_phase[1][indz[mask]],'ko',markersize = 6,mfc='none')
+
+        bbox = dict(boxstyle='round', fc='blanchedalmond', ec='orange', alpha=0.5)
+        for k in range(0,len(textstr)):
+            ax5.text(0.01+k*0.35, 0.9, textstr[k], fontsize=12, bbox=bbox,
+                    transform=ax5.transAxes, horizontalalignment='left',verticalalignment='top')
+        ax5.set_axis_off()
 
         aperture=np.float32(np.abs(f.res.channel0.pupil1)>0.0)
         Zk = f.res.channel0.zernike_polynomial
@@ -292,13 +349,13 @@ def showzernike(f,p,index=None):
             pupil_mag = np.sum(Zk*f.res['channel'+str(i)].zernike_coeff_mag[0].reshape((-1,1,1)),axis=0)*aperture
             plt.imshow(pupil_mag)
             plt.axis('off')
-            plt.title('top pupil magnitude ' + str(i))
+            plt.title('upper pupil magnitude ' + str(i),fontsize=20)
             plt.colorbar()
             ax = fig.add_subplot(2,4,i+5)
             pupil_mag = np.sum(Zk*f.res['channel'+str(i)].zernike_coeff_mag[1].reshape((-1,1,1)),axis=0)*aperture
             plt.imshow(pupil_mag)
             plt.axis('off')
-            plt.title('bottom pupil magnitude ' + str(i))
+            plt.title('lower pupil magnitude ' + str(i),fontsize=20)
             plt.colorbar()
         fig = plt.figure(figsize=[20,8])
         for i in range(0,Nchannel):
@@ -306,19 +363,19 @@ def showzernike(f,p,index=None):
             pupil_phase = np.sum(Zk[4:]*f.res['channel'+str(i)].zernike_coeff_phase[0][4:].reshape((-1,1,1)),axis=0)*aperture
             plt.imshow(pupil_phase)
             plt.axis('off')
-            plt.title('top pupil phase ' + str(i))
+            plt.title('upper pupil phase ' + str(i),fontsize=20)
             plt.colorbar()
             ax = fig.add_subplot(2,4,i+5)
             pupil_phase = np.sum(Zk[4:]*f.res['channel'+str(i)].zernike_coeff_phase[1][4:].reshape((-1,1,1)),axis=0)*aperture
             plt.imshow(pupil_phase)
             plt.axis('off')
-            plt.title('bottom pupil phase ' + str(i))
+            plt.title('lower pupil phase ' + str(i),fontsize=20)
             plt.colorbar()
         plt.show()
     return
 
 
-def showzernikemap(f,p,index):
+def showzernikemap(f,p,index=None):
     if p.channeltype == 'single':
         zmap = f.res.zernike_map
         zcoeff = f.res.zernike_coeff
@@ -337,6 +394,8 @@ def showzernikemap(f,p,index):
 
 def zernikemap(f,index,zmap,zcoeff,pupil,Zk):
 
+    if index is None:
+        index = [3,4,5,6,7,10,11,12,15,16,21]
     fig = plt.figure(figsize=[16,4])
     ax = fig.add_subplot(1,2,1)
     plt.plot(zcoeff[0].transpose(),'k',alpha=0.1)
@@ -370,6 +429,18 @@ def zernikemap(f,index,zmap,zcoeff,pupil,Zk):
                         width_ratios=list(np.ones(Nx)), wspace=0.1,
                         hspace=0.2, height_ratios=list(np.ones(2*Ny)))
 
+    abername = ['']*zcoeff.shape[-1]
+    abername[3] = 'defocus'
+    abername[4] = 'D astigmatism'
+    abername[5] = 'astigmatism'
+    abername[6] = 'V coma'
+    abername[7] = 'H coma'
+    abername[10] = 'spherical'
+    abername[11] = '2nd ast.'
+    abername[12] = '2nd D ast.'
+    abername[15] = '2nd H coma'
+    abername[16] = '2nd V coma'
+    abername[21] = '2nd spherical'
     for i,id in enumerate(index):
         j = i//Nx
         ax = fig.add_subplot(spec[i+j*Nx])
@@ -377,7 +448,7 @@ def zernikemap(f,index,zmap,zcoeff,pupil,Zk):
         plt.imshow(zmap[1,id],cmap='twilight')
         #plt.plot(cor[:,-1]/scale[-1],cor[:,-2]/scale[-2],'ro',markersize=5)
         plt.axis('off')
-        plt.title('mode '+str(id))
+        plt.title('('+str(id)+') '+abername[id],fontsize=16)
         plt.colorbar()
         ax = fig.add_subplot(spec[i+(j+1)*Nx])
         plt.imshow(Zk[id]*aperture,cmap='viridis')
@@ -391,7 +462,7 @@ def showpsfvsdata(f,p,index):
     if p.channeltype == 'single':
         im1 = psf_data[index]
         im2 = psf_fit[index]
-        psfcompare(im1,im2)
+        psfcompare(im1,im2,p.pixel_size.z)
     else:
         Nchannel = psf_data.shape[0]
         for ch in range(0,Nchannel):
@@ -402,11 +473,12 @@ def showpsfvsdata(f,p,index):
                 im1 = psf_data[ch,index]
                 im2 = psf_fit[ch,index]
             print('channel '+str(ch))
-            psfcompare(im1,im2)
+            psfcompare(im1,im2,p.pixel_size.z)
     return
 
-def psfcompare(im1,im2):
+def psfcompare(im1,im2,pz):
     Nz = im1.shape[0]
+    zrange = np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz)*pz
     zind = range(0,Nz,4)
     cc = im1.shape[-1]//2
     N = len(zind)+1
@@ -415,12 +487,14 @@ def psfcompare(im1,im2):
         ax = fig.add_subplot(2,N,i+1)
         plt.imshow(im1[id],cmap='twilight')
         plt.axis('off')
+        plt.title(str(np.round(zrange[id],2))+r'$\ \mu$m',fontsize=30)
         ax = fig.add_subplot(2,N,i+1+N)
         plt.imshow(im2[id],cmap='twilight')
         plt.axis('off')
     ax = fig.add_subplot(2,N,N)
     plt.imshow(im1[:,cc],cmap='twilight')
     plt.axis('off')
+    plt.title('xz',fontsize=30)
     plt.colorbar()
     ax = fig.add_subplot(2,N,2*N)
     plt.imshow(im2[:,cc],cmap='twilight')
@@ -444,7 +518,7 @@ def showpsfvsdata_insitu(f,p):
             if sum(mask)>0:
                 rois_avg[ii-1] = np.mean(rois[mask],axis=0)
         
-        psfcompare(rois_avg,I_model)
+        psfcompare(rois_avg,I_model,p.pixel_size.z)
 
     else:
         Nchannel = f.rois.psf_data.shape[0]    
@@ -464,7 +538,7 @@ def showpsfvsdata_insitu(f,p):
                 if sum(mask)>0:
                     rois_avg[ii-1] = np.mean(rois[mask],axis=0)
             print('channel '+str(ch))
-            psfcompare(rois_avg,I_model)
+            psfcompare(rois_avg,I_model,p.pixel_size.z)
 
     return
 
@@ -542,7 +616,7 @@ def showtransform(f):
 def showpsf(f,p):
     if p.channeltype == 'single':
         im1 = f.res.I_model
-        psfdisp(im1)
+        psfdisp(im1,p.pixel_size.z)
     else:
         Nchannel = f.rois.psf_data.shape[0]
         for ch in range(0,Nchannel):
@@ -551,12 +625,14 @@ def showpsf(f,p):
             else:
                 im1 = f.res['channel'+str(ch)].I_model
             print('channel '+str(ch))
-            psfdisp(im1)
+            psfdisp(im1,p.pixel_size.z)
     return
 
 
-def psfdisp(im1):
+def psfdisp(im1,pz):
     Nz = im1.shape[0]
+    zrange = np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz)*pz
+
     zind = range(0,Nz,4)
     cc = im1.shape[-1]//2
     N = len(zind)+1
@@ -564,10 +640,12 @@ def psfdisp(im1):
     for i,id in enumerate(zind):
         ax = fig.add_subplot(1,N,i+1)
         plt.imshow(im1[id],cmap='twilight')
+        plt.title(str(np.round(zrange[id],2))+r'$\ \mu$m',fontsize=30)
         plt.axis('off')
     ax = fig.add_subplot(1,N,N)
     plt.imshow(im1[:,cc],cmap='twilight')
     plt.axis('off')
+    plt.title('xz',fontsize=30)
     plt.colorbar()
     plt.show()
     return

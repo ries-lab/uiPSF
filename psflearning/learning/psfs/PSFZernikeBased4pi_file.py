@@ -64,7 +64,7 @@ class PSFZernikeBased4pi(PSFInterface):
         #self.weight = np.array([np.median(init_intensities), 10, 0.1, 0.2,0.2,0.1],dtype=np.float32)
         #weight = [5e4,20] + list(np.array([0.1,0.3,0.3,0.1])/np.median(init_intensities)*2e4)
         wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        weight = [wI*40,20] + list(np.array([1,1,1,1])/wI*40)
+        weight = [wI*100,20] + list(np.array([1,1,1,1])/wI*40)
         self.weight = np.array(weight,dtype=np.float32)
         
         init_Zcoeff_mag = np.zeros((2,self.Zk.shape[0],1,1))
@@ -137,7 +137,7 @@ class PSFZernikeBased4pi(PSFInterface):
         pupil_mag1 = tf.math.maximum(pupil_mag1,0)
         pupil_mag2 = tf.math.maximum(pupil_mag2,0)
 
-        pupil_phase = tf.reduce_sum(self.Zk[1:]*Zcoeffphase[0][1:]*self.weight[3],axis=0)
+        pupil_phase = tf.reduce_sum(self.Zk[3:]*Zcoeffphase[0][3:]*self.weight[3],axis=0)
         pupil1 = tf.complex(pupil_mag1*tf.math.cos(pupil_phase),pupil_mag1*tf.math.sin(pupil_phase))*self.aperture*(self.apoid)
 
                 
@@ -185,7 +185,7 @@ class PSFZernikeBased4pi(PSFInterface):
             forward_images = tf.transpose(psf_fit,[1,0,2,3,4])
         return forward_images
 
-    def genpsfmodel(self,Zcoeffmag, Zcoeffphase, sigma, alpha):
+    def genpsfmodel(self,sigma,Zcoeffmag, Zcoeffphase, alpha):
         phase0 = np.reshape(np.array([-2/3,0,2/3])*np.pi+self.dphase,(3,1,1,1)).astype(np.float32)
         phase0 = tf.complex(tf.math.cos(phase0),tf.math.sin(phase0))
 
@@ -244,7 +244,7 @@ class PSFZernikeBased4pi(PSFInterface):
 
         Zcoeffmag=Zcoeffmag*self.weight[4]
         Zcoeffphase=Zcoeffphase*self.weight[3]
-        psf_model, I_model, A_model, pupil1, pupil2 = self.genpsfmodel(Zcoeffmag,Zcoeffphase,sigma,alpha)
+        psf_model, I_model, A_model, pupil1, pupil2 = self.genpsfmodel(sigma,Zcoeffmag,Zcoeffphase,alpha)
         gxy = gxy*self.weight[2]
 
         z_center = (I_model.shape[-3] - 1) // 2

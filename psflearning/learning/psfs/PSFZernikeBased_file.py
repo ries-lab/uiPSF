@@ -61,7 +61,7 @@ class PSFZernikeBased(PSFInterface):
         #self.weight = np.array([np.median(init_intensities)*10, 100, 0.1, 0.2, 0.2],dtype=np.float32)
         #weight = [1e5,10] + list(np.array([0.1,0.2,0.2])/np.median(init_intensities)*2e4)
         wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        weight = [wI*40,20] + list(np.array([1,1,1])/wI*40)
+        weight = [wI*100,20] + list(np.array([1,0.5,0.5])/wI*40)
         self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.init_sigma = sigma
@@ -159,7 +159,7 @@ class PSFZernikeBased(PSFInterface):
         return forward_images
 
 
-    def genpsfmodel(self,sigma,Zcoeff,pupil=None, addbead=False):
+    def genpsfmodel(self,sigma,Zcoeff=None,pupil=None, addbead=False):
         if pupil is None:
             pupil_mag = tf.abs(tf.reduce_sum(self.Zk*Zcoeff[0],axis=0))
             pupil_phase = tf.reduce_sum(self.Zk*Zcoeff[1],axis=0)
@@ -202,7 +202,8 @@ class PSFZernikeBased(PSFInterface):
         z_center = (self.Zrange.shape[-3] - 1) // 2
         Zcoeff[0]=Zcoeff[0]*self.weight[4]
         Zcoeff[1]=Zcoeff[1]*self.weight[3]
-
+        bin = self.options.model.bin
+        positions[:,1:] = positions[:,1:]/bin
         if self.initpupil is not None:
             pupil = self.initpupil
             I_model, _ = self.genpsfmodel(sigma,pupil=pupil)

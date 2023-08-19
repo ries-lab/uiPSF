@@ -269,4 +269,5 @@ class PreprocessedImageDataSingleChannel(PreprocessedImageDataInterface):
             rois1[...,i,:,:] = tmp
         self.rois = rois1
         self.skew_const = skew_const
+        #self.rawrois = rois
         print(f"deskewed rois shape channel : {rois1.shape}")

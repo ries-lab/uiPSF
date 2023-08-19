@@ -361,6 +361,8 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
         Zmap = Zmap*self.weight[3]
         Zmap[0,0] = Zmap[0,0,0,0]
         cor = np.float32(self.data.centers)
+        bin = self.options.model.bin
+        positions[:,1:] = positions[:,1:]/bin
 
         Nbead = positions.shape[0]
         I_model, Zcoeff, pupil = self.genpsfmodel(sigma,Zmap=Zmap,cor=cor[:,-2:])

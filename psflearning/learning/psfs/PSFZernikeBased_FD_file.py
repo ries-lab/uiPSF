@@ -112,8 +112,8 @@ class PSFZernikeBased_FD(PSFInterface):
         Zmap = Zmap*self.weight[3]
         cor = np.float32(self.data.centers)
         for i in range(0,Zmap.shape[-3]):
-            Zcoeff1[i] = tfp.math.batch_interp_regular_nd_grid(cor[self.ind[0]:self.ind[1],-2:],[0,0],imsz[-2:],Zmap[0,i],axis=-2)
-            Zcoeff2[i] = tfp.math.batch_interp_regular_nd_grid(cor[self.ind[0]:self.ind[1],-2:],[0,0],imsz[-2:],Zmap[1,i],axis=-2)
+            Zcoeff1[i] = tfp.math.batch_interp_regular_nd_grid(cor[self.ind[0]:self.ind[1],-2:],[0.0,0.0],np.float32(imsz[-2:]),Zmap[0,i],axis=-2)
+            Zcoeff2[i] = tfp.math.batch_interp_regular_nd_grid(cor[self.ind[0]:self.ind[1],-2:],[0.0,0.0],np.float32(imsz[-2:]),Zmap[1,i],axis=-2)
 
 
         Zcoeff1 = tf.transpose(tf.stack(Zcoeff1),perm=(1,0))
@@ -125,7 +125,7 @@ class PSFZernikeBased_FD(PSFInterface):
             if len(c1)>0:
                 pupil_mag = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeff1,indices=c1,axis=1),axis=1,keepdims=True)
         else:
-            pupil_mag = tf.reduce_sum(self.Zk[0:Nk]*Zcoeff1[:,0:Nk],axis=1,keepdims=True)
+            pupil_mag = tf.reduce_sum(self.Zk[1:Nk]*Zcoeff1[:,1:Nk],axis=1,keepdims=True)
         pupil_mag = pupil_mag + self.Zk[0]*tf.reduce_mean(Zcoeff1[:,0])
         pupil_mag = tf.math.maximum(pupil_mag,0)
 
@@ -174,8 +174,8 @@ class PSFZernikeBased_FD(PSFInterface):
             Zcoeff2 = [None] * Zmap.shape[-3]
             
             for i in range(0,Zmap.shape[-3]):
-                Zcoeff1[i] = tfp.math.batch_interp_regular_nd_grid(cor,[0,0],imsz[-2:],Zmap[0,i],axis=-2)
-                Zcoeff2[i] = tfp.math.batch_interp_regular_nd_grid(cor,[0,0],imsz[-2:],Zmap[1,i],axis=-2)
+                Zcoeff1[i] = tfp.math.batch_interp_regular_nd_grid(cor,[0.0,0.0],np.float32(imsz[-2:]),Zmap[0,i],axis=-2)
+                Zcoeff2[i] = tfp.math.batch_interp_regular_nd_grid(cor,[0.0,0.0],np.float32(imsz[-2:]),Zmap[1,i],axis=-2)
 
 
             Zcoeff1 = tf.transpose(tf.stack(Zcoeff1),perm=(1,0))

@@ -144,12 +144,12 @@ class PSFZernikeBased4pi_smlm(PSFInterface):
         mask = c1<Nk
         c1 = c1[mask]
         if self.options.model.symmetric_mag:
-            pupil_mag1 = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeffmag[0],indices=c1)*self.weight[4],axis=0))
-            pupil_mag2 = tf.abs(tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeffmag[1],indices=c1)*self.weight[4],axis=0))
+            pupil_mag1 = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeffmag[0],indices=c1)*self.weight[4],axis=0)
+            pupil_mag2 = tf.reduce_sum(self.Zk[c1]*tf.gather(Zcoeffmag[1],indices=c1)*self.weight[4],axis=0)
 
         else:
-            pupil_mag1 = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeffmag[0][0:Nk]*self.weight[4],axis=0))
-            pupil_mag2 = tf.abs(tf.reduce_sum(self.Zk[0:Nk]*Zcoeffmag[1][0:Nk]*self.weight[4],axis=0))
+            pupil_mag1 = tf.reduce_sum(self.Zk[0:Nk]*Zcoeffmag[0][0:Nk]*self.weight[4],axis=0)
+            pupil_mag2 = tf.reduce_sum(self.Zk[0:Nk]*Zcoeffmag[1][0:Nk]*self.weight[4],axis=0)
         pupil_mag1 = tf.math.maximum(pupil_mag1,0)
         pupil_mag2 = tf.math.maximum(pupil_mag2,0)
 

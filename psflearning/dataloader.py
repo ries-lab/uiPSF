@@ -108,7 +108,10 @@ class dataloader:
                 gname += k[0]+'/'
                 k = list(f[gname].keys())
             datalist = list(f[gname].keys())
-            dat = np.squeeze(np.array(f.get(gname+datalist[0])).astype(np.float32))
+            try:
+                dat = np.squeeze(np.array(f.get(gname+datalist[0])).astype(np.float32))
+            except:
+                dat = np.squeeze(np.array(f.get(gname+datalist[0]+'/'+datalist[0])).astype(np.float32))
             dat = dat[param.insitu.frame_range[0]:param.insitu.frame_range[1]]
             dat = (dat-param.ccd_offset)*param.gain
             imageraw.append(dat)

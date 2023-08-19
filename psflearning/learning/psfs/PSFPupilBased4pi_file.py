@@ -66,7 +66,9 @@ class PSFPupilBased4pi(PSFInterface):
 
         self.zT = self.data.zT
         #self.weight = np.array([np.median(init_intensities), 10, 0.1, 10,10,0.1],dtype=np.float32)
-        weight = [5e4,20] + list(np.array([0.1,10,10,0.1])/np.median(init_intensities)*2e4)
+        #weight = [5e4,20] + list(np.array([0.1,10,10,0.1])/np.median(init_intensities)*2e4)
+        wI = np.lib.scimath.sqrt(np.median(init_intensities))
+        weight = [wI*40,20] + list(np.array([1,30,30,1])/wI*40)
         self.weight = np.array(weight,dtype=np.float32)
         init_pupil1 = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
         init_pupil2 = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]

@@ -198,6 +198,9 @@ class PSFPupilBased(PSFInterface):
         """
         positions, backgrounds, intensities, pupilR,pupilI,sigma,gxy = variables
         z_center = (self.Zrange.shape[-3] - 1) // 2
+        bin = self.options.model.bin
+        positions[:,1:] = positions[:,1:]/bin
+
         pupil_mag = tf.complex(pupilR*self.weight[4],0.0)
         if self.initpupil is not None:
             pupil = self.initpupil
