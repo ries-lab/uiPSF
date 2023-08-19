@@ -1,0 +1,11 @@
+Params:
+  PSFtype: insitu_FD                 # voxel, zernike, pupil, zernike-vector, pupil-vector, insitu
+  datatype: smlm
+  loss_weight:                   # weighting factor for each loss term
+    smooth: 0.001
+  rej_threshold:                 # threshold for ourlier removal after initial learning, which are relative values or quantile for insitu PSF
+    bias_z: 0.99
+    mse: 0.8
+    photon: 1.5
+
+

@@ -1,0 +1,30 @@
+Params:
+  format: .tif                  # .mat, .tif, .czi
+  pixel_size:                   # unit: micron
+    x: 0.12
+    y: 0.12
+  roi:
+    roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
+    gauss_sigma: [2,2]          # blur kernel size, corresponding to dimensions defined in roi_size
+    max_kernel: [3,3]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
+  FOV:                           # define FOV for bead selection, if x_center, y_center, radius are 0, select the full FOV
+    z_start: 10
+    z_end: -3
+
+  multi:
+    channel_size: [170,170]
+
+  option:   
+    imaging:                       
+      emission_wavelength: 0.607    # unit: micron
+      RI: 
+        imm: 1.515
+        med: 1.56
+        cov: 1.515
+      NA: 1.4
+    multi:
+      defocus_offset: 1.4     # micron
+      defocus_delay: -0.4    # micron
+    model:
+      n_max: 6                     # maximum zernike order
+

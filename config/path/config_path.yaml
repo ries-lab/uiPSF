@@ -1,0 +1,32 @@
+# here the configuration for the usage of this repo should be specified
+# if the paths are relative, they are relative to the current working direcotry (cwd)
+# that would be reasonable to set to the repo dir
+Paths:
+  spline:
+    win:
+      cpu:  
+        astM: /source/mleFit_LM_DLL/CPUmleFit_LM_MultiChannel.dll
+        ast: /source/mleFit_LM_DLL/CPUmleFit_LM.dll
+        fpi: /source/mleFit_LM_DLL/CPUmleFit_LM_4Pi.dll
+      cuda: 
+        astM: /source/mleFit_LM_DLL/GPUmleFit_LM_MultiChannel.dll
+        ast: /source/mleFit_LM_DLL/GPUmleFit_LM.dll
+        fpi: /source/mleFit_LM_DLL/GPUmleFit_LM_4Pi.dll
+    mac:
+      cpu: 
+        astM: /source/mleFit_LM_dylib/libCPUmleFit_LM_MultiChannel.dylib
+        ast: /source/mleFit_LM_dylib/libCPUmleFit_LM.dylib
+        fpi: /source/mleFit_LM_dylib/libCPUmleFit_LM_4Pi.dylib
+    linux:
+      cpu: 
+        astM: /source/mleFit_LM_so/libCPUmleFit_LM_MultiChannel.so
+        ast: /source/mleFit_LM_so/libCPUmleFit_LM.so
+        fpi: /source/mleFit_LM_so/libCPUmleFit_LM_4Pi.so
+      cuda:
+        astM: /source/mleFit_LM_so/libGPUmleFit_LM_MultiChannel.so
+        ast: /source/mleFit_LM_so/libGPUmleFit_LM.so
+        fpi: /source/mleFit_LM_so/libGPUmleFit_LM_4Pi.so
+  
+main_data_dir:
+  E:/EMBL files/data for PSF learning/ # main folder to your data, it is only useful if all your data are saved in one location, see example file
+  #/mnt/e/EMBL files/data for PSF learning/
