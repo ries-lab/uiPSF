@@ -35,6 +35,7 @@ git clone https://github.com/ries-lab/PSFLearning.git
 cd .\PSFLearning\
 git checkout test_notebook
 ```
+
 3. Create a new conda enviroment for PSFlearning package  
 - for GPU: 
 ```
@@ -54,4 +55,9 @@ pip install -e .
 mkdir -p $CONDA_PREFIX/etc/conda/activate.d
 echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
 ```
+
+
+
+## Builds (for fitting)
+Download (or upload) the builds for fitting here within the respective subfolder for your system here [OwnCloud builds](https://oc.embl.de/index.php/s/WrXnfC8Yj44iBq2).
 
