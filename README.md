@@ -70,6 +70,3 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREF
 
 
 
-## Builds (for fitting)
-Download (or upload) the builds for fitting here within the respective subfolder for your system here [OwnCloud builds](https://oc.embl.de/index.php/s/WrXnfC8Yj44iBq2).
-
