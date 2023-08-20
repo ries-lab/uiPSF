@@ -7,7 +7,7 @@ Our modular framework is applicable to a variety of microscope geometries, and t
 ## Overview
 Follow the [installation](#installation) instructions closely to install uiPSF. 
 
-To get started, open the notebooks in the [demo folder](demo), for instance the notebook for [single-channel PSFs](demo/demo_beadPSF_1ch.nm).
+To get started, open the notebooks in the [demo folder](demo), for instance the notebook for [single-channel PSFs](demo/demo_beadPSF_1ch.ipynb).
 
 You can find data to use the demo notebooks [here](xxx).
 
