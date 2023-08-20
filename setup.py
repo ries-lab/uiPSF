@@ -4,15 +4,15 @@ with open("README.md", "r") as f:
       long_descrition = f.read()
 
 setup(
-      name='psflearning', # TODO: put correct name here # name for the pip install command, not neccessarily the same as the name of the python code
+      name='uiPSF', # TODO: put correct name here # name for the pip install command, not neccessarily the same as the name of the python code
       version='0.0.1',
-      description='Learning sinlge- or multi-channel PSFs from data using Tensorflow.',
+      description='A versatile and modular toolbox that uses inverse modelling to extract accurate PSF models for most SMLM imaging modalities from bead and single-molecule data.',
       long_descrition=long_descrition,
       long_descrition_content_type="text/markdown",
 
-      url='https://git.embl.de/ries/psfmodelling',
-      author='Jonas Hellgoth, Sheng Liu',
-      author_email='jonas.hellgoth@embl.de, sheng.liu@embl.de',
+      url='https://github.com/ries-lab/uiPSF.git',
+      author='Sheng Liu,Jonas Hellgoth, Jianwei Chen',
+      author_email='shengliu@unm.edu, jonas.hellgoth@embl.de, 12149038@mail.sustech.edu.cn',
 
       license='LICENSE.txt', # TODO: choose a license and put it in license.txt --> https://choosealicense.com/
       classifiers=[ # availabel on https://pypi.org/classifiers/
@@ -31,7 +31,7 @@ setup(
       ],
 
 
-      packages=['psflearning'], # TODO: put correct name here # what's actually imported by people later
+      packages=['uiPSF'], # TODO: put correct name here # what's actually imported by people later
       python_requires='>=3.7',
       install_requires=[
             "numpy",
