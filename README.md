@@ -1,4 +1,16 @@
-# PSFLearning
+# uIPSF: Universal inverse modelling of point spread functions for SMLM localization and microscope characterization 
+The point spread function (PSF) of a microscope describes the image of a point emitter. Knowing the accurate PSF model is essential for various imaging tasks, including single molecule localization, aberration correction or deconvolution. 
+
+Here we present uiPSF (universal inverse modelling of Point Spread Functions), a toolbox to infer accurate PSF models either from image stacks of fluorescent beads or directly from images of single blinking fluorophores, the raw data in SMLM. It is a powerful tool to characterize and optimize a microscope as it reports the aberration modes, including field-dependent aberrations.  The resulting PSF model enables accurate 3D super-resolution imaging using single molecule localization microscopy.
+Our modular framework is applicable to a variety of microscope geometries, and the forward model can include system specific characteristics such as the bead size, camera pixel size and transformations among channels. We demonstrate its application in single objective systems with single or multiple channels, 4Pi-SMLM, and lattice light-sheet microscopes.
+
+## Overview
+Follow the [installation](#installation) instructions closely to install uiPSF. 
+
+To get started, open the notebooks in the [demo folder](demo), for instance the notebook for [single-channel PSFs](demo/demo_beadPSF_1ch.nm).
+
+You can find data to use the demo notebooks [here](xxx).
+
 ## Systems tested
 - Windows 11 with RTX 3080, RTX 2080
 - Rocky Linux 8.7 with A6000
