@@ -117,7 +117,7 @@ class PSFMultiChannel4pi_smlm(PSFInterface):
         a1 = options.insitu.min_photon
         mask = (np.prod(xp>np.quantile(xp,1-a),axis=0)==1) & (np.prod(xp<np.quantile(xp,a),axis=0)==1) & (np.prod(yp>np.quantile(yp,1-a),axis=0)==1) & (np.prod(yp<np.quantile(yp,a),axis=0)==1) & (zp>np.quantile(zp,1-a)) & (zp<np.quantile(zp,a))
         mask = mask.flatten() & (LL>np.quantile(LL,0.1)) & (photon>np.quantile(photon,a1))
-
+        
         for k in range(0,num_channels):
             self.data.channels[k].rois = rois[k][mask]
             self.data.channels[k].centers = centers[k][mask]

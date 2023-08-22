@@ -16,6 +16,7 @@ class PSFMultiChannel_smlm(PSFInterface):
         self.parameters = None
         self.updateflag = None        
         self.psftype = psftype
+        self.PSFtype = 'vector'
         self.sub_psfs = [] # each element is an instance of psftype
         self.data = None
         self.weight = None
@@ -263,9 +264,10 @@ class PSFMultiChannel_smlm(PSFInterface):
         # just call postprocess of every sub_psf and stack results at the end
         results = []
         for i, sub_psf in enumerate(self.sub_psfs):
-            sub_variables = [positions[i]/self.weight[0]]
-            for k in range(1,len(variables)-1):
+            sub_variables = [positions[i]/self.weight[0], res[1][i], res[2][0]]
+            for k in range(3,len(variables)-2):
                 sub_variables.append(res[k][i])
+            sub_variables.append(res[-2][0])
             results.append(sub_psf.postprocess(sub_variables)[:-1])
         
         results = map(list, zip(*results)) # a way to tranpose the first two dimensions of a list of iterateables

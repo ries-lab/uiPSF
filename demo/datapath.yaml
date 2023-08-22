@@ -1,0 +1,3 @@
+main_data_dir:
+  E:/EMBL files/data for PSF learning/example data for uiPSF/ # main folder to your data, it is only useful if all your data are saved in one location, see example file
+

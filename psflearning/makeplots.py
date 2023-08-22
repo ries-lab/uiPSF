@@ -474,6 +474,19 @@ def showpsfvsdata(f,p,index):
                 im2 = psf_fit[ch,index]
             print('channel '+str(ch))
             psfcompare(im1,im2,p.pixel_size.z)
+    try:
+        cor = f.res.cor
+    except:
+        cor = f.res.channel1.cor
+    imsz = f.rois.image_size
+    fig = plt.figure(figsize=[4,4])
+    plt.plot(cor[index,-1],cor[index,-2],'ro')
+    plt.xlim(0,imsz[-1])
+    plt.ylim(0,imsz[-2])
+    plt.xlabel('x (pixel)')
+    plt.ylabel('y (pixel)')
+    plt.legend(['bead'+str(index)])
+    plt.show()
     return
 
 def psfcompare(im1,im2,pz):
