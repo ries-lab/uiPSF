@@ -274,8 +274,8 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
             Zcoeff2 = [None] * Zmap.shape[-3]
             
             for i in range(0,Zmap.shape[-3]):
-                Zcoeff1[i] = tfp.math.batch_interp_regular_nd_grid(cor,[0,0],imsz[-2:],Zmap[0,i],axis=-2)
-                Zcoeff2[i] = tfp.math.batch_interp_regular_nd_grid(cor,[0,0],imsz[-2:],Zmap[1,i],axis=-2)
+                Zcoeff1[i] = tfp.math.batch_interp_regular_nd_grid(cor,[0.0,0.0],np.float32(imsz[-2:]),Zmap[0,i],axis=-2)
+                Zcoeff2[i] = tfp.math.batch_interp_regular_nd_grid(cor,[0.0,0.0],np.float32(imsz[-2:]),Zmap[1,i],axis=-2)
 
 
             Zcoeff1 = tf.transpose(tf.stack(Zcoeff1),perm=(1,0))
@@ -289,6 +289,8 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
             pupil_phase = tf.reduce_sum(self.Zk*Zcoeff2,axis=-3,keepdims=True)
             pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
             if pupil.shape[0]>500:
+                pupil = tf.reduce_sum(pupil,axis=(0,1))
+            if pupil.shape[0] == 1 :
                 pupil = tf.reduce_sum(pupil,axis=(0,1))
         if stagepos is None:
             stagepos = self.stagepos
@@ -322,25 +324,45 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
         _, rois, centers, frames = self.data.get_image_data()
         
         nbin = self.options.insitu.partition_size[0]
+        nbin_x = self.options.insitu.partition_size[1]
+        nbin_y = self.options.insitu.partition_size[2]
         count,edge = np.histogram(zf,nbin)
+        count_x, edge_x = np.histogram(centers[:,0], nbin_x)
+        count_y, edge_y = np.histogram(centers[:, 1], nbin_y)
         ind = np.digitize(zf,edge)
-        Npsf = self.options.insitu.partition_size[1]
+        ind_x = np.digitize(centers[:,0], edge_x)
+        ind_y = np.digitize(centers[:, 1], edge_y)
+        Npsf = self.options.insitu.partition_size[3]
         rois1 = []
         rois1_avg = []
         zf1 = []
         cor = []
         fid = []
+        # for ii in range(1,nbin+1):
+        #     mask = (ind==ii)
+        #     im1 = rois[mask]
+        #     Nslice = np.min((Npsf,im1.shape[0]))
+        #     #indsample = list(np.random.choice(im1.shape[0],Nslice,replace=False))
+        #     indsample = np.argsort(-LL[mask])[0:Nslice]
+        #     rois1.append(im1[indsample])
+        #     rois1_avg.append(np.mean(rois1[-1],axis=0))
+        #     cor.append(centers[mask,:][indsample])
+        #     fid.append(frames[mask][indsample])
+        #     zf1.append(zf[mask][indsample])
+
         for ii in range(1,nbin+1):
-            mask = (ind==ii)
-            im1 = rois[mask]
-            Nslice = np.min((Npsf,im1.shape[0]))            
-            #indsample = list(np.random.choice(im1.shape[0],Nslice,replace=False))
-            indsample = np.argsort(-LL[mask])[0:Nslice]
-            rois1.append(im1[indsample])
-            rois1_avg.append(np.mean(rois1[-1],axis=0))
-            cor.append(centers[mask,:][indsample])
-            fid.append(frames[mask][indsample])
-            zf1.append(zf[mask][indsample])
+            for xx in range(1, nbin_x + 1):
+                for yy in range(1, nbin_x + 1):
+                    mask = np.logical_and(ind==ii,ind_x==yy,ind_y==yy)
+                    im1 = rois[mask]
+                    Nslice = np.min((Npsf,im1.shape[0]))
+                    indsample = list(np.random.choice(im1.shape[0],Nslice,replace=False))
+                    # indsample = np.argsort(-LL[mask])[0:Nslice]
+                    rois1.append(im1[indsample])
+                    rois1_avg.append(np.mean(rois1[-1],axis=0))
+                    cor.append(centers[mask,:][indsample])
+                    fid.append(frames[mask][indsample])
+                    zf1.append(zf[mask][indsample])
         rois1 = np.concatenate(rois1,axis=0)
         rois1_avg = np.stack(rois1_avg)
         zf1 = np.concatenate(zf1,axis=0)
