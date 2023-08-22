@@ -110,7 +110,8 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
         self.pos_weight = self.weight[2]
 
         imsz = self.data.image_size
-        div = 40
+        # div = 20
+        div = self.options.model.div
         yy1, xx1 = tf.meshgrid(tf.linspace(0,imsz[-2],imsz[-2]//div), tf.linspace(0,imsz[-1],imsz[-1]//div),indexing='ij')
         Zmap = np.zeros((2,self.Zk.shape[0])+xx1.shape,dtype = np.float32)
         Zmap[0,0] = 1.0/self.weight[3]
