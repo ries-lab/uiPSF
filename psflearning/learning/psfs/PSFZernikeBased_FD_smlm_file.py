@@ -103,6 +103,9 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
         
         #self.weight = np.array([np.median(init_intensities), 10, 20, 2, 10],dtype=np.float32) # [I, bg, pos, Zmap, stagepos]
         weight = [1e5,10] + list(np.array([20,4,1])/np.median(init_intensities)*2e4)
+        #wI = np.lib.scimath.sqrt(np.median(init_intensities))
+        #weight = [wI*200,20] + list(np.array([100,20,10])/wI*40)
+        
         self.weight = np.array(weight,dtype=np.float32)
 
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
@@ -110,8 +113,8 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
         self.pos_weight = self.weight[2]
 
         imsz = self.data.image_size
-        # div = 20
-        div = self.options.model.div
+        
+        div = self.options.model.division
         yy1, xx1 = tf.meshgrid(tf.linspace(0,imsz[-2],imsz[-2]//div), tf.linspace(0,imsz[-1],imsz[-1]//div),indexing='ij')
         Zmap = np.zeros((2,self.Zk.shape[0])+xx1.shape,dtype = np.float32)
         Zmap[0,0] = 1.0/self.weight[3]
@@ -264,7 +267,8 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
     def genpsfmodel(self,sigma,Zcoeff=None,Zmap=None,cor=None,stagepos=None,pupil=None):
 
         if Zcoeff is not None:
-            pupil_mag = tf.abs(tf.reduce_sum(self.Zk*Zcoeff[0],axis=0))
+            pupil_mag = tf.reduce_sum(self.Zk*Zcoeff[0],axis=0)
+            pupil_mag = tf.math.maximum(pupil_mag,0)
             pupil_phase = tf.reduce_sum(self.Zk*Zcoeff[1],axis=0)
             pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
         
@@ -286,6 +290,7 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
             Zcoeff = tf.stack([Zcoeff1,Zcoeff2])
 
             pupil_mag = tf.reduce_sum(self.Zk*Zcoeff1,axis=-3,keepdims=True)
+            pupil_mag = tf.math.maximum(pupil_mag,0)
             pupil_phase = tf.reduce_sum(self.Zk*Zcoeff2,axis=-3,keepdims=True)
             pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
             if pupil.shape[0]>500:
@@ -324,15 +329,15 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
         _, rois, centers, frames = self.data.get_image_data()
         
         nbin = self.options.insitu.partition_size[0]
-        nbin_x = self.options.insitu.partition_size[1]
-        nbin_y = self.options.insitu.partition_size[2]
+        nbin_x = self.options.insitu.partition_size[2]
+        nbin_y = self.options.insitu.partition_size[1]
         count,edge = np.histogram(zf,nbin)
-        count_x, edge_x = np.histogram(centers[:,0], nbin_x)
-        count_y, edge_y = np.histogram(centers[:, 1], nbin_y)
+        count_x, edge_x = np.histogram(centers[:,-1], nbin_x)
+        count_y, edge_y = np.histogram(centers[:,-2], nbin_y)
         ind = np.digitize(zf,edge)
-        ind_x = np.digitize(centers[:,0], edge_x)
-        ind_y = np.digitize(centers[:, 1], edge_y)
-        Npsf = self.options.insitu.partition_size[3]
+        ind_x = np.digitize(centers[:,-1], edge_x)
+        ind_y = np.digitize(centers[:,-2], edge_y)
+        Npsf = self.options.insitu.partition_size[-1]
         rois1 = []
         rois1_avg = []
         zf1 = []
@@ -352,8 +357,8 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
 
         for ii in range(1,nbin+1):
             for xx in range(1, nbin_x + 1):
-                for yy in range(1, nbin_x + 1):
-                    mask = np.logical_and(ind==ii,ind_x==yy,ind_y==yy)
+                for yy in range(1, nbin_y + 1):
+                    mask = (ind==ii)&(ind_x==xx)&(ind_y==yy)
                     im1 = rois[mask]
                     Nslice = np.min((Npsf,im1.shape[0]))
                     indsample = list(np.random.choice(im1.shape[0],Nslice,replace=False))
@@ -419,7 +424,7 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
                         bg=np.squeeze(res[1]),
                         intensity=np.squeeze(res[2]),
                         I_model = res[3],
-                        pupil = res[4],
+                        pupil = np.squeeze(res[4]),
                         zernike_map = np.squeeze(res[5]),
                         zernike_coeff = np.squeeze(res[6]),
                         sigma = res[7]/np.pi,

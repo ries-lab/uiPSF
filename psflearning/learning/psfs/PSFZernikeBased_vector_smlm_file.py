@@ -110,7 +110,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         #self.weight = np.array([np.median(init_intensities)*10, 100, 20, 0.2, 0.2, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
         #weight = [1e5,10] + list(np.array([20,0.2,0.2,1])/np.median(init_intensities)*2e4)
         wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        weight = [wI*100,20] + list(np.array([60,0.5,0.5,20])/wI*40)
+        weight = [wI*200,20] + list(np.array([60,0.5,0.5,20])/wI*40)
 
         self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
@@ -166,7 +166,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         if self.options.model.zernike_nl:
             pupil_phase = tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff[1],indices=self.noll_index)*self.weight[3],axis=0)
         else:
-            pupil_phase = tf.reduce_sum(self.Zk[4:]*Zcoeff[1][4:]*self.weight[3],axis=0)
+            pupil_phase = tf.reduce_sum(self.Zk[3:]*Zcoeff[1][3:]*self.weight[3],axis=0)
         
         pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid                
         pos = tf.complex(tf.reshape(pos*self.weight[2],pos.shape+(1,1)),0.0)
@@ -248,7 +248,8 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
 
     def genpsfmodel(self,sigma,Zcoeff,stagepos=None):
 
-        pupil_mag = tf.abs(tf.reduce_sum(self.Zk*Zcoeff[0],axis=0))
+        pupil_mag = tf.reduce_sum(self.Zk*Zcoeff[0],axis=0)
+        pupil_mag = tf.math.maximum(pupil_mag,0)
         pupil_phase = tf.reduce_sum(self.Zk*Zcoeff[1],axis=0)
         pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
 

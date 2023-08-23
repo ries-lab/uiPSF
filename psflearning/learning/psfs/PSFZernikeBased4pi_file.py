@@ -189,11 +189,15 @@ class PSFZernikeBased4pi(PSFInterface):
         phase0 = np.reshape(np.array([-2/3,0,2/3])*np.pi+self.dphase,(3,1,1,1)).astype(np.float32)
         phase0 = tf.complex(tf.math.cos(phase0),tf.math.sin(phase0))
 
-        pupil_mag = tf.abs(tf.reduce_sum(self.Zk*Zcoeffmag[0],axis=0))
+        pupil_mag = tf.reduce_sum(self.Zk*Zcoeffmag[0],axis=0)
+        pupil_mag = tf.math.maximum(pupil_mag,0)
+
+
         pupil_phase = tf.reduce_sum(self.Zk[1:]*Zcoeffphase[0][1:],axis=0)
         pupil1 = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*(self.apoid)
 
-        pupil_mag = tf.abs(tf.reduce_sum(self.Zk*Zcoeffmag[1],axis=0))
+        pupil_mag = tf.reduce_sum(self.Zk*Zcoeffmag[1],axis=0)
+        pupil_mag = tf.math.maximum(pupil_mag,0)
         pupil_phase = tf.reduce_sum(self.Zk*Zcoeffphase[1],axis=0)
         pupil2 = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*(self.apoid)  
 

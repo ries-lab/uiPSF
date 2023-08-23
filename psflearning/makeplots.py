@@ -395,7 +395,7 @@ def showzernikemap(f,p,index=None):
 def zernikemap(f,index,zmap,zcoeff,pupil,Zk):
 
     if index is None:
-        index = [3,4,5,6,7,10,11,12,15,16,21]
+        index = [4,5,6,7,10,11,12,15,16,21]
     fig = plt.figure(figsize=[16,4])
     ax = fig.add_subplot(1,2,1)
     plt.plot(zcoeff[0].transpose(),'k',alpha=0.1)

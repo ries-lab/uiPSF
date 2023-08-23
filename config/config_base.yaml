@@ -87,6 +87,7 @@ Params:
       estimate_drift: false         # estimate lateral drift between each z slice
       var_photon: false             # estimate photon variation between each z slice
       bin: 2                        # upsamplling pixel size equal to camera pixel size divided by bin
+      division: 40                  # number of divisions per lateral dimension for learning field-dependent aberration
 
   #--------following parameters usually don't need to be changed for the same type of psf learning, will be preset for each learning type
   PSFtype: insitu_zernike                 # voxel, zernike, pupil, zernike_vector, pupil_vector, insitu

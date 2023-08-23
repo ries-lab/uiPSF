@@ -5,7 +5,7 @@ Params:
     smooth: 0.001
   rej_threshold:                 # threshold for ourlier removal after initial learning, which are relative values or quantile for insitu PSF
     bias_z: 0.99
-    mse: 0.8
+    mse: 0.99
     photon: 1.5
 
 

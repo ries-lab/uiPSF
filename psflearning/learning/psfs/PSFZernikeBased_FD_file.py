@@ -44,7 +44,7 @@ class PSFZernikeBased_FD(PSFInterface):
         Lx = rois.shape[-1]
      
         imsz = self.data.image_size
-        div = 40
+        div = self.options.model.division
         yy1, xx1 = tf.meshgrid(tf.linspace(0,imsz[-2],imsz[-2]//div), tf.linspace(0,imsz[-1],imsz[-1]//div),indexing='ij')
 
         if self.psftype=='vector':
@@ -61,6 +61,10 @@ class PSFZernikeBased_FD(PSFInterface):
         
         #self.weight = np.array([np.median(init_intensities), 10, 0.1, 1],dtype=np.float32)
         weight = [1e5,10] + list(np.array([0.1,4])/np.median(init_intensities)*2e4)
+        #wI = np.lib.scimath.sqrt(np.median(init_intensities))
+        #weight = [wI*100,20] + list(np.array([1,10])/wI*40)
+
+        
         self.weight = np.array(weight,dtype=np.float32)
         Zmap = np.zeros((2,self.Zk.shape[0])+xx1.shape,dtype = np.float32)
         Zmap[0,0] = 1.0/self.weight[3]
@@ -186,6 +190,7 @@ class PSFZernikeBased_FD(PSFInterface):
             Zcoeff = tf.stack([Zcoeff1,Zcoeff2])
 
             pupil_mag = tf.reduce_sum(self.Zk*Zcoeff1,axis=-3,keepdims=True)
+            pupil_mag = tf.math.maximum(pupil_mag,0)
             pupil_phase = tf.reduce_sum(self.Zk*Zcoeff2,axis=-3,keepdims=True)
             pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
 
