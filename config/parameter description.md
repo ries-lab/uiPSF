@@ -1,4 +1,5 @@
 # Description of user defined parameters 
+list of all parameters defined in [config_base.yaml](config_base.yaml). Some parameters are system specific or for advanced settings. Users are not required to work with all parameters. We divided those parameters into [system specific](systemtype), [channel specific](channeltype) and [PSF specific](psftype) parameters. For most application, users only need to edit or add system type config file [e.g. 4pi.yaml](systemtype/4pi.yaml) and update the parameters in the demo notebook. 
 |**Parameters**| Description|
 |:----------------------------|:---------------------------|
 |**datapath** | *string*, full path to the data|  
