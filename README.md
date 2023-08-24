@@ -64,7 +64,7 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREF
 # Run demo notebook
 Demo notebooks can be found under [demo folder](demo), e.g. [single-channel PSFs](demo/demo_beadPSF_1ch.ipynb).   
   
-List of [all user defined parameters](config/parameter%20description.md)   
+List of [all user defined parameters](config/parameter%20description.md).   
   
 Download [example data](https://doi.org/10.5281/zenodo.8267521) to use the demo notebooks. 
 
