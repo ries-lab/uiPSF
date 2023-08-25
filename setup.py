@@ -4,7 +4,7 @@ with open("README.md", "r") as f:
       long_descrition = f.read()
 
 setup(
-      name='uiPSF', # TODO: put correct name here # name for the pip install command, not neccessarily the same as the name of the python code
+      name='psflearning', # TODO: put correct name here # name for the pip install command, not neccessarily the same as the name of the python code
       version='0.0.1',
       description='A versatile and modular toolbox that uses inverse modelling to extract accurate PSF models for most SMLM imaging modalities from bead and single-molecule data.',
       long_descrition=long_descrition,
@@ -31,7 +31,7 @@ setup(
       ],
 
 
-      packages=['uiPSF'], # TODO: put correct name here # what's actually imported by people later
+      packages=['psflearning'], # TODO: put correct name here # what's actually imported by people later
       python_requires='>=3.7',
       install_requires=[
             "numpy",
