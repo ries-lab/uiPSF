@@ -14,8 +14,7 @@ Our modular framework is applicable to a variety of microscope geometries, and t
 2. Open Anaconda Powershell Prompt, clone the uiPSF package     
 ```
 git clone https://github.com/ries-lab/uiPSF.git
-cd .\uiPSF\
-git checkout test_notebook
+cd uiPSF
 ```
 3. Create a new conda enviroment for uiPSF package  
 - for GPU: 
@@ -32,8 +31,14 @@ conda activate psfinv
 pip install -e .
 ```
 
+## Mac
+1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) for Mac.
+2. Open Terminal and follow the [installation for Windows](#Windows) to install the uiPSF package. Only CPU version is supported. 
+
 ## Linux
-Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) for Linux and follow the [installation for Windows](#Windows) to install the uiPSF package. If GPU version is installed, add cudnn path
+1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) for Linux.
+2. Follow the [installation for Windows](#Windows) to install the uiPSF package.
+3. If GPU version is installed, add cudnn path
 ```
 mkdir -p $CONDA_PREFIX/etc/conda/activate.d
 echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
@@ -52,9 +57,9 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREF
   - [4Pi PSF modelling](demo/demo_insituPSF_4pi.ipynb).
   - [Field-dependent PSF modelling](demo/demo_insituPSF_FD.ipynb).
 - Microscope characterization
-  - [Evaluation of standard system](demo/demo_eval_system.ipynb).
+  - [Evaluation of standard microscope systems](demo/demo_eval_system.ipynb).
   - [Evaluation of field-dependent aberration](demo/demo_eval_system_FD.ipynb).
-- [Generate PSF model at given imaging depth](demo/demo_genPSF.ipynb) 
+- [Generate PSF model at a given imaging depth](demo/demo_genPSF.ipynb) 
 
 # Example data 
 - 40 nm bead data from single-channel, dual-color ratiometric and 4Pi systems.
@@ -63,7 +68,6 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREF
 - SMLM data of Nup96-AF647 from a single-channel system with a FOV of 177 um x 177 um.
 - SMLM data of tubulin-AF647 from a single-channel system with astigmatism aberration applied by a deformable mirror
 - SMLM data of Nup96-AF647 and WGA-CF680 from a dual-color ratiometric system.
-- SMLM data of mitochondria with Tetrapod PSF patterns generated from a spatial light modulator
 - SMLM data of Nup96-mMaple from a 4Pi-SMLM system
 
 Download the [example data](https://doi.org/10.5281/zenodo.8267521)
