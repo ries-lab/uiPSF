@@ -16,7 +16,7 @@ Our modular framework is applicable to a variety of microscope geometries, and t
 git clone https://github.com/ries-lab/uiPSF.git
 cd uiPSF
 ```
-3. Create a new conda enviroment for uiPSF package  
+3. Create a new conda enviroment for the uiPSF package  
 - for GPU: 
 ```
 conda env create --name psfinv --file=environment.yml
@@ -33,12 +33,12 @@ pip install -e .
 
 ## Mac
 1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) for Mac.
-2. Open Terminal and follow the [installation for Windows](#Windows) to install the uiPSF package. Only CPU version is supported. 
+2. Open Terminal and follow the [installation for Windows](#Windows) to install the uiPSF package. Only the CPU version is supported. 
 
 ## Linux
 1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) for Linux.
 2. Follow the [installation for Windows](#Windows) to install the uiPSF package.
-3. If GPU version is installed, add cudnn path
+3. If the GPU version is installed, add cudnn path
 ```
 mkdir -p $CONDA_PREFIX/etc/conda/activate.d
 echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
@@ -72,7 +72,7 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREF
 
 Download the [example data](https://doi.org/10.5281/zenodo.8267521)
 # How to run demo notebook
-1. Install uiPSF for your operating system
+1. Install uiPSF for your operating system.
 2. Install [Visual Studio Code](https://code.visualstudio.com/Download).
 3. Open Visual Studio Code (VScode), click *Extensions* from the sidebar menu and search for `Python` and install `Python extension for VScode`.
 4. Go to File->Open Folder, select the uiPSF folder from git clone.
@@ -83,5 +83,5 @@ Download the [example data](https://doi.org/10.5281/zenodo.8267521)
 
 For explanation of user defined parameters, please see list of [all user defined parameters](config/parameter%20description.md). 
 ## Tips
-- If GPU is not available, comment the last two lines in the first cell *Setup environment* of the demo notebook.
+- If a GPU is not available, comment the last two lines in the first cell *Setup environment* of the demo notebook.
 - Don't run two notebooks at the same time, click `Restart` at the top of the notebook to release the memory.
