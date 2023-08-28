@@ -85,3 +85,5 @@ For explanation of user defined parameters, please see list of [all user defined
 ## Tips
 - If a GPU is not available, comment the last two lines in the first cell *Setup environment* of the demo notebook.
 - Don't run two notebooks at the same time, click `Restart` at the top of the notebook to release the memory.
+## Need help?
+Open an issue here on github, or contact Jonas Ries (jonas.ries@embl.de).
