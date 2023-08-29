@@ -114,6 +114,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
 
         self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
+        self.init_sigma = sigma
         self.pos_weight = self.weight[2]
         init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
         init_Zcoeff[:,0,0,0] = [1,0]/self.weight[4]
@@ -185,6 +186,8 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
             I_res += psfA*tf.math.conj(psfA)*self.normf
 
         bin = self.options.model.bin
+        if not self.options.model.var_blur:
+            sigma = self.init_sigma
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
         I_blur = im.ifft2d(im.fft2d(I_res)*filter2)
