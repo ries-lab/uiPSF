@@ -93,6 +93,7 @@ def extractMultiPeaks_smlm(im, ROIsize, sigma=None, threshold_rel=None, alternat
     if coordinates.size>0:
         #if (min_dist is not None) & (centers.shape[0]>1):
         #   centers = combine_close_cor(centers, min_dist)
+        #centers = np.array([[10,15]])
         ROIs = multiROIExtract_smlm(im, centers, ROIsize=ROIsize)  # , origin="center"
     else:
         ROIs = None

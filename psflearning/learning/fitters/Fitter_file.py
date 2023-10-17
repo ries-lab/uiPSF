@@ -48,7 +48,10 @@ class Fitter(FitterInterface):
         if self.loss_func_single:
             loss = self.loss_func(forward_images, self.rois[:,ind[0]:ind[1]], self.loss_func_single,variables,mu,self.loss_weight)
         else:
-            loss = self.loss_func(forward_images, self.rois[ind[0]:ind[1]], variables,mu,self.loss_weight)
+            if hasattr(self.psf,'psfnorm'):
+                loss = self.loss_func(forward_images, self.rois[ind[0]:ind[1]], variables,mu,self.loss_weight,self.psf.psfnorm)
+            else:
+                loss = self.loss_func(forward_images, self.rois[ind[0]:ind[1]], variables,mu,self.loss_weight)
         return loss
 
     def learn_psf(self, variables=None,start_time=None):

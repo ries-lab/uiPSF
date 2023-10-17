@@ -39,6 +39,10 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         self.stagepos = options.insitu.stage_pos/self.data.pixelsize_z
         if hasattr(self,'initpsf'):
             I_init = self.initpsf
+            Nz = np.int32(self.options.insitu.z_range/self.data.pixelsize_z+1)
+            ccz = I_init.shape[0]//2
+            if Nz<I_init.shape[0]:
+                I_init = I_init[ccz-Nz//2:ccz+Nz//2+1]
             Nz = I_init.shape[0]
             if self.Zoffset is None:
                 self.estzoffset(Nz)
@@ -69,7 +73,6 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp>np.quantile(zp,1-a)) & (zp<np.quantile(zp,a))
         mask = mask.flatten() & (locres[2]>np.quantile(locres[2],0.1)) & (photon>np.quantile(photon,a1))
         
-
         self.data.rois = rois[mask]
         self.data.centers = centers[mask,:]
         self.data.frames = frames[mask]
@@ -95,15 +98,20 @@ class PSFPupilBased_vector_smlm(PSFInterface):
 
         
         #self.weight = np.array([np.median(init_intensities), 10, 5, 10, 10, 5],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
-        weight = [1e4,10] + list(np.array([1,10,10,1])/np.median(init_intensities)*2e4)
+        #weight = [1e4,10] + list(np.array([1,10,10,1])/np.median(init_intensities)*2e4)
+        wI = np.lib.scimath.sqrt(np.median(init_intensities))
+        init_backgrounds[init_backgrounds<0.1] = 0.1
+        bgmean = np.median(init_backgrounds)
+        weight = [wI*40,bgmean] + list(np.array([10,30,30,2,0.1])/wI*40)
         self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi*self.options.model.bin
         self.init_sigma = sigma
+        #self.weight[6] = 1.0
+        sigma = sigma / self.weight[6]
         self.pos_weight = self.weight[2]
 
         init_pupil = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
 
-        init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = init_backgrounds / self.weight[1]
         init_Intensity = init_intensities / self.weight[0]
         init_positions = init_positions / self.weight[2]
@@ -138,8 +146,13 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         else:
             pupil_mag = tf.complex(pupilR*self.weight[4],0.0)
 
-        pupil = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*pupil_mag*self.aperture*self.apoid
-        
+        pupil_phase = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*self.aperture
+        pupil_phase0 = tf.complex(tf.math.cos(pupilI*0.0),tf.math.sin(pupilI*0.0))*self.aperture
+        normp = self.calnorm(pupil_phase)/self.calnorm(pupil_phase0)
+
+        pupil = pupil_phase*pupil_mag*self.apoid
+        self.psfnorm = normp
+
         pos = tf.complex(tf.reshape(pos*self.weight[2],pos.shape+(1,1)),0.0)
         if self.options.insitu.var_stagepos:
             stagepos = tf.complex(stagepos*self.weight[5],0.0)
@@ -157,6 +170,8 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         bin = self.options.model.bin
         if not self.options.model.var_blur:
             sigma = self.init_sigma
+        else:
+            sigma = sigma*self.weight[6]
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
         I_blur = im.ifft2d(im.fft2d(I_res)*filter2)
@@ -293,6 +308,7 @@ class PSFPupilBased_vector_smlm(PSFInterface):
         pupil = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*pupil_mag*self.aperture*self.apoid
         pupil_real = [pupilR*self.weight[4],pupilI*self.weight[3]]
         stagepos = stagepos*self.weight[5]
+        sigma = sigma*self.weight[6]
         bin = self.options.model.bin
         positions[:,1:] = positions[:,1:]/bin
 

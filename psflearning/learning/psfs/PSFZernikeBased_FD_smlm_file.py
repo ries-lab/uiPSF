@@ -102,9 +102,11 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
             self.noll_index = noll_index-1
         
         #self.weight = np.array([np.median(init_intensities), 10, 20, 2, 10],dtype=np.float32) # [I, bg, pos, Zmap, stagepos]
-        weight = [1e5,10] + list(np.array([20,4,1])/np.median(init_intensities)*2e4)
-        #wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        #weight = [wI*200,20] + list(np.array([100,20,10])/wI*40)
+        #weight = [1e5,10] + list(np.array([20,4,1])/np.median(init_intensities)*2e4)
+        init_backgrounds[init_backgrounds<0.1] = 0.1
+        bgmean = np.median(init_backgrounds)
+        wI = np.lib.scimath.sqrt(np.median(init_intensities))
+        weight = [wI*200,bgmean] + list(np.array([150,40,20])/wI*40)
         
         self.weight = np.array(weight,dtype=np.float32)
 
@@ -120,7 +122,6 @@ class PSFZernikeBased_FD_smlm(PSFInterface):
         Zmap[0,0] = 1.0/self.weight[3]
 
 
-        init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = init_backgrounds / self.weight[1]
         init_Intensity = init_intensities / self.weight[0]
         init_positions = init_positions / self.weight[2]

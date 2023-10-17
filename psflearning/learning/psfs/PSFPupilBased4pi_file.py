@@ -67,8 +67,10 @@ class PSFPupilBased4pi(PSFInterface):
         self.zT = self.data.zT
         #self.weight = np.array([np.median(init_intensities), 10, 0.1, 10,10,0.1],dtype=np.float32)
         #weight = [5e4,20] + list(np.array([0.1,10,10,0.1])/np.median(init_intensities)*2e4)
+        init_backgrounds[init_backgrounds<0.1] = 0.1
+        bgmean = np.median(init_backgrounds)
         wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        weight = [wI*40,20] + list(np.array([1,30,30,1])/wI*40)
+        weight = [wI*40,bgmean] + list(np.array([1,30,30,1])/wI*40)
         self.weight = np.array(weight,dtype=np.float32)
         init_pupil1 = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
         init_pupil2 = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
@@ -77,7 +79,6 @@ class PSFPupilBased4pi(PSFInterface):
         phase0 = np.reshape(np.array(phase_dm),(len(phase_dm),1,1,1,1)).astype(np.float32)
         #phase0 = np.reshape(np.array([0])*np.pi,(1,1,1,1,1)).astype(np.float32)
         
-        init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         
         gxy = np.zeros((N,2),dtype=np.float32) 

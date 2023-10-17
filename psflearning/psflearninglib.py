@@ -275,7 +275,7 @@ class psflearninglib:
         #dataobj.shiftxy = np.array([[0,0],[0.3,1.6]])
         dataobj.process( roi_size = roi_size,
                         gaus_sigma=gaus_sigma,
-                        min_border_dist=list(np.array(roi_size)//2+1),
+                        min_border_dist= list(np.array(roi_size)//2+1),
                         min_center_dist = np.max(roi_size),
                         FOV=fov,
                         max_threshold= peak_height,
@@ -334,14 +334,22 @@ class psflearninglib:
                     psfobj.initpupil = np.array(f['res']['pupil'])
                 except:
                     pass
+
                 try:
                     psfobj.Zoffset = np.array(f['res']['zoffset'])
                 except:
                     pass
+
                 try:
                     psfobj.initpsf = np.array(f['res']['I_model_reverse']).astype(np.float32)
                 except:
                     psfobj.initpsf = np.array(f['res']['I_model']).astype(np.float32)
+
+                try:
+                    psfobj.initzcoeff = np.array(f['res']['zernike_coeff']).astype(np.float32)
+                except:
+                    pass
+
                 
             else:
                 Nchannels = len(dataobj.channels)

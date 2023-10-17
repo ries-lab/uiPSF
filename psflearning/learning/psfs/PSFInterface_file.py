@@ -166,6 +166,11 @@ class PSFInterface():
         self.kzv = (np.linspace(-Lz/2+0.5,Lz/2-0.5,Lz,dtype=np.float32).reshape(Lz,1,1))/Lz
 
 
+    def calnorm(self,pupil):
+        psfA = im.cztfunc1(pupil,self.paramxy)   
+        normf = tf.math.real(tf.reduce_sum(psfA*tf.math.conj(psfA)))
+        return normf
+        
     def gen_bead_kernel(self,isVolume = False):
         pixelsize_z = self.data.pixelsize_z
         bead_radius = self.data.bead_radius

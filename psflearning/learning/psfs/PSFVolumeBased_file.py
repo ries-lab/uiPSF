@@ -39,11 +39,12 @@ class PSFVolumeBased(PSFInterface):
 
         #self.weight = np.array([np.median(init_intensities)*1, 10, 0.1, 0.1],dtype=np.float32)
         #weight = [5e4,20] + list(np.array([0.1,0.2])/np.median(init_intensities)*2e4)
+        init_backgrounds[init_backgrounds<0.1] = 0.1
+        bgmean = np.median(init_backgrounds)
         wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        weight = [1000*wI,20] + list(np.array([1,1])*40/wI)
+        weight = [1000*wI,bgmean] + list(np.array([1,1])*40/wI)
         self.weight = np.array(weight,dtype=np.float32)
         init_psf_model = np.zeros(rois[0].shape)+0.002/self.weight[3]
-        init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         gxy = np.zeros((N,2),dtype=np.float32) 
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities

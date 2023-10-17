@@ -79,6 +79,7 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
             else:
                 ed = np.min((frame+100,self.images.shape[0]))
                 im = image-np.mean(self.images[frame:ed],axis=0)
+                #im = image
             rois, centers = nip.extractMultiPeaks_smlm(im, ROIsize=roi_size, sigma=gaus_sigma,
                                                 borderDist=min_border_dist, threshold_rel=max_threshold,
                                                 alternateImg=image, kernel=max_kernel, min_dist = min_center_dist,FOV=FOV)
