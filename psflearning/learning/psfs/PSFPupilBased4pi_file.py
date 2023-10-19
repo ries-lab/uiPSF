@@ -139,10 +139,14 @@ class PSFPupilBased4pi(PSFInterface):
             pupil_mag1 = tf.complex(pupilR1*self.weight[4],0.0)
             pupil_mag2 = tf.complex(pupilR2*self.weight[4],0.0)
 
+        pupil_phase1 = tf.complex(tf.math.cos(pupilI1*self.weight[3]),tf.math.sin(pupilI1*self.weight[3]))*self.aperture
+        pupil_phase2 = tf.complex(tf.math.cos(pupilI2*self.weight[3]),tf.math.sin(pupilI2*self.weight[3]))*self.aperture
+        pupil1 = pupil_phase1*pupil_mag1*self.apoid       
+        pupil2 = pupil_phase2*pupil_mag2*self.apoid
 
-        pupil1 = tf.complex(tf.math.cos(pupilI1*self.weight[3]),tf.math.sin(pupilI1*self.weight[3]))*pupil_mag1*self.aperture*(2-self.apoid)
-        
-        pupil2 = tf.complex(tf.math.cos(pupilI2*self.weight[3]),tf.math.sin(pupilI2*self.weight[3]))*pupil_mag2*self.aperture*self.apoid
+        pupil_phase0 = tf.complex(tf.math.cos(pupilI1*0.0),tf.math.sin(pupilI1*0.0))*self.aperture
+        normp = [self.calnorm(pupil_phase1)/self.calnorm(pupil_phase0), self.calnorm(pupil_phase2)/self.calnorm(pupil_phase0)]
+        self.psfnorm = normp
 
         phiz = -1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
         phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
@@ -233,7 +237,7 @@ class PSFPupilBased4pi(PSFInterface):
         intensities = intensity_abs*self.weight[0]*intensity_phase
         
         pupil_mag1 = tf.complex(pupilR1*self.weight[4],0.0)
-        pupil1 = tf.complex(tf.math.cos(pupilI1*self.weight[3]),tf.math.sin(pupilI1*self.weight[3]))*pupil_mag1*self.aperture*(2-self.apoid)
+        pupil1 = tf.complex(tf.math.cos(pupilI1*self.weight[3]),tf.math.sin(pupilI1*self.weight[3]))*pupil_mag1*self.aperture*(self.apoid)
         pupil_mag2 = tf.complex(pupilR2*self.weight[4],0.0)
         pupil2 = tf.complex(tf.math.cos(pupilI2*self.weight[3]),tf.math.sin(pupilI2*self.weight[3]))*pupil_mag2*self.aperture*self.apoid
         alpha = tf.complex(alpha*self.weight[5],0.0)

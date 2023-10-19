@@ -46,7 +46,13 @@ class Fitter(FitterInterface):
         self.psf.ind = ind
         forward_images = self.psf.calc_forward_images(variables)
         if self.loss_func_single:
-            loss = self.loss_func(forward_images, self.rois[:,ind[0]:ind[1]], self.loss_func_single,variables,mu,self.loss_weight)
+            psfnorm = [None]*len(self.psf.sub_psfs)
+            if hasattr(self.psf.sub_psfs[0],'psfnorm'):
+                for i,psf in enumerate(self.psf.sub_psfs):
+                    psfnorm[i] = psf.psfnorm
+                loss = self.loss_func(forward_images, self.rois[:,ind[0]:ind[1]], self.loss_func_single,variables,mu,self.loss_weight,psfnorm)
+            else:
+                loss = self.loss_func(forward_images, self.rois[:,ind[0]:ind[1]], self.loss_func_single,variables,mu,self.loss_weight)
         else:
             if hasattr(self.psf,'psfnorm'):
                 loss = self.loss_func(forward_images, self.rois[ind[0]:ind[1]], variables,mu,self.loss_weight,self.psf.psfnorm)
