@@ -60,16 +60,16 @@ class PSFZernikeBased_FD(PSFInterface):
 
         
         #self.weight = np.array([np.median(init_intensities), 10, 0.1, 1],dtype=np.float32)
-        weight = [1e5,10] + list(np.array([0.1,4])/np.median(init_intensities)*2e4)
-        #wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        #weight = [wI*100,20] + list(np.array([1,10])/wI*40)
+        #weight = [1e5,10] + list(np.array([0.1,4])/np.median(init_intensities)*2e4)
+        init_backgrounds[init_backgrounds<0.1] = 0.1
+        bgmean = np.median(init_backgrounds)
+        wI = np.lib.scimath.sqrt(np.median(init_intensities))
+        weight = [wI*100,bgmean] + list(np.array([1,20])/wI*40)
 
-        
         self.weight = np.array(weight,dtype=np.float32)
         Zmap = np.zeros((2,self.Zk.shape[0])+xx1.shape,dtype = np.float32)
         Zmap[0,0] = 1.0/self.weight[3]
         
-        init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         gxy = np.zeros((N,2),dtype=np.float32) 
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities

@@ -7,7 +7,7 @@ Params:
     roi_size: [31,31]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [2,2]          # blur kernel size, corresponding to dimensions defined in roi_size
     max_kernel: [3,3]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
-  swapxy: true                  # permute x,y dimension 
+  swapxy: false                  # permute x,y dimension 
 
   insitu:               
     frame_range: [1000,3000]     # set the frames to be loaded, only for .tif format

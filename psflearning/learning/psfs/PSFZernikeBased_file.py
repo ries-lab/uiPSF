@@ -60,14 +60,15 @@ class PSFZernikeBased(PSFInterface):
 
         #self.weight = np.array([np.median(init_intensities)*10, 100, 0.1, 0.2, 0.2],dtype=np.float32)
         #weight = [1e5,10] + list(np.array([0.1,0.2,0.2])/np.median(init_intensities)*2e4)
+        init_backgrounds[init_backgrounds<0.1] = 0.1
+        bgmean = np.median(init_backgrounds)
         wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        weight = [wI*100,20] + list(np.array([1,0.5,0.5])/wI*40)
+        weight = [wI*100,bgmean] + list(np.array([1,0.5,0.5])/wI*40)
         self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.init_sigma = sigma
         init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
         init_Zcoeff[:,0,0,0] = [1,0]/self.weight[4]
-        init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         gxy = np.zeros((N,2),dtype=np.float32) 
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities
@@ -138,6 +139,8 @@ class PSFZernikeBased(PSFInterface):
         bin = self.options.model.bin
         if not self.options.model.var_blur:
             sigma = self.init_sigma
+        
+        #sigma = sigma*self.weight[5]
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
         I_blur = im.ifft3d(im.fft3d(I_res)*self.bead_kernel*filter2)
@@ -203,6 +206,7 @@ class PSFZernikeBased(PSFInterface):
         z_center = (self.Zrange.shape[-3] - 1) // 2
         Zcoeff[0]=Zcoeff[0]*self.weight[4]
         Zcoeff[1]=Zcoeff[1]*self.weight[3]
+        #sigma = sigma*self.weight[5]
         bin = self.options.model.bin
         positions[:,1:] = positions[:,1:]/bin
         if self.initpupil is not None:

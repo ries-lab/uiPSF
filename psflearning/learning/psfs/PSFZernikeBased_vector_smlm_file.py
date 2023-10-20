@@ -35,13 +35,19 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         _, rois, centers, frames = self.data.get_image_data()
         pixelsize_z = np.array(self.data.pixelsize_z)
         self.stagepos = options.insitu.stage_pos/self.data.pixelsize_z
-
+        init_Zcoeff = None
         if hasattr(self,'initpsf'):
             I_init = self.initpsf
+            Nz = np.int32(self.options.insitu.z_range/self.data.pixelsize_z+1)
+            ccz = I_init.shape[0]//2
+            if Nz<I_init.shape[0]:
+                I_init = I_init[ccz-Nz//2:ccz+Nz//2+1]
             Nz = I_init.shape[0]
             if self.Zoffset is None:
                 self.estzoffset(Nz)
             self.calpupilfield('vector', Nz,'insitu')
+            if hasattr(self,'initzcoeff'):
+                init_Zcoeff = self.initzcoeff[:,0:self.Zk.shape[0]].reshape((2,self.Zk.shape[0],1,1))
             self.Zrange -=self.Zrange[0]-self.Zoffset
         elif not options.insitu.zernike_index:
             self.estzoffset()
@@ -109,16 +115,23 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         
         #self.weight = np.array([np.median(init_intensities)*10, 100, 20, 0.2, 0.2, 10],dtype=np.float32) # [I, bg, pos, coeff, stagepos]
         #weight = [1e5,10] + list(np.array([20,0.2,0.2,1])/np.median(init_intensities)*2e4)
+        init_backgrounds[init_backgrounds<0.1] = 0.1
+        bgmean = np.median(init_backgrounds)
         wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        weight = [wI*200,20] + list(np.array([60,0.5,0.5,20])/wI*40)
+        weight = [wI*200,bgmean] + list(np.array([150,1,1,20])/wI*40)
 
         self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.init_sigma = sigma
         self.pos_weight = self.weight[2]
-        init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
-        init_Zcoeff[:,0,0,0] = [1,0]/self.weight[4]
-        init_backgrounds[init_backgrounds<0.1] = 0.1
+        init_Zcoeff = None
+        if init_Zcoeff is None:
+            init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
+            init_Zcoeff[:,0,0,0] = [1,0]/self.weight[4]
+        else:
+            init_Zcoeff = init_Zcoeff/self.weight[4]
+        
+
         init_backgrounds = init_backgrounds / self.weight[1]
         init_Intensity = init_intensities / self.weight[0]
         init_positions = init_positions / self.weight[2]
@@ -161,7 +174,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                 pupil_mag = tf.reduce_sum(self.Zk[c2]*tf.gather(Zcoeff[0],indices=c2)*self.weight[4],axis=0)
             else:
                 pupil_mag = tf.reduce_sum(self.Zk[0:Nk]*Zcoeff[0][0:Nk]*self.weight[4],axis=0)
-        pupil_mag = tf.math.maximum(pupil_mag,0)
+        pupil_mag = tf.math.maximum(pupil_mag,0.0)
         
 
         if self.options.model.zernike_nl:

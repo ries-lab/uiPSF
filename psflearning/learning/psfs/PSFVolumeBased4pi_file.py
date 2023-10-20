@@ -47,8 +47,10 @@ class PSFVolumeBased4pi(PSFInterface):
         self.zT = self.data.zT
         #self.weight = np.array([np.quantile(init_intensities,0.1), 20, 0.1, 0.1],dtype=np.float32)
         #weight = [1e4,20] + list(np.array([0.3,0.2])/np.median(init_intensities)*2e4)
+        init_backgrounds[init_backgrounds<0.1] = 0.1
+        bgmean = np.median(init_backgrounds)
         wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        weight = [N*wI,20] + list(np.array([1,1])*N/wI)
+        weight = [100*wI,bgmean] + list(np.array([1,1])*40/wI)
         self.weight = np.array(weight,dtype=np.float32)
         I1 = np.zeros(I_data[0].shape,dtype=np.float32)+0.002 / self.weight[3]
         A1 = np.ones(I1.shape, dtype=np.float32)*(1+1j)*0.002/2/np.sqrt(2)/self.weight[3]    
@@ -58,7 +60,6 @@ class PSFVolumeBased4pi(PSFInterface):
         self.calpupilfield('scalar',Nz)
         self.Zphase = (np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz,dtype=np.float32).reshape(Nz,1,1))*2*np.pi
         
-        init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         
         gxy = np.zeros((N,2),dtype=np.float32) 

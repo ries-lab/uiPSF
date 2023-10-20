@@ -80,7 +80,10 @@ class PSFMultiChannel(PSFInterface):
             #relative_shift = np.mean(centers[0],axis=0)-self.imgcenter[:-1]
             #current_trafo[-1][:-1] = self.data.shiftxy[i]-(np.matmul(relative_shift,current_trafo[:-1,:-1])-relative_shift)         
             # fill initial arrays
-            self.sub_psfs[i].weight = self.sub_psfs[0].weight
+            #self.sub_psfs[i].weight = self.sub_psfs[0].weight
+            tmp = self.sub_psfs[i].weight.copy()
+            self.sub_psfs[i].weight = self.sub_psfs[0].weight.copy()
+            self.sub_psfs[i].weight[1] = tmp[1]
             init_params.append(res_cur[-1])
             init_trafos.append(current_trafo)
 

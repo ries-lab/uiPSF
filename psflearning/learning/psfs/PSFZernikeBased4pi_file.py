@@ -63,8 +63,10 @@ class PSFZernikeBased4pi(PSFInterface):
         self.zT = self.data.zT
         #self.weight = np.array([np.median(init_intensities), 10, 0.1, 0.2,0.2,0.1],dtype=np.float32)
         #weight = [5e4,20] + list(np.array([0.1,0.3,0.3,0.1])/np.median(init_intensities)*2e4)
+        init_backgrounds[init_backgrounds<0.1] = 0.1
+        bgmean = np.median(init_backgrounds)
         wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        weight = [wI*100,20] + list(np.array([1,1,1,1])/wI*40)
+        weight = [wI*100,bgmean] + list(np.array([1,1,1,1])/wI*40)
         self.weight = np.array(weight,dtype=np.float32)
         
         init_Zcoeff_mag = np.zeros((2,self.Zk.shape[0],1,1))
@@ -75,7 +77,6 @@ class PSFZernikeBased4pi(PSFInterface):
         phase_dm = self.options.fpi.phase_dm
         phase0 = np.reshape(np.array(phase_dm),(len(phase_dm),1,1,1,1)).astype(np.float32)
         
-        init_backgrounds[init_backgrounds<0.1] = 0.1
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         
         gxy = np.zeros((N,2),dtype=np.float32) 
@@ -146,8 +147,6 @@ class PSFZernikeBased4pi(PSFInterface):
 
         phiz = -1j*2*np.pi*self.kz*(pos[:,0]+self.Zrange)
         phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
-        phiz_d = 1j*2*np.pi*self.kz*(pos_d[:,0]+self.Zrange)
-        phixy_d = 1j*2*np.pi*self.ky*pos_d[:,1]+1j*2*np.pi*self.kx*pos_d[:,2]
 
         PupilFunction = (pupil1*tf.exp(-phiz)*intensity_phase + pupil2*tf.exp(phiz)*phase0)*tf.exp(phixy)
         I_m = im.cztfunc1(PupilFunction,self.paramxy)   

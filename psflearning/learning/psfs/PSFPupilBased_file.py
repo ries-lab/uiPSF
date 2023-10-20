@@ -52,7 +52,7 @@ class PSFPupilBased(PSFInterface):
         
         self.gen_bead_kernel()
         N = rois.shape[0]
-        Nz = self.bead_kernel.shape[0]
+        Nz = rois.shape[-3]
         Lx = rois.shape[-1]
         xsz =options.model.pupilsize
 
@@ -65,14 +65,16 @@ class PSFPupilBased(PSFInterface):
         #self.bead_kernel = tf.complex(self.data.bead_kernel,0.0)
         #self.weight = np.array([np.median(init_intensities), 10, 0.1, 10, 10],dtype=np.float32)
         #weight = [1e4,10] + list(np.array([0.1,5,2])/np.median(init_intensities)*2e4)
+        init_backgrounds[init_backgrounds<0.1] = 0.1
+        bgmean = np.median(init_backgrounds)
         wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        weight = [wI*40,20] + list(np.array([1,30,30])/wI*40)
+        weight = [wI*100,bgmean] + list(np.array([1,30,30])/wI*40)
         self.weight = np.array(weight,dtype=np.float32)
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.init_sigma = sigma
 
         init_pupil = np.zeros((xsz,xsz))+(1+0.0*1j)/self.weight[4]
-        init_backgrounds[init_backgrounds<0.1] = 0.1
+        
         init_backgrounds = np.ones((N,1,1,1),dtype = np.float32)*np.median(init_backgrounds,axis=0, keepdims=True) / self.weight[1]
         gxy = np.zeros((N,2),dtype=np.float32) 
         gI = np.ones((N,Nz,1,1),dtype = np.float32)*init_intensities
@@ -112,8 +114,14 @@ class PSFPupilBased(PSFInterface):
 
         if self.initpupil is not None:
             pupil = self.initpupil
+            normp = tf.complex(1.0,0.0)
         else:
-            pupil = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*pupil_mag*self.aperture*self.apoid
+            pupil_phase = tf.complex(tf.math.cos(pupilI*self.weight[3]),tf.math.sin(pupilI*self.weight[3]))*self.aperture
+            pupil_phase0 = tf.complex(tf.math.cos(pupilI*0.0),tf.math.sin(pupilI*0.0))*self.aperture
+            normp = self.calnorm(pupil_phase)/self.calnorm(pupil_phase0)
+            pupil = pupil_phase*pupil_mag*self.apoid
+        
+        self.psfnorm = normp
 
         Nz = self.Zrange.shape[0]
         pos = tf.complex(tf.reshape(pos,pos.shape+(1,1,1)),0.0)
@@ -124,6 +132,7 @@ class PSFPupilBased(PSFInterface):
         else:
             phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
 
+        
         if self.psftype == 'vector':
             I_res = 0.0
             for h in self.dipole_field:
@@ -147,7 +156,7 @@ class PSFPupilBased(PSFInterface):
         kernel = np.ones((1,bin,bin,1,1),dtype=np.float32)
         I_blur_bin = tf.nn.convolution(I_blur,kernel,strides=(1,1,bin,bin,1),padding='SAME',data_format='NDHWC')
 
-        psf_fit = I_blur_bin[...,0]*intensities*self.weight[0]
+        psf_fit = I_blur_bin[...,0]
         
         st = (self.bead_kernel.shape[0]-self.data.rois[0].shape[-3])//2
         psf_fit = psf_fit[:,st:Nz-st]
@@ -155,9 +164,9 @@ class PSFPupilBased(PSFInterface):
         if self.options.model.estimate_drift:
             gxy = gxy*self.weight[2]
             psf_shift = self.applyDrfit(psf_fit,gxy)
-            forward_images = psf_shift + backgrounds*self.weight[1]
+            forward_images = psf_shift*intensities*self.weight[0] + backgrounds*self.weight[1]
         else:
-            forward_images = psf_fit + backgrounds*self.weight[1]
+            forward_images = psf_fit*intensities*self.weight[0] + backgrounds*self.weight[1]
 
         return forward_images
 
