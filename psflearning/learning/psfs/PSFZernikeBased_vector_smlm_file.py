@@ -174,7 +174,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                 pupil_mag = tf.reduce_sum(self.Zk[c2]*tf.gather(Zcoeff[0],indices=c2)*self.weight[4],axis=0)
             else:
                 pupil_mag = tf.reduce_sum(self.Zk[0:Nk]*Zcoeff[0][0:Nk]*self.weight[4],axis=0)
-        pupil_mag = tf.math.maximum(pupil_mag,0)
+        pupil_mag = tf.math.maximum(pupil_mag,0.0)
         
 
         if self.options.model.zernike_nl:
