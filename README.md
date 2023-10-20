@@ -53,6 +53,7 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREF
   - [Field-dependent PSF modelling ](demo/demo_beadPSF_FD.ipynb).
 - For SMLM data
   - [Single-channel PSF modelling](demo/demo_insituPSF_1ch.ipynb).
+  - [Tetrapod PSF modelling](demo/demo_insituPSF_TP.ipynb).
   - [Multi-channel PSF modelling](demo/demo_insituPSF_2ch.ipynb).
   - [4Pi PSF modelling](demo/demo_insituPSF_4pi.ipynb).
   - [Field-dependent PSF modelling](demo/demo_insituPSF_FD.ipynb).
@@ -67,10 +68,11 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREF
 - bead data from a lattice-light sheet microscope.
 - SMLM data of Nup96-AF647 from a single-channel system with a FOV of 177 um x 177 um.
 - SMLM data of tubulin-AF647 from a single-channel system with astigmatism aberration applied by a deformable mirror
+- SMLM data of TOMM20-AF647 from a single-channel system with Tetrapod PSFs applied by a phase plate
 - SMLM data of Nup96-AF647 and WGA-CF680 from a dual-color ratiometric system.
 - SMLM data of Nup96-mMaple from a 4Pi-SMLM system
 
-Download the [example data](https://doi.org/10.5281/zenodo.8267521)
+Download the [example data](https://zenodo.org/records/10027718)
 # How to run demo notebook
 1. Install uiPSF for your operating system.
 2. Install [Visual Studio Code](https://code.visualstudio.com/Download).
