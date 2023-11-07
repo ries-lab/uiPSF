@@ -84,8 +84,16 @@ Download the [example data](https://zenodo.org/records/10027718)
 8. Run subsequent cells sequentially.
 
 For explanation of user defined parameters, please see list of [all user defined parameters](config/parameter%20description.md). 
+
 ## Tips
 - If a GPU is not available, comment the last two lines in the first cell *Setup environment* of the demo notebook.
 - Don't run two notebooks at the same time, click `Restart` at the top of the notebook to release the memory.
-## Need help?
-Open an issue here on github, or contact Jonas Ries (jonas.ries@embl.de).
+
+# Localization using SMAP and FD-DeepLoc
+Tutorials for using the PSF model generated from uiPSF for localization analysis. 
+- [Single channel SMLM imaging](tutorial/tutorial%20for%20fit_fastsimple.pdf).
+- [Ratiometric dual-color SMLM imaging](tutorial/Tutorial%20for%20fit_global_dualchannel.pdf).
+- [4Pi-SMLM imaging](tutorial/tutorial%20fit_4pi.pdf)
+- [Single channel SMLM imaging with large FOV](tutorial/Tutorial%20for%20FD_aberrations.pdf)
+# Need help?
+Open an issue here on github, or contact Jonas Ries (jonas.ries@univie.ac.at)
