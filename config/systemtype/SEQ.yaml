@@ -1,0 +1,30 @@
+Params:  
+  format: .h5                  # .mat, .tif, .czi
+  pixel_size:                   # unit: micron
+    x: 0.095
+    y: 0.095
+  roi:
+    roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
+    gauss_sigma: [2,2]          # blur kernel size, corresponding to dimensions defined in roi_size
+    max_kernel: [3,3]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
+  FOV:                           # define FOV for bead selection, if x_center, y_center, radius are 0, select the full FOV
+    z_start: 0
+    z_end: -0
+  swapxy: true                  # permute x,y dimension 
+
+  insitu:               
+    frame_range: [0,400]     # set the frames to be loaded, only for .tif format
+
+  option:   
+    imaging:                       
+      emission_wavelength: 0.685    # unit: micron
+      RI: 
+        imm: 1.406
+        med: 1.33
+        cov: 1.406
+      NA: 1.35
+    insitu:
+      zernike_index: [4]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
+      zernike_coeff: [-0.7]         # for initial pupil, value corresponding to the zernike index 
+      partition_size: [21,100]     # number of z segments, maximum number of emitter per segment
+      z_range: 2                 # unit: micron, z range of insitu psf model
