@@ -86,7 +86,6 @@ Download the [example data](https://zenodo.org/records/10027718)
 For explanation of user defined parameters, please see list of [all user defined parameters](config/parameter%20description.md). 
 
 ## Tips
-- If a GPU is not available, comment the last two lines in the first cell *Setup environment* of the demo notebook.
 - Don't run two notebooks at the same time, click `Restart` at the top of the notebook to release the memory.
 
 # Localization using SMAP and FD-DeepLoc
