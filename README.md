@@ -86,6 +86,7 @@ Download the [example data](https://zenodo.org/records/10027718)
 For explanation of user defined parameters, please see list of [all user defined parameters](config/parameter%20description.md). 
 
 ## Tips
+- Please ensure that your computer's current graphics card driver supports CUDA 11.2.
 - Don't run two notebooks at the same time, click `Restart` at the top of the notebook to release the memory.
 
 # Localization using SMAP and FD-DeepLoc
