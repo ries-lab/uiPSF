@@ -8,7 +8,7 @@ Our modular framework is applicable to a variety of microscope geometries, and t
 
 # Systems tested
 - Windows 11 with RTX 4090, RTX 3080, RTX 2080
-- Rocky Linux 8.7 with A6000
+- Rocky Linux 8.7 with RTX A6000
 
 # Installation
 ## Windows
@@ -40,7 +40,20 @@ pip install -e .
 ## Linux
 1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) for Linux.
 2. Follow the [installation for Windows](#Windows) to install the uiPSF package.
-3. If the GPU version is installed, add cudnn path
+   - To install the latest TensorFlow on Linux, modify the following files before the installation (Note that TensorFlow later than 2.10 is no longer supported on Window):
+      - Modify the version numbers in the *environment.yml* file as follows:
+      ```
+      - cudatoolkit=11.8
+      - cudnn=8.4
+      - python=3.9
+      ```
+      - Remove the version numbers in `install_requires` in the *setup.py* file as follows:
+      ```
+      "tensorflow"
+      "tensorflow-probability"
+      ```
+      We used the above modified files to intall uiPSF on a Linux computer with RTX A6000 to fully utilize the computability from the GPU. 
+4. If the GPU version is installed, add cudnn path
 ```
 mkdir -p $CONDA_PREFIX/etc/conda/activate.d
 echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
