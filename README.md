@@ -83,7 +83,8 @@ Download the [example data](https://zenodo.org/records/10027718)
 5. Open the file *demo/datapath.yaml*, change the `main_data_dir` to the path of the downloaded example data.
 6. Navigate to a demo notebook, e.g. *demo/demo_beadPSF_1ch.ipynb*.
 7. Click the run button of the first cell, if running for the first time, a window will popup asking to install the `ipykernel` package, click install. Then a drop down menu will show up asking to select the kernel, select the created conda enviroment `psfinv` during the installation.
-8. Run subsequent cells sequentially.
+    - In case there is no window popup, an alternative method is: install `Jupyter` from *Extensions*, then click *Select Kernel* at the upper right corner of the demo notebook and select the `psfinv` from the dropdown menu.
+9. Run subsequent cells sequentially.
 
 For explanation of user defined parameters and details of creating config files, please refer to [user defined parameters](config/parameter%20description.md). 
 
