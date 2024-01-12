@@ -82,7 +82,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         LL = locres[2][mask]
 
         if self.options.insitu.partition_data:
-            initz, roisavg = self.partitiondata(initz,LL)
+            initz, roisavg, edge = self.partitiondata(initz,LL)
             
         _, rois, cor, _ = self.data.get_image_data()
         # if options.insitu.backgroundROI:
@@ -322,7 +322,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         self.data.rois = rois1
         self.data.centers = np.concatenate(cor,axis=0)
         self.data.frames = np.concatenate(fid,axis=0)
-        return zf1, rois1_avg
+        return zf1, rois1_avg, edge
 
     def postprocess(self, variables):
         """

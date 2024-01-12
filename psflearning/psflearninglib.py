@@ -634,7 +634,7 @@ class psflearninglib:
                 batchsize = 200
                 ind = list(np.int32(np.linspace(0,cor.shape[0],cor.shape[0]//batchsize+2)))
                 for i in range(len(ind)-1):
-                    I0,_,_ = psfobj.genpsfmodel(sigma,Zmap,cor[ind[i]:ind[i+1]])
+                    I0,_,_ = psfobj.genpsfmodel(sigma,Zmap=Zmap,cor = cor[ind[i]:ind[i+1]])
                     if i == 0:
                         I_model = I0
                     else:
