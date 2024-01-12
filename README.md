@@ -83,9 +83,10 @@ Download the [example data](https://zenodo.org/records/10027718)
 7. Click the run button of the first cell, if running for the first time, a window will popup asking to install the `ipykernel` package, click install. Then a drop down menu will show up asking to select the kernel, select the created conda enviroment `psfinv` during the installation.
 8. Run subsequent cells sequentially.
 
-For explanation of user defined parameters, please see list of [all user defined parameters](config/parameter%20description.md). 
+For explanation of user defined parameters and details of creating config files, please refer to [user defined parameters](config/parameter%20description.md). 
 
 ## Tips
+
 - Please ensure that the computer's current graphics card driver supports CUDA 11.2.
 - Don't run two notebooks at the same time, click `Restart` at the top of the notebook to release the memory.
 
