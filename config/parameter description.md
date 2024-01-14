@@ -14,7 +14,7 @@ List of all parameters defined in [config_base.yaml](config_base.yaml). Some par
   L.param = io.param.combine('config_user')
   ```
 
-
+## List of user defined parameters
 |**Parameters**| Description|
 |:----------------------------|:---------------------------|
 |**datapath** | *string*, full path to the data|  
