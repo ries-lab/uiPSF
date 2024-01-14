@@ -4,9 +4,11 @@ The point spread function (PSF) of a microscope describes the image of a point e
 Here we present uiPSF (universal inverse modelling of Point Spread Functions), a toolbox to infer accurate PSF models either from image stacks of fluorescent beads or directly from images of single blinking fluorophores, the raw data in SMLM. It is a powerful tool to characterize and optimize a microscope as it reports the aberration modes, including field-dependent aberrations.  The resulting PSF model enables accurate 3D super-resolution imaging using single molecule localization microscopy.
 Our modular framework is applicable to a variety of microscope geometries, and the forward model can include system specific characteristics such as the bead size, camera pixel size and transformations among channels. We demonstrate its application in single objective systems with single or multiple channels, 4Pi-SMLM, and lattice light-sheet microscopes.
 
+**Reference**: [Liu S, Chen J, Hellgoth J, et al. Universal inverse modelling of point spread functions for SMLM localization and microscope characterization. Preprint. bioRxiv. 2023](https://doi.org/10.1101/2023.10.26.564064)
+
 # Systems tested
-- Windows 11 with RTX 3080, RTX 2080
-- Rocky Linux 8.7 with A6000
+- Windows 11 with RTX 4090, RTX 3080, RTX 2080
+- Rocky Linux 8.7 with RTX A6000
 
 # Installation
 ## Windows
@@ -37,7 +39,31 @@ pip install -e .
 
 ## Linux
 1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) for Linux.
-2. Follow the [installation for Windows](#Windows) to install the uiPSF package.
+2. Install uiPSF package.
+- For TensorFlow 2.9
+      
+  Follow the [installation for Windows](#Windows) to install the uiPSF package.
+  
+- For lastest TensorFlow (Note that TensorFlow later than 2.10 is no longer supported on Window)
+   
+   a. Modify the version numbers in the *environment.yml* file as follows:
+   ```
+   - cudatoolkit=11.8
+   - cudnn=8.4
+   - python=3.9
+   ```
+   b. Remove the version numbers in `install_requires` in the *setup.py* file as follows:
+   ```
+   "tensorflow"
+   "tensorflow-probability"
+   ```
+   c. Follow the [installation for Windows](#Windows) to install the uiPSF package.
+     
+   d. If the GPU version is intalled, run the following command
+   ```
+   pip install tensorflow[and-cuda]
+   ```
+   We used above procedure to intall uiPSF on a Linux computer with RTX A6000 to fully utilize the computability from the GPU.    
 3. If the GPU version is installed, add cudnn path
 ```
 mkdir -p $CONDA_PREFIX/etc/conda/activate.d
@@ -81,7 +107,8 @@ Download the [example data](https://zenodo.org/records/10027718)
 5. Open the file *demo/datapath.yaml*, change the `main_data_dir` to the path of the downloaded example data.
 6. Navigate to a demo notebook, e.g. *demo/demo_beadPSF_1ch.ipynb*.
 7. Click the run button of the first cell, if running for the first time, a window will popup asking to install the `ipykernel` package, click install. Then a drop down menu will show up asking to select the kernel, select the created conda enviroment `psfinv` during the installation.
-8. Run subsequent cells sequentially.
+    - In case there is no window popup, an alternative method is: install `Jupyter` from *Extensions*, then click *Select Kernel* at the upper right corner of the demo notebook and select the `psfinv` from the dropdown menu.
+9. Run subsequent cells sequentially.
 
 For explanation of user defined parameters and details of creating config files, please refer to [user defined parameters](config/parameter%20description.md). 
 
