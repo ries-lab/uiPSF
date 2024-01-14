@@ -7,8 +7,10 @@ Our modular framework is applicable to a variety of microscope geometries, and t
 **Reference**: [Liu S, Chen J, Hellgoth J, et al. Universal inverse modelling of point spread functions for SMLM localization and microscope characterization. Preprint. bioRxiv. 2023](https://doi.org/10.1101/2023.10.26.564064)
 
 # Systems tested
-- Windows 11 with RTX 4090, RTX 3080, RTX 2080
+- Windows 11 with RTX 4090, RTX 3080,RTX 3090, RTX 2080
+- Windows 10 with RTX 4000, RTX 3090, RTX 1070
 - Rocky Linux 8.7 with RTX A6000
+- Ubuntu 20.04 with RTX 1070
 
 # Installation
 ## Windows
