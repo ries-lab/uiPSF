@@ -1,5 +1,20 @@
 # Description of user defined parameters 
-List of all parameters defined in [config_base.yaml](config_base.yaml). Some parameters are system specific or for advanced settings. Users are not required to work with all parameters. We divided those parameters into [system specific](systemtype), [channel specific](channeltype) and [PSF specific](psftype) parameters. For most application, users only need to edit or add system type config file [e.g. 4pi.yaml](systemtype/4pi.yaml) and update the parameters in the demo notebook. 
+List of all parameters defined in [config_base.yaml](config_base.yaml). Some parameters are system specific or for advanced settings. Users are not required to work with all parameters. We divided those parameters into [system specific](systemtype), [channel specific](channeltype) and [PSF specific](psftype) parameters. For most application, users only need to edit or add system type config file [e.g. 4pi.yaml](systemtype/4pi.yaml) and update the parameters in the demo notebook.   
+## Instructions on using the config files
+- To create a new system type config file, select one example file from the [systemtype](systemtype) folder and save it as a new *.yaml* file. Some example files are from the following systems:
+  - [M2.yaml](systemtype/M2.yaml): Used for both single-channel astigmatism imaging and dual-channel ratiometric astigmatism imaging 
+  - [M4.yaml](systemtype/M4.yaml): Used for single-channel large FOV imaging
+  - [DM_Li.yaml](systemtype/DM_Li.yaml): Used for a single-channel system with a deformable mirror
+  - [LLS.yaml](systemtype/LLS.yaml): Used for a lattice light-sheet system
+  - [TP.yaml](systemtype/TP.yaml): Used for a single-channel system with a phase plate generating the tetrapod PSFs
+  - [4pi.yaml](systemtype/4pi.yaml): Used for a 4Pi-SMLM system
+- The [channeltype](channeltype) and [psftype](psftype) config files shouldn't be changed, unless a new PSF type or modelling method is added to the package.
+- The [config_base.yaml](config_base.yaml) file shouldn't be changed. For advanced settings, the user can create a new *.yaml* file from [config_user.yaml](config_user.yaml) and interacte with all parameters. To load this config file in a demo notebook, run the following command
+  ```
+  L.param = io.param.combine('config_user')
+  ```
+
+
 |**Parameters**| Description|
 |:----------------------------|:---------------------------|
 |**datapath** | *string*, full path to the data|  
