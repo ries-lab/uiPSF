@@ -112,8 +112,8 @@ Download the [example data](https://zenodo.org/records/10027718)
     - In case there is no window popup, an alternative method is: install `Jupyter` from *Extensions*, then click *Select Kernel* at the upper right corner of the demo notebook and select the `psfinv` from the dropdown menu.
 9. Run subsequent cells sequentially.
 
-For explanation of user defined parameters and details of creating config files, please refer to [user defined parameters](config/parameter%20description.md). 
-
+- For explanation of user defined parameters and details of creating config files, please refer to [user defined parameters](config/parameter%20description.md).     
+- For explanation of the output parameters from PSF learning, please refer to [output parameters](demo/Description%20of%20output%20parameters.md).
 ## Tips
 
 - Please ensure that the computer's current graphics card driver supports CUDA 11.2.
