@@ -87,7 +87,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         _, rois, cor, _ = self.data.get_image_data()
         # if options.insitu.backgroundROI:
         #     bgroi = options.insitu.backgroundROI
-        #     maskcor = (cor[:,-1]>bgroi[2]) & (cor[:,-1]<bgroi[3]) & (cor[:,-2]>bgroi[0]) & (cor[:,-2]<bgroi[1]) 
+        #     maskcor = (cor[:,-1]>bgroi[2]) & (cor[:,-1]<bgroi[3]) & (cor[:,-2]>bgroi[0]) & (cor[:,-2]<bgroi[1]) & (initz<edge[1])
         #     zw = np.ones(initz.shape,dtype = np.float32)
         #     zw[maskcor] = 0.0
         #     initz *= zw
@@ -124,7 +124,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.init_sigma = sigma
         self.pos_weight = self.weight[2]
-        init_Zcoeff = None
+        #init_Zcoeff = None
         if init_Zcoeff is None:
             init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1))
             init_Zcoeff[:,0,0,0] = [1,0]/self.weight[4]

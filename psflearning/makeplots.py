@@ -397,7 +397,8 @@ def zernikemap(f,index,zmap,zcoeff,pupil,Zk):
     if index is None:
         index = [4,5,6,7,10,11,12,15,16,21]
         mask = np.array(index) < (zcoeff.shape[-1]-1)
-        index = np.array(index)[mask]        
+        index = np.array(index)[mask]
+
     fig = plt.figure(figsize=[16,4])
     ax = fig.add_subplot(1,2,1)
     plt.plot(zcoeff[0].transpose(),'k',alpha=0.1)
