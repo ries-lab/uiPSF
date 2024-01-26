@@ -133,7 +133,7 @@ class PSFZernikeBased_FD(PSFInterface):
         pupil_mag = pupil_mag + self.Zk[0]*tf.reduce_mean(Zcoeff1[:,0])
         pupil_mag = tf.math.maximum(pupil_mag,0)
 
-        pupil_phase = tf.reduce_sum(self.Zk[4:]*Zcoeff2[:,4:],axis=1,keepdims=True)
+        pupil_phase = tf.reduce_sum(self.Zk[3:]*Zcoeff2[:,3:],axis=1,keepdims=True)
         pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
                 
         Nz = self.Zrange.shape[0]

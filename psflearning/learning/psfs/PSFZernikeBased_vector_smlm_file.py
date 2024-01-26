@@ -82,7 +82,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         LL = locres[2][mask]
 
         if self.options.insitu.partition_data:
-            initz, roisavg,edge = self.partitiondata(initz,LL)
+            initz, roisavg, edge = self.partitiondata(initz,LL)
             
         _, rois, cor, _ = self.data.get_image_data()
         # if options.insitu.backgroundROI:
