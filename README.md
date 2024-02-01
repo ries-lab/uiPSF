@@ -100,7 +100,7 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREF
 - SMLM data of Nup96-AF647 and WGA-CF680 from a dual-color ratiometric system.
 - SMLM data of Nup96-mMaple from a 4Pi-SMLM system
 
-Download the [example data](https://zenodo.org/records/10027718)
+Download the [example data](https://zenodo.org/doi/10.5281/zenodo.8267520)
 # How to run demo notebook
 1. Install uiPSF for your operating system.
 2. Install [Visual Studio Code](https://code.visualstudio.com/Download).
