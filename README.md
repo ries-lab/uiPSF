@@ -39,6 +39,7 @@ ipykernel
 
 # Installation
 ## Windows
+Installation time for the GPU version is around 10 minutes.
 1. Install miniconda for windows, [miniconda](https://docs.conda.io/en/latest/miniconda.html)
 2. Open Anaconda Powershell Prompt, clone the uiPSF package     
 ```
