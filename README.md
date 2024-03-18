@@ -6,7 +6,32 @@ Our modular framework is applicable to a variety of microscope geometries, and t
 
 **Reference**: [Liu S, Chen J, Hellgoth J, et al. Universal inverse modelling of point spread functions for SMLM localization and microscope characterization. Preprint. bioRxiv. 2023](https://doi.org/10.1101/2023.10.26.564064)
 
-# Systems tested
+# System requirements
+## Hardware
+uiPSF can run on both CPU and GPU, however, we recommend installing the GPU version for fast processing speed. To install the GPU version, a GPU card that supports CUDA 11.2 is required. Reference to [Systems tested](#Systems%20tested) for selecting your GPU card.
+## Software
+### OS supported
+uiPSF is supported for Windows, Linux and MacOS. Only CPU version is supported for MacOS.
+### Package dependencies
+```base
+cudatoolkit (GPU version only)
+cudnn (GPU version only)
+pip
+python
+numpy
+scipy
+matplotlib
+tensorflow
+tensorflow-probability
+scikit-image
+tqdm
+czifile
+hdfdict
+dotted_dict
+omegaconf
+ipykernel
+```
+## Systems tested
 - Windows 11 with RTX 4090, RTX 3080,RTX 3090, RTX 2080
 - Windows 10 with RTX 4000, RTX 3090, RTX 1070
 - Rocky Linux 8.7 with RTX A6000
@@ -88,8 +113,20 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREF
 - Microscope characterization
   - [Evaluation of standard microscope systems](demo/demo_eval_system.ipynb).
   - [Evaluation of field-dependent aberration](demo/demo_eval_system_FD.ipynb).
-- [Generate PSF model at a given imaging depth](demo/demo_genPSF.ipynb) 
-
+- [Generate PSF model at a given imaging depth](demo/demo_genPSF.ipynb)
+## Run time of learning the PSF models listed in the demos
+The following run times are obtained from a desktop PC with Windows 11, RTX 3080.
+|**PSF type**| run time (min)| # of parameters|
+|:------------------|:----------------|:------------|
+|**1ch LLS voxel**|1.9 | 31,144|
+|**1ch zernike_vector**|0.5 | 992|
+|**2ch zernike_vector**|5.1 | 3,827|
+|**4pi zernike**|2.8 | 775|
+|**FD zernike_vector**|16.1 | 98,680|
+|**1ch *in situ***|4.7 | 10,433|
+|**2ch *in situ***|13.1 | 22,404|
+|**4pi *in situ***|35 | 35,189|
+|**FD *in situ***|49.7 | 143,023|
 # Example data 
 - 40 nm bead data from single-channel, dual-color ratiometric and 4Pi systems.
 - bead data from a single-channel system with a FOV of 177 um x 177 um.
