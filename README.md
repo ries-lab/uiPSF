@@ -8,7 +8,7 @@ Our modular framework is applicable to a variety of microscope geometries, and t
 
 # System requirements
 ## Hardware
-uiPSF can run on both CPU and GPU, however, we recommend installing the GPU version for fast processing speed. To install the GPU version, a GPU card that supports CUDA 11.2 is required. Reference to [Systems tested](#Systems%20tested) for selecting your GPU card.
+uiPSF can run on both CPU and GPU, however, we recommend installing the GPU version for fast processing speed. To install the GPU version, a GPU card that supports CUDA 11.2 is required. Reference to [Systems tested](#Systems-tested) for selecting your GPU card.
 ## Software
 ### OS supported
 uiPSF is supported for Windows, Linux and MacOS. Only CPU version is supported for MacOS.
@@ -157,7 +157,7 @@ Download the [example data](https://zenodo.org/doi/10.5281/zenodo.8267520)
 - Don't run two notebooks at the same time, click `Restart` at the top of the notebook to release the memory.
 
 # Localization using SMAP and FD-DeepLoc
-Tutorials for using the PSF model generated from uiPSF for localization analysis. Use one of the [demo notebooks](#Demo%20notebooks) to generate the corresponding PSF model (.h5 file) before using the following tutorials. 
+Tutorials for using the PSF model generated from uiPSF for localization analysis. Use one of the [demo notebooks](#Demo-notebooks) to generate the corresponding PSF model (.h5 file) before using the following tutorials. 
 - [Single channel SMLM imaging](tutorial/tutorial%20for%20fit_fastsimple.pdf).
 - [Ratiometric dual-color SMLM imaging](tutorial/Tutorial%20for%20fit_global_dualchannel.pdf).
 - [4Pi-SMLM imaging](tutorial/tutorial%20fit_4pi.pdf)
