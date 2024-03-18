@@ -157,7 +157,7 @@ Download the [example data](https://zenodo.org/doi/10.5281/zenodo.8267520)
 - Don't run two notebooks at the same time, click `Restart` at the top of the notebook to release the memory.
 
 # Localization using SMAP and FD-DeepLoc
-Tutorials for using the PSF model generated from uiPSF for localization analysis. 
+Tutorials for using the PSF model generated from uiPSF for localization analysis. Use one of the [demo notebooks](#Demo%20notebooks) to generate the corresponding PSF model (.h5 file) before using the following tutorials. 
 - [Single channel SMLM imaging](tutorial/tutorial%20for%20fit_fastsimple.pdf).
 - [Ratiometric dual-color SMLM imaging](tutorial/Tutorial%20for%20fit_global_dualchannel.pdf).
 - [4Pi-SMLM imaging](tutorial/tutorial%20fit_4pi.pdf)
