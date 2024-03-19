@@ -116,7 +116,7 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREF
   - [Evaluation of field-dependent aberration](demo/demo_eval_system_FD.ipynb).
 - [Generate PSF model at a given imaging depth](demo/demo_genPSF.ipynb)
 ## Run time of learning the PSF models listed in the demos
-The following run times are obtained from a desktop PC with Windows 11, RTX 3080.
+The following run times were obtained from a desktop PC with Windows 11, RTX 3080.
 |**PSF type**| run time (min)| # of parameters|
 |:------------------|:----------------|:------------|
 |**1ch LLS voxel**|1.9 | 31,144|
@@ -164,4 +164,4 @@ Tutorials for using the PSF model generated from uiPSF for localization analysis
 - [4Pi-SMLM imaging](tutorial/tutorial%20fit_4pi.pdf)
 - [Single channel SMLM imaging with large FOV](tutorial/Tutorial%20for%20FD_aberrations.pdf)
 # Need help?
-Open an issue here on github, or contact Jonas Ries (jonas.ries@univie.ac.at)
+Open an issue here on github, or contact Jonas Ries (jonas.ries@univie.ac.at), Sheng Liu (shengliu@unm.edu)
