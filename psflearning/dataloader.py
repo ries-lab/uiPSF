@@ -99,7 +99,7 @@ class dataloader:
         # currently only for smlm data
         param = self.param
         imageraw = []
-
+        ind = -2
         for filename in filelist:
             f = h5.File(filename,'r')
             k = list(f.keys())
@@ -109,9 +109,9 @@ class dataloader:
                 k = list(f[gname].keys())
             datalist = list(f[gname].keys())
             try:
-                dat = np.squeeze(np.array(f.get(gname+datalist[0])).astype(np.float32))
+                dat = np.squeeze(np.array(f.get(gname+datalist[ind])).astype(np.float32))
             except:
-                dat = np.squeeze(np.array(f.get(gname+datalist[0]+'/'+datalist[0])).astype(np.float32))
+                dat = np.squeeze(np.array(f.get(gname+datalist[ind]+'/'+datalist[ind])).astype(np.float32))
             dat = dat[param.insitu.frame_range[0]:param.insitu.frame_range[1]]
             dat = (dat-param.ccd_offset)*param.gain
             imageraw.append(dat)

@@ -171,7 +171,7 @@ class Fitter(FitterInterface):
             mse1 = np.sum(mse1,axis=0,keepdims=False)
         a = threshold[0]
         if self.psf.options.insitu.backgroundROI:
-            mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp<np.quantile(zp,a))
+            mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp<np.quantile(zp,a)) 
         else:
             mask = (xp>np.quantile(xp,1-a)) & (xp<np.quantile(xp,a)) & (yp>np.quantile(yp,1-a)) & (yp<np.quantile(yp,a)) & (zp>np.quantile(zp,1-a)) & (zp<np.quantile(zp,a))
 
@@ -196,15 +196,33 @@ class Fitter(FitterInterface):
                 var[2] = initres[-1][2][mask] # intensity
                 zw = self.psf.zweight[mask]
                 if self.psf.options.insitu.backgroundROI:
-                    bgroi = self.psf.options.insitu.backgroundROI
-                    maskcor = (cor[:,-1]>bgroi[2]) & (cor[:,-1]<bgroi[3]) & (cor[:,-2]>bgroi[0]) & (cor[:,-2]<bgroi[1]) 
-                    try:
-                        zmin = np.quantile(var[0][maskcor,0],0.05)
-                    except:
-                        zmin = np.quantile(var[0][:,0],0.002)
-                    maskz = var[0][:,0]<zmin
-                    zw[maskz] = 0.0
-                    var[0][maskz,0] = 0.0
+                    nbin_x = 3
+                    nbin_y = 3
+                    count_x, edge_x = np.histogram(cor[:,-1], nbin_x)
+                    count_y, edge_y = np.histogram(cor[:,-2], nbin_y)
+                    ind_x = np.digitize(cor[:,-1], edge_x)
+                    ind_y = np.digitize(cor[:,-2], edge_y)
+                    eid = []
+                    for xx in range(1,nbin_x+1):
+                        for yy in range(1,nbin_y+1):
+                            maskid = np.where((ind_x==xx) & (ind_y==yy))
+                            if maskid[0].size>0:
+                                zf = var[0][maskid,0]                            
+                                zminid = np.argmin(zf)
+                                eid.append(maskid[0][zminid])
+                    eid = np.stack(eid)
+                    zmin = var[0][eid,0]
+                    maskz = zmin<np.quantile(zmin,0.5)
+                    eid = eid[maskz]
+                    # bgroi = self.psf.options.insitu.backgroundROI
+                    # maskcor = (cor[:,-1]>bgroi[2]) & (cor[:,-1]<bgroi[3]) & (cor[:,-2]>bgroi[0]) & (cor[:,-2]<bgroi[1]) 
+                    # try:
+                    #     zmin = np.quantile(var[0][maskcor,0],0.05)
+                    # except:
+                    #     zmin = np.quantile(var[0][:,0],0.002)
+                    # maskz = var[0][:,0]<zmin
+                    zw[eid] = 0.0
+                    var[0][eid,0] = 0.0
 
                 #self.psf.options.insitu.backgroundROI = []
                 self.psf.zweight = zw

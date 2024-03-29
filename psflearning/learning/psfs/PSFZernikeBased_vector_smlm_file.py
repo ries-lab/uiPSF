@@ -118,9 +118,14 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         init_backgrounds[init_backgrounds<0.1] = 0.1
         bgmean = np.median(init_backgrounds)
         wI = np.lib.scimath.sqrt(np.median(init_intensities))
-        weight = [wI*200,bgmean] + list(np.array([150,1,1,20])/wI*40)
-
+        weight = [wI*200,bgmean] + list(np.array([150,1,1,20,0.1])/wI*40)
+        weight[6] = 1.0
         self.weight = np.array(weight,dtype=np.float32)
+        stagetilt = np.zeros((2,1,1),dtype=np.float32)
+        stagetilt[-1] = options.insitu.stage_tilt[-1]/self.data.pixelsize_z/1e3 
+        stagetilt[-2] = options.insitu.stage_tilt[-2]/self.data.pixelsize_z/1e3
+        self.init_stagetilt  = stagetilt.astype(np.float32)
+
         sigma = np.ones((2,))*self.options.model.blur_sigma*np.pi
         self.init_sigma = sigma
         self.pos_weight = self.weight[2]
@@ -142,6 +147,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
             dict(type='Nfit',id=0),
             dict(type='shared'),
             dict(type='shared'),
+            dict(type='shared'),
             dict(type='shared')]
 
         return [init_positions.astype(np.float32),
@@ -149,14 +155,15 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                 init_Intensity.astype(np.float32),
                 init_Zcoeff.astype(np.float32),
                 sigma.astype(np.float32), 
-                init_stagepos.astype(np.float32)], start_time
+                init_stagepos.astype(np.float32),
+                stagetilt.astype(np.float32)], start_time
         
     def calc_forward_images(self, variables):
         """
         Calculate forward images from the current guess of the variables.
         Shifting is done by Fourier transform and applying a phase ramp.
         """
-        pos, backgrounds, intensities, Zcoeff, sigma, stagepos = variables
+        pos, backgrounds, intensities, Zcoeff, sigma, stagepos, stagetilt = variables
         c1 = self.spherical_terms
         n_max = self.n_max_mag
         Nk = np.min(((n_max+1)*(n_max+2)//2,self.Zk.shape[0]))
@@ -180,13 +187,16 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         if self.options.model.zernike_nl:
             pupil_phase = tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff[1],indices=self.noll_index)*self.weight[3],axis=0)
         else:
-            pupil_phase = tf.reduce_sum(self.Zk[3:]*Zcoeff[1][3:]*self.weight[3],axis=0)
+            pupil_phase = tf.reduce_sum(self.Zk[4:]*Zcoeff[1][4:]*self.weight[3],axis=0)
         
         pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid                
         pos = tf.complex(tf.reshape(pos*self.weight[2],pos.shape+(1,1)),0.0)
 
+        cor = np.reshape(np.float32(self.data.centers[self.ind[0]:self.ind[1]]),(-1,2,1,1))
         if self.options.insitu.var_stagepos:
-            stagepos = tf.complex(stagepos*self.weight[5],0.0)
+            #stagepos = tf.complex(stagepos*self.weight[5],0.0)
+            stpos = stagepos*self.weight[5] + (self.init_stagetilt[-1]*cor[:,-1] + self.init_stagetilt[-2]*cor[:,-2])*self.weight[6]
+            stagepos = tf.complex(stpos,0.0)
         else:
             stagepos = tf.complex(self.init_stagepos*self.weight[5],0.0)
 
@@ -330,18 +340,22 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         real positions in the image from the positions in the roi. Also, normalizes
         psf and adapts intensities and background accordingly.
         """
-        positions, backgrounds, intensities, Zcoeff,sigma, stagepos = variables
+        positions, backgrounds, intensities, Zcoeff,sigma, stagepos, stagetilt = variables
         res = variables.copy()
         positions = positions*self.weight[2]
         Zcoeff[0]=Zcoeff[0]*self.weight[4]
         Zcoeff[1]=Zcoeff[1]*self.weight[3]
         stagepos = stagepos*self.weight[5]
+        stagetilt = stagetilt*self.weight[6]
         bin = self.options.model.bin
         positions[:,1:] = positions[:,1:]/bin
 
-        I_model,pupil = self.genpsfmodel(sigma,Zcoeff,stagepos)
-        # calculate global positions in images since positions variable just represents the positions in the rois
         images, _, centers, _ = self.data.get_image_data()
+        stpos = stagepos + stagetilt[-1]*centers[:,-1] + stagetilt[-2]*centers[:,-2]
+        stagepos_max = np.max(stpos)
+
+        I_model,pupil = self.genpsfmodel(sigma,Zcoeff,stagepos_max)
+        # calculate global positions in images since positions variable just represents the positions in the rois
         original_shape = images.shape[-3:]
         
         global_positions = np.swapaxes(np.vstack((positions[:,0],centers[:,-2]-positions[:,-2],centers[:,-1]-positions[:,-1])),1,0)
@@ -354,6 +368,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                 Zcoeff,     
                 sigma,
                 stagepos*self.data.pixelsize_z,
+                stagetilt*self.data.pixelsize_z,
                 res] # already correct
     
 
@@ -366,6 +381,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
                         zernike_coeff = np.squeeze(res[5]),
                         sigma = res[6]/np.pi,
                         stagepos = res[7],
+                        stagetilt = res[8],
                         offset=np.min(res[3]),
                         zernike_polynomial = self.Zk,
                         apodization = self.apoid,

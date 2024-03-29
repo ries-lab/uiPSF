@@ -624,10 +624,10 @@ class psflearninglib:
                     psfobj.calpupilfield('scalar',Nz=Nz)
 
             if 'FD' in p.PSFtype:
-                dx = f.rois.image_size[-1]/f.res.zernike_map.shape[-1]/2
-                dy = f.rois.image_size[-2]/f.res.zernike_map.shape[-2]/2
-                xrange = np.linspace(dx,f.rois.image_size[-1]-dx,f.res.zernike_map.shape[-1],dtype=np.float32)
-                yrange = np.linspace(dy,f.rois.image_size[-2]-dy,f.res.zernike_map.shape[-2],dtype=np.float32)
+                #dx = f.rois.image_size[-1]/f.res.zernike_map.shape[-1]/2
+                #dy = f.rois.image_size[-2]/f.res.zernike_map.shape[-2]/2
+                xrange = np.linspace(0,f.rois.image_size[-1],f.res.zernike_map.shape[-1]+1,dtype=np.float32)
+                yrange = np.linspace(0,f.rois.image_size[-2],f.res.zernike_map.shape[-2]+1,dtype=np.float32)
                 [xx,yy] = np.meshgrid(xrange,yrange)
                 cor = np.vstack((xx.flatten(),yy.flatten())).transpose()
                 Zmap = f.res.zernike_map
@@ -685,7 +685,7 @@ class psflearninglib:
                 I_model = f1.res.I_model/np.sum(f1.res.I_model,axis=(-1,-2),keepdims=True)
                 I0 = I_model[:,0,xsz//2,xsz//2]
                 strehlratio = np.float32(I1/I0)
-                strehlratio_map = np.reshape(strehlratio,(f.res.zernike_map.shape[-2],f.res.zernike_map.shape[-1]))
+                strehlratio_map = np.reshape(strehlratio,(f.res.zernike_map.shape[-2]+1,f.res.zernike_map.shape[-1]+1))
                 plt.imshow(strehlratio_map)
                 plt.colorbar()
                 plt.title('Strehl ratio map',fontsize=15)
