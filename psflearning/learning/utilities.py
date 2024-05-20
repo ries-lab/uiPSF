@@ -14,6 +14,7 @@ from . import imagetools as nip
 import numbers
 from scipy import ndimage
 import scipy.fft as fft
+from scipy.ndimage.filters import gaussian_filter
 defaultTFDataType="float32"
 defaultTFCpxDataType="complex64"
 #%%
@@ -153,3 +154,56 @@ def cztfunc1(datain,param):
     dataout = C*cztout[...,-M:,-M:]
 
     return dataout
+
+def gen_layers(imagesize,sigma,poolsize,roisize):
+    # create a gaussian difference convolutional layer
+    kernelsize = tuple(np.array(sigma)*3+1)
+    conv2d = tf.keras.layers.Conv2D(1, kernelsize, strides=(1, 1), padding="same")
+    conv2d.build(input_shape=(None, imagesize[-2], imagesize[-1], 1))
+    kernel = np.zeros(kernelsize)
+    cc = np.array(kernelsize)//2
+    kernel[cc[0],cc[1]] = 1
+    kernel = gaussian_filter(kernel, list(np.array(sigma)*0.75))-gaussian_filter(kernel, sigma)
+    kernel = kernel.reshape(kernel.shape+(1,1))
+    bias = np.zeros(1)
+    conv2d.set_weights([kernel,bias])
+
+    # create a max pooling layer
+    max_pool_2d = tf.keras.layers.MaxPooling2D(pool_size=tuple(poolsize),strides=(1, 1), padding="same")
+
+    # create a uniform convolutional layer
+    conv_uniform = tf.keras.layers.Conv2D(1, tuple(roisize), strides=(1, 1), padding="same")
+    conv_uniform.build(input_shape=(None, imagesize[-2], imagesize[-1], 1))
+    kernel = np.ones(tuple(roisize)+(1,1))
+    bias = np.zeros(1)
+    conv_uniform.set_weights([kernel,bias])
+
+    return conv2d, max_pool_2d, conv_uniform
+
+def crop_rois(imgin,conv2d,max_pool_2d,conv_uniform,thresh,roisize):
+    # apply gaussian difference filter
+    img = np.reshape(imgin,imgin.shape+(1,))
+    imgconv = conv2d(img)
+    # apply max pooling
+    imgmax = max_pool_2d(imgconv)
+    # find local maxima
+    mask = tf.math.equal(imgmax,imgconv)
+    locmax = tf.cast(mask,tf.float32) * imgconv
+    thresh = np.quantile(locmax[mask],1-1e-4) * thresh
+    # remove overlapping peaks
+    locmax1= tf.cast(tf.math.greater(locmax,thresh),tf.float32)
+    locmaxf = conv_uniform(locmax1)
+    locmax1 = locmaxf*locmax1
+    coords = tf.where((locmax1>0)&(locmax1<2))
+    coords = np.array(coords[:,:-1])
+    # remove peaks at the image border
+    sz = roisize
+    mask = (coords[:,1]-sz[0]//2 >=0) & (coords[:,1]-sz[0]//2+sz[0] <= img.shape[1]) & (coords[:,2]-sz[1]//2 >=0) & (coords[:,2]-sz[1]//2+sz[1] <= img.shape[2])
+    coords = coords[mask]
+    # crop rois
+    rois = np.zeros((coords.shape[0],)+tuple(sz))
+    for k,cor in enumerate(coords):
+        rois[k] = imgin[cor[0],cor[1]-sz[0]//2:cor[1]-sz[0]//2+sz[0],cor[2]-sz[1]//2:cor[2]-sz[1]//2+sz[1]]
+
+    return rois,coords
+    
