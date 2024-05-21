@@ -14,6 +14,7 @@ Params:
 
   insitu:               
     frame_range: [100,2000]     # set the frames to be loaded, only for .tif format
+    dataId: 0                  # set the index of the dataset to be loaded for .h5 file 
 
   option:   
     imaging:                       

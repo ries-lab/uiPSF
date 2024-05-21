@@ -5,29 +5,30 @@ All rights reserved
 @author: Sheng Liu
 """
 #%%
-from pickle import FALSE
+#from pickle import FALSE
 import h5py as h5
-import czifile as czi
+#import czifile as czi
 import numpy as np
-import scipy as sp
+#import scipy as sp
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
-from skimage import io
+#from skimage import io
 # append the path of the parent directory as long as it's not a real package
-import sys
-import glob
-import scipy.io as sio
-import tensorflow as tf
+#import sys
+#import glob
+#import scipy.io as sio
+import scipy.signal as sig
+#import tensorflow as tf
 import json
 from tqdm import tqdm
-from PIL import Image
+#from PIL import Image
 from omegaconf import OmegaConf
-import os
-from tkinter import EXCEPTION, messagebox as mbox
+#import os
+#from tkinter import EXCEPTION, messagebox as mbox
 from dotted_dict import DottedDict
 from .dataloader import dataloader
 #sys.path.append("..")
-
+from .learning import utilities as util
 from .learning import ( PreprocessedImageDataSingleChannel,
                         PreprocessedImageDataMultiChannel,
                         PreprocessedImageDataSingleChannel_smlm,
@@ -49,6 +50,7 @@ from .learning import ( PreprocessedImageDataSingleChannel,
                         PSFMultiChannel4pi_smlm,
                         PSFZernikeBased4pi_smlm,
                         L_BFGS_B,
+                        localizationlib,
                         psf2cspline_np,
                         mse_real,
                         mse_real_zernike,
@@ -876,3 +878,79 @@ class psflearninglib:
         x2 = np.array(x2,dtype = np.float64)
         xh2 = np.minimum(np.maximum(xh2,np.min(x2)),np.max(x2))
         return np.hstack([xh1, xh2])
+
+    def localize(self,f,datarange=[0,5]):
+        # currently tested for .h5 data, single channel system
+        #% build layers for segmentation
+        sigma = self.param.roi.gauss_sigma
+        poolsize = self.param.roi.max_kernel
+        roisize = self.param.roi.roi_size
+        thresh = self.param.roi.peak_height
+
+        conv2d,max_pool_2d,conv_uniform = util.gen_layers(f.rois.image_size,sigma,poolsize,roisize)
+        x = []
+        y = []
+        z = []
+        LL = []
+        batchsize = 1000
+        for id in range(datarange[0],datarange[1]):
+            # load data
+            self.param.insitu.dataId = id
+            images = self.load_data()
+            # batch process
+            Nf = images.shape[0]
+            ind = list(range(0,Nf,batchsize))+[Nf]
+            for i in range(len(ind)-1):
+                # segment
+                rois,coords = util.crop_rois(images[ind[i]:ind[i+1]],conv2d,max_pool_2d,conv_uniform,thresh,roisize)
+                #% remove negative values
+                offset = np.min((np.quantile(rois,1e-3),0))
+                rois = rois - offset
+                #% localize
+                dll = localizationlib(usecuda=True)
+                pz = self.param.pixel_size.z
+                locres = dll.loc_ast(rois,f.res.I_model,pz)
+                # collect results
+                x.append(coords[:,-1]+locres[-1]['x'].flatten())
+                y.append(coords[:,-2]+locres[-1]['y'].flatten())
+                z.append(locres[-1]['z'].flatten())
+                LL.append(locres[2])
+        # combine results
+        x = np.hstack(x)
+        y = np.hstack(y)
+        z = np.hstack(z)
+        LL = np.hstack(LL)
+
+        return x,y,z,LL
+    
+    def identify_background(self,xf,yf,zf,nfovbin=6,zbinsize=0.1,zpeak=0.07):
+        #%% select background region from localizations
+        nbin_x = nfovbin
+        nbin_y = nfovbin
+        count_x, edge_x = np.histogram(xf, nbin_x)
+        count_y, edge_y = np.histogram(yf, nbin_y)
+        ind_x = np.digitize(xf, edge_x)
+        ind_y = np.digitize(yf, edge_y)
+        x0 = []
+        y0 = []
+        z0 = []
+        for xx in range(1,nbin_x+1):
+            for yy in range(1,nbin_y+1):
+                maskid = np.where((ind_x==xx) & (ind_y==yy))
+                if maskid[0].size>0:
+                    zi = zf[maskid]                                        
+                    out = np.histogram(zi,bins=np.arange(0,25,zbinsize))
+                    g = out[0]
+                    bins = (out[1][1:]+out[1][:-1])/2
+                    ind, _ = sig.find_peaks(g/np.max(g),height=zpeak,width=None)
+                    zcutoff = bins[ind[0]]+1
+                    mask = zi<zcutoff
+                    x0.append(xf[maskid][mask])
+                    y0.append(yf[maskid][mask])
+                    z0.append(zf[maskid][mask])
+
+        x0 = np.hstack(x0)
+        y0 = np.hstack(y0)
+        z0 = np.hstack(z0)
+
+        return x0,y0,z0
