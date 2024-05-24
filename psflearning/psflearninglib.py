@@ -602,7 +602,7 @@ class psflearninglib:
 
         return coeff
     
-    def genpsf(self,f,Nz=21,xsz=21,stagepos=1.0):
+    def genpsf(self,f,Nz=21,xsz=21,stagepos=1.0,zpos=None):
         p = self.param
         dataobj = DottedDict(pixelsize_x = p.pixel_size.x,
                             pixelsize_y = p.pixel_size.y,
@@ -619,6 +619,8 @@ class psflearninglib:
             if 'insitu' in p.PSFtype:
                 psfobj.stagepos = stagepos/p.pixel_size.z
                 psfobj.estzoffset(Nz=Nz) 
+                if zpos is not None:
+                    psfobj.Zrange = zpos
             else:
                 if psfobj.psftype=='vector':
                     psfobj.calpupilfield('vector',Nz=Nz)
