@@ -137,6 +137,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
             init_Zcoeff = init_Zcoeff/self.weight[4]
         
 
+                              
         init_backgrounds = init_backgrounds / self.weight[1]
         init_Intensity = init_intensities / self.weight[0]
         init_positions = init_positions / self.weight[2]
@@ -196,6 +197,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         if self.options.insitu.var_stagepos:
             #stagepos = tf.complex(stagepos*self.weight[5],0.0)
             stpos = stagepos*self.weight[5] + (self.init_stagetilt[-1]*cor[:,-1] + self.init_stagetilt[-2]*cor[:,-2])*self.weight[6]
+            stpos = tf.math.maximum(stpos,0.0)
             stagepos = tf.complex(stpos,0.0)
         else:
             stagepos = tf.complex(self.init_stagepos*self.weight[5],0.0)
@@ -346,7 +348,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         Zcoeff[0]=Zcoeff[0]*self.weight[4]
         Zcoeff[1]=Zcoeff[1]*self.weight[3]
         stagepos = stagepos*self.weight[5]
-        stagetilt = stagetilt*self.weight[6]
+        stagetilt = self.init_stagetilt*self.weight[6]
         bin = self.options.model.bin
         positions[:,1:] = positions[:,1:]/bin
 

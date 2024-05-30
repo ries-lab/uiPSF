@@ -27,6 +27,6 @@ Params:
     insitu:
       zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
       zernike_coeff: [-0.5]         # for initial pupil, value corresponding to the zernike index 
-      partition_size: [21,100]     # number of z segments, maximum number of emitter per segment
+      partition_size: [21,300]     # number of z segments, maximum number of emitter per segment
       z_range: 1.4                 # unit: micron, z range of insitu psf model
       stage_tilt: [0,0]            # stage tilt in [y,x] direction, unit: nm/pixel

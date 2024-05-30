@@ -329,6 +329,8 @@ class psflearninglib:
         pupilfile = optionparam.model.init_pupil_file
         psfobj = self.initializepsf()
 
+
+
         if pupilfile:
             f = h5.File(pupilfile, 'r')
             if channeltype == 'single':
