@@ -238,11 +238,12 @@ def showzernike(f,p,index=None):
         ax = fig.add_subplot(1,2,1)
         plt.imshow(pupil_mag,interpolation='nearest')
         plt.colorbar()
-        plt.title('pupil magnitude',fontsize=20)
+        plt.title('pupil magnitude')
         ax = fig.add_subplot(1,2,2)
         plt.imshow(pupil_phase,interpolation='nearest')
         plt.colorbar()
-        plt.title('pupil phase',fontsize=20)
+        plt.title('pupil phase')
+        plt.suptitle('Zernike expanded pupil function, no apodization',fontsize=16)
     elif p.channeltype == 'multi':
         Nchannel = f.rois.psf_data.shape[0]
         fig = plt.figure(figsize=[12,6])
