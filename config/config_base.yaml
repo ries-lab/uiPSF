@@ -43,6 +43,8 @@ Params:
     skew_const: [0,0]            # unit: pixel
   insitu:               
     frame_range: [0,3000]     # set the frames to be loaded
+    dataId: 0                   # set the index of the dataset to be loaded for .h5 file
+
 
   option:                         # mainly for pupil and zernike, insitu  learning
     imaging:                       

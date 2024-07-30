@@ -6,7 +6,8 @@ import scipy as sp
 import scipy.special as spf
 
 import matplotlib.pyplot as plt
-from .. import imagetools as nip
+#from .. import imagetools as nip
+from .. import utilities as util
 from tkinter import messagebox as mbox
 import sys
 
@@ -33,7 +34,7 @@ class PreprocessedImageDataSingleChannel(PreprocessedImageDataInterface):
             self.is4pi = True
             self.num_dims = 5
             self.dim_names = "images, phi, z, y, x"
-            self.func_2Dimage = lambda ims: np.max(ims[0], axis=0) # used in find_rois()
+            self.func_2Dimage = lambda ims: np.max(ims[:,0], axis=-3) # used in find_rois()
         else:
             raise ValueError("is4pi should be True or False.")
 
@@ -70,48 +71,34 @@ class PreprocessedImageDataSingleChannel(PreprocessedImageDataInterface):
         """
         self.min_border_dist = min_border_dist #  needed in cut_new_rois()
 
-        all_rois = []
-        all_centers = []
-        file_idxs = []
 
-        for file_idx, image in enumerate(self.images):
-            # TODO: try/except, since nip.extractMuliPeaks throws error if no roi is found
+        if len(roi_size)>2:
+            im2 = self.images
+        else:
+            im2 = self.func_2Dimage(self.images)
+
+        rois, centers = util.extractROI(im2,roi_size,gaus_sigma,max_kernel,max_threshold,self.images)
+        # remove rois/centers that are to close together
+        if rois.shape[0]>0:
             if len(roi_size)>2:
-                im2 = image
-            else:
-                im2 = self.func_2Dimage(image)
-            rois, centers = nip.extractMultiPeaks(im2, ROIsize=roi_size, sigma=gaus_sigma,
-                                                borderDist=min_border_dist, threshold_rel=max_threshold,
-                                                alternateImg=image, kernel=max_kernel)
-            
-            # remove rois/centers that are to close together
-            if rois is not None:
                 if min_center_dist is None:
-                    min_center_dist = np.hypot(roi_size[-2], roi_size[-1])
+                    min_center_dist = np.max(roi_size)
                 rois, centers = self.remove_close_rois(rois, centers, min_center_dist)
-                if FOV is not None:        
-                    fov = np.array(FOV)
-                    #inFov = (coordinates[:,-1]>= fov[0]-fov[2]/2) & (coordinates[:,-1] <= fov[0]+fov[2]/2) & (coordinates[:,-2]>= fov[1]-fov[3]/2) & (coordinates[:,-2] <= fov[1]+fov[3]/2)
-                    coord_r = (centers[:,-1]-fov[1])**2+(centers[:,-2]-fov[0])**2
-                    inFov = coord_r<(fov[2]**2)
-                    rois = rois[inFov]
-                    centers = centers[inFov]
-
-                all_rois.append(rois)
-                all_centers.append(centers)
-                file_idxs += [file_idx] * rois.shape[0]
-            if max_bead_number:
-                if len(file_idxs)>max_bead_number:
-                    break
-        L = np.min((max_bead_number,len(file_idxs)))
-        # convert to numpy arrays and make sure everything has correct dtypes
-        if not all_rois:
-            #mbox.showerror("segmentation error","no bead is found")
+            if FOV is not None:        
+                fov = np.array(FOV)
+                coord_r = (centers[:,-1]-fov[1])**2+(centers[:,-2]-fov[0])**2
+                inFov = coord_r<(fov[2]**2)
+                rois = rois[inFov]
+                centers = centers[inFov]
+        else:
             raise RuntimeError('no bead is found')
-        self.rois = np.concatenate(all_rois)[0:L].astype(np.float32)
-        self.centers = np.concatenate(all_centers)[0:L].astype(np.int32)
-        self.centers_all = np.concatenate(all_centers)[0:L].astype(np.int32)
-        self.file_idxs = np.array(file_idxs)[0:L].astype(np.int32)
+
+        L = np.min((max_bead_number,rois.shape[0]))
+        # convert to numpy arrays and make sure everything has correct dtypes
+        self.rois = rois[0:L].astype(np.float32)
+        self.centers = centers[0:L,1:].astype(np.int32)
+        self.centers_all = centers[0:L,1:].astype(np.int32)
+        self.file_idxs = centers[0:L,0].astype(np.int32)
         self.rois_available = True
         self.image_size = self.images.shape
         return
@@ -123,16 +110,19 @@ class PreprocessedImageDataSingleChannel(PreprocessedImageDataInterface):
         that are to close to each other in order to ensure that there is only
         one signal/bead per roi.
         """
-        # TODO: there is one corner case that is not handled here:
-        # if two beads are close together and one (and only one) is to close to border
-        # in this case only the rois that is not to close to the border is cut
-        # but since the other one is not the first one is not filtered out here
-        # so it could be possible that there are two beads visible in one roi...
-        dist_matrix = sp.spatial.distance_matrix(centers, centers)
-        keep_matrix_idxs = np.where((0 == dist_matrix) | (dist_matrix > min_dist))
-        unique, counts = np.unique(keep_matrix_idxs[0], return_counts=True)
-        keep_idxs = unique[counts == centers.shape[0]]
-        return rois[keep_idxs], centers[keep_idxs]
+        rois_remain = []
+        centers_remain = []
+        for i in range(0,np.max(centers[:,0])+1):
+            mask = centers[:,0] == i
+            if sum(mask)>1:
+                cor = centers[mask][:,1:]
+                dist_matrix = sp.spatial.distance_matrix(cor, cor)
+                keep_matrix_idxs = np.where((dist_matrix==0) | (dist_matrix > min_dist))
+                unique, counts = np.unique(keep_matrix_idxs[0], return_counts=True)
+                keep_idxs=unique[counts == cor.shape[0]]
+                rois_remain.append(rois[mask][keep_idxs])
+                centers_remain.append(centers[mask][keep_idxs])
+        return np.concatenate(rois_remain), np.concatenate(centers_remain)
 
     def cut_new_rois(self, centers, file_idxs, roi_size=None, min_border_dist=None):
         """
@@ -141,8 +131,8 @@ class PreprocessedImageDataSingleChannel(PreprocessedImageDataInterface):
         # set default values
         if roi_size is None:
             roi_size = self.rois.shape[-2:]
-        if min_border_dist is None:
-            min_border_dist = self.min_border_dist
+        #if min_border_dist is None:
+        #    min_border_dist = self.min_border_dist
         
         if len(roi_size)==3:
             Nz = roi_size[0]
@@ -173,12 +163,15 @@ class PreprocessedImageDataSingleChannel(PreprocessedImageDataInterface):
         '''
 
         # iterate over file_index to make sure that new roi is cut from correct file
-        new_rois = []
-        for i, file_idx in enumerate(file_idxs):
-            new_rois.append(nip.multiROIExtract(self.images[file_idx], [centers[i]], roi_shape))
+        #new_rois = []
+        #for i, file_idx in enumerate(file_idxs):
+        #    new_rois.append(nip.multiROIExtract(self.images[file_idx], [centers[i]], roi_shape))
+        
+        coords = np.hstack([file_idxs.reshape((-1,1)),centers])
+        new_rois = util.crop_rois(self.images, coords, roi_shape)
 
         # convert to numpy arrays and make sure everything has correct dtypes
-        self.rois = np.concatenate(new_rois).astype(np.float32)
+        self.rois = new_rois.astype(np.float32)
         self.centers = centers.astype(np.int32)
         self.file_idxs = file_idxs.astype(np.int32)
         self.rois_available = True

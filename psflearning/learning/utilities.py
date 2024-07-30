@@ -10,7 +10,7 @@ import tensorflow as tf
 import numpy as np
 import scipy as sp
 from math import factorial 
-from . import imagetools as nip
+#from . import imagetools as nip
 import numbers
 from scipy import ndimage
 import scipy.fft as fft
@@ -155,6 +155,68 @@ def cztfunc1(datain,param):
 
     return dataout
 
+def extractROI(images,roisize, sigma, poolsize, thresh,rawImg):
+    imagesize = images.shape
+    if len(sigma) == 2:
+        conv2d, max_pool_2d, conv_uniform = gen_layers(imagesize,sigma,poolsize,roisize)
+        coords = find_peaks(images,conv2d,max_pool_2d,conv_uniform,thresh,roisize)
+        rois = crop_rois(rawImg,coords,roisize)
+    elif len(sigma) == 3:
+        conv3d, max_pool_3d, conv_uniform = gen_layers_3d(imagesize,sigma,poolsize,roisize)
+        coords = find_peaks_3d(images,conv3d,max_pool_3d,conv_uniform,thresh,roisize)
+        rois = crop_rois(rawImg,coords,roisize)
+
+    return rois,coords
+
+def gen_layers_3d(imagesize,sigma,poolsize,roisize):
+    # create a gaussian difference convolutional layer
+    kernelsize = tuple(np.array(sigma)*3+1)
+    conv3d = tf.keras.layers.Conv3D(1, kernelsize, strides=(1, 1, 1), padding="same")
+    conv3d.build(input_shape=(None, imagesize[-3], imagesize[-2], imagesize[-1], 1))
+    kernel = np.zeros(kernelsize)
+    cc = np.array(kernelsize)//2
+    kernel[cc[0],cc[1],cc[2]] = 1
+    kernel = gaussian_filter(kernel, list(np.array(sigma)*0.75))-gaussian_filter(kernel, sigma)
+    kernel = kernel.reshape(kernel.shape+(1,1))
+    bias = np.zeros(1)
+    conv3d.set_weights([kernel,bias])
+
+    # create a max pooling layer
+    max_pool_3d = tf.keras.layers.MaxPooling3D(pool_size=tuple(poolsize),strides=(1, 1, 1), padding="same")
+
+    # create a uniform convolutional layer
+    conv_uniform = tf.keras.layers.Conv3D(1, tuple(roisize), strides=(1, 1, 1), padding="same")
+    conv_uniform.build(input_shape=(None, imagesize[-3],imagesize[-2], imagesize[-1], 1))
+    kernel = np.ones(tuple(roisize)+(1,1))
+    bias = np.zeros(1)
+    conv_uniform.set_weights([kernel,bias])
+
+    return conv3d, max_pool_3d, conv_uniform
+
+def find_peaks_3d(imgin,conv3d,max_pool_3d,conv_uniform,thresh,roisize):
+    # apply gaussian difference filter
+    img = np.reshape(imgin,imgin.shape+(1,))
+    imgconv = conv3d(img)
+    # apply max pooling
+    imgmax = max_pool_3d(imgconv)
+    # find local maxima
+    mask = tf.math.equal(imgmax,imgconv)
+    locmax = tf.cast(mask,tf.float32) * imgconv
+    thresh = np.quantile(locmax[mask],1-1e-4) * thresh
+    # remove overlapping peaks
+    locmax1= tf.cast(tf.math.greater(locmax,thresh),tf.float32)
+    #locmaxf = conv_uniform(locmax1)
+    #locmax1 = locmaxf*locmax1
+    #coords = tf.where((locmax1>0)&(locmax1<2))
+    coords = tf.where((locmax1>0))
+    coords = np.array(coords[:,:-1])
+    # remove peaks at the image border
+    sz = roisize
+    mask = (coords[:,-3]-sz[-3]//2 >=0) & (coords[:,-3]-sz[-3]//2+sz[-3] <= imgin.shape[-3]) & (coords[:,-2]-sz[-2]//2 >=0) & (coords[:,-2]-sz[-2]//2+sz[-2] <= imgin.shape[-2]) & (coords[:,-1]-sz[-1]//2 >=0) & (coords[:,-1]-sz[-1]//2+sz[-1] <= imgin.shape[-1])
+    coords = coords[mask]
+
+    return coords
+
 def gen_layers(imagesize,sigma,poolsize,roisize):
     # create a gaussian difference convolutional layer
     kernelsize = tuple(np.array(sigma)*3+1)
@@ -180,7 +242,7 @@ def gen_layers(imagesize,sigma,poolsize,roisize):
 
     return conv2d, max_pool_2d, conv_uniform
 
-def crop_rois(imgin,conv2d,max_pool_2d,conv_uniform,thresh,roisize):
+def find_peaks(imgin,conv2d,max_pool_2d,conv_uniform,thresh,roisize):
     # apply gaussian difference filter
     img = np.reshape(imgin,imgin.shape+(1,))
     imgconv = conv2d(img)
@@ -201,9 +263,19 @@ def crop_rois(imgin,conv2d,max_pool_2d,conv_uniform,thresh,roisize):
     mask = (coords[:,1]-sz[0]//2 >=0) & (coords[:,1]-sz[0]//2+sz[0] <= img.shape[1]) & (coords[:,2]-sz[1]//2 >=0) & (coords[:,2]-sz[1]//2+sz[1] <= img.shape[2])
     coords = coords[mask]
     # crop rois
-    rois = np.zeros((coords.shape[0],)+tuple(sz))
-    for k,cor in enumerate(coords):
-        rois[k] = imgin[cor[0],cor[1]-sz[0]//2:cor[1]-sz[0]//2+sz[0],cor[2]-sz[1]//2:cor[2]-sz[1]//2+sz[1]]
 
-    return rois,coords
+    return coords
     
+
+def crop_rois(imgin,coords,sz):
+    if len(sz)>2:
+
+        rois = np.zeros((coords.shape[0],)+tuple(sz))
+        for k,cor in enumerate(coords):
+            rois[k] = imgin[cor[0],...,cor[-3]-sz[-3]//2:cor[-3]-sz[-3]//2+sz[-3],cor[-2]-sz[-2]//2:cor[-2]-sz[-2]//2+sz[-2],cor[-1]-sz[-1]//2:cor[-1]-sz[-1]//2+sz[-1]]
+    else:
+        rois = np.zeros((coords.shape[0],)+(imgin[0,...,0,0].shape)+tuple(sz))
+        for k,cor in enumerate(coords):
+            rois[k] = imgin[cor[0],...,cor[-2]-sz[-2]//2:cor[-2]-sz[-2]//2+sz[-2],cor[-1]-sz[-1]//2:cor[-1]-sz[-1]//2+sz[-1]]
+
+    return rois

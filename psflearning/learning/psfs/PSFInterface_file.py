@@ -7,7 +7,7 @@ import scipy.special as spf
 
 from ..data_representation.PreprocessedImageDataInterface_file import PreprocessedImageDataInterface
 from .. import utilities as im
-from .. import imagetools as nip
+#from .. import imagetools as nip
 
 class PSFInterface():
     """
@@ -208,23 +208,23 @@ class PSFInterface():
         return 
 
 
-    def applyPhaseRamp(self, img, shiftvec):
-        """
-        Applies a frequency ramp as a phase factor according to the shiftvec to a Fourier transform to shift the image.
-		Identical to implementation in InverseModelling. Just removed if-statement (0) that does not make sense for me and prevent my code to work correctly.
-		img: input Fourier transform tensor
-		shiftvec: real-space shifts
-		"""
-        # TODO: no im
-        res = im.totensor(img)
-        myshape = im.shapevec(res)
-        ShiftDims = shiftvec.shape[-1]
-        for d in range(1, ShiftDims+1):
-            myshifts = shiftvec[..., -d] 
-            for ed in range(len(myshape) - len(myshifts.shape)): 
-                myshifts = tf.expand_dims(myshifts,-1)
-            res = res * tf.exp(tf.complex(im.totensor(0.0), 2.0 * np.pi * myshifts * nip.ramp1D(myshape[-d], ramp_dim = -d, freq='ftfreq')))
-        return res
+    # def applyPhaseRamp(self, img, shiftvec):
+    #     """
+    #     Applies a frequency ramp as a phase factor according to the shiftvec to a Fourier transform to shift the image.
+	# 	Identical to implementation in InverseModelling. Just removed if-statement (0) that does not make sense for me and prevent my code to work correctly.
+	# 	img: input Fourier transform tensor
+	# 	shiftvec: real-space shifts
+	# 	"""
+    #     # TODO: no im
+    #     res = im.totensor(img)
+    #     myshape = im.shapevec(res)
+    #     ShiftDims = shiftvec.shape[-1]
+    #     for d in range(1, ShiftDims+1):
+    #         myshifts = shiftvec[..., -d] 
+    #         for ed in range(len(myshape) - len(myshifts.shape)): 
+    #             myshifts = tf.expand_dims(myshifts,-1)
+    #         res = res * tf.exp(tf.complex(im.totensor(0.0), 2.0 * np.pi * myshifts * nip.ramp1D(myshape[-d], ramp_dim = -d, freq='ftfreq')))
+    #     return res
 
     def phaseRamp(self,pos):
         if pos.shape[1]==2:

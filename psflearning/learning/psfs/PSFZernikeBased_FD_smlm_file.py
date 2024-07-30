@@ -7,7 +7,7 @@ from .PSFInterface_file import PSFInterface
 from ..data_representation.PreprocessedImageDataInterface_file import PreprocessedImageDataInterface
 from ..loss_functions import mse_real_zernike_smlm
 from .. import utilities as im
-from .. import imagetools as nip
+#from .. import imagetools as nip
 from ..loclib import localizationlib
 
 class PSFZernikeBased_FD_smlm(PSFInterface):

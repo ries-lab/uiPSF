@@ -6,8 +6,10 @@ import scipy as sp
 import scipy.special as spf
 
 import matplotlib.pyplot as plt
-from .. import imagetools as nip
+#from .. import imagetools as nip
+from .. import utilities as util
 from tkinter import messagebox as mbox
+from scipy.ndimage.filters import uniform_filter
 import sys
 
 from .PreprocessedImageDataInterface_file import PreprocessedImageDataInterface
@@ -68,42 +70,34 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         """
         self.min_border_dist = min_border_dist #  needed in cut_new_rois()
 
-        all_rois = []
-        all_centers = []
-        frames = []
-
-        for frame, image in enumerate(self.images):
-            # TODO: try/except, since nip.extractMuliPeaks throws error if no roi is found
+        rois = []
+        centers = []
+        batchsize = 1000
+        Nf = self.images.shape[0]
+        ind = list(range(0,Nf,batchsize))+[Nf]
+        for i in range(len(ind)-1):
+            images = self.images[ind[i]:ind[i+1]]   
             if self.is4pi:
-                im = image + self.patterns[frame]
+                im = images + self.patterns[ind[i]:ind[i+1]]
             else:
-                ed = np.min((frame+100,self.images.shape[0]))
-                im = image-np.mean(self.images[frame:ed],axis=0)
-                #im = image
-            rois, centers = nip.extractMultiPeaks_smlm(im, ROIsize=roi_size, sigma=gaus_sigma,
-                                                borderDist=min_border_dist, threshold_rel=max_threshold,
-                                                alternateImg=image, kernel=max_kernel, min_dist = min_center_dist,FOV=FOV)
+                imavg = uniform_filter(images,size = (100,0,0))
+                im = images-imavg
+
+            rois_i, centers_i = util.extractROI(im,roi_size,gaus_sigma,max_kernel,max_threshold,images)
             
-            # remove rois/centers that are too close together
-            if rois is not None:
-                if min_center_dist is None:
-                    min_center_dist = np.hypot(roi_size[-2], roi_size[-1])
-                rois, centers = self.remove_close_rois(rois, centers, min_center_dist)
-
-
-                all_rois.append(rois)
-                all_centers.append(centers)
-                frames += [frame] * rois.shape[0]
-
+            centers_i[:,0] += ind[i]
+            rois.append(rois_i)
+            centers.append(centers_i)
+        rois = np.concatenate(rois)
+        centers = np.concatenate(centers)
         # convert to numpy arrays and make sure everything has correct dtypes
-        if not all_rois:
-            #mbox.showerror("segmentation error","no bead is found")
-            raise RuntimeError('no bead is found')
-        self.rois = np.concatenate(all_rois).astype(np.float32)
-        self.centers = np.concatenate(all_centers).astype(np.int32)
-        self.frames = np.array(frames).astype(np.int32)
+        if rois.shape[0]==0:
+            raise RuntimeError('no emitter is found')
+        self.rois = rois.astype(np.float32)
+        self.centers = centers[:,1:].astype(np.int32)
+        self.frames = centers[:,0].astype(np.int32)
         self.rois_available = True
-        self.centers_all = np.concatenate(all_centers).astype(np.int32)
+        self.centers_all = centers[:,1:].astype(np.int32)
         self.alldata = dict(rois=self.rois,centers=self.centers,frames=self.frames)
         self.offset = np.min((np.quantile(self.rois,1e-3),0))
         self.image_size = self.images.shape
@@ -115,22 +109,22 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         self.frames = self.alldata['frames']
 
 
-    def remove_close_rois(self, rois, centers, min_dist):
-        """
-        Calculates the distance between all rois/centers and removes the ones
-        that are to close to each other in order to ensure that there is only
-        one signal/bead per roi.
-        """
-        # TODO: there is one corner case that is not handled here:
-        # if two beads are close together and one (and only one) is to close to border
-        # in this case only the rois that is not to close to the border is cut
-        # but since the other one is not the first one is not filtered out here
-        # so it could be possible that there are two beads visible in one roi...
-        dist_matrix = sp.spatial.distance_matrix(centers, centers)
-        keep_matrix_idxs = np.where((0 == dist_matrix) | (dist_matrix > min_dist))
-        unique, counts = np.unique(keep_matrix_idxs[0], return_counts=True)
-        keep_idxs = unique[counts == centers.shape[0]]
-        return rois[keep_idxs], centers[keep_idxs]
+    # def remove_close_rois(self, rois, centers, min_dist):
+    #     """
+    #     Calculates the distance between all rois/centers and removes the ones
+    #     that are to close to each other in order to ensure that there is only
+    #     one signal/bead per roi.
+    #     """
+    #     # TODO: there is one corner case that is not handled here:
+    #     # if two beads are close together and one (and only one) is to close to border
+    #     # in this case only the rois that is not to close to the border is cut
+    #     # but since the other one is not the first one is not filtered out here
+    #     # so it could be possible that there are two beads visible in one roi...
+    #     dist_matrix = sp.spatial.distance_matrix(centers, centers)
+    #     keep_matrix_idxs = np.where((0 == dist_matrix) | (dist_matrix > min_dist))
+    #     unique, counts = np.unique(keep_matrix_idxs[0], return_counts=True)
+    #     keep_idxs = unique[counts == centers.shape[0]]
+    #     return rois[keep_idxs], centers[keep_idxs]
 
     def cut_new_rois(self, centers, frames, roi_size=None, min_border_dist=None):
         """
@@ -139,12 +133,12 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         # set default values
         if roi_size is None:
             roi_size = self.rois.shape[-2:]
-        if min_border_dist is None:
-            min_border_dist = self.min_border_dist
+        #if min_border_dist is None:
+        #    min_border_dist = self.min_border_dist
         
 
 
-        roi_shape = roi_size
+        #roi_shape = roi_size
         # checking border_dist not needed since we check this in psf class
         # nevertheless, I left it here just in case one does need it for another purpose
         '''
@@ -156,12 +150,14 @@ class PreprocessedImageDataSingleChannel_smlm(PreprocessedImageDataInterface):
         '''
 
         # iterate over file_index to make sure that new roi is cut from correct file
-        new_rois = []
-        for i, frame in enumerate(frames):
-            new_rois.append(nip.multiROIExtract(self.images[frame], [centers[i]], roi_shape))
+        # new_rois = []
+        #for i, frame in enumerate(frames):
+        #    new_rois.append(nip.multiROIExtract(self.images[frame], [centers[i]], roi_shape))
 
+        coords = np.hstack([frames.reshape((-1,1)),centers])
+        new_rois = util.crop_rois(self.images, coords, roi_size)
         # convert to numpy arrays and make sure everything has correct dtypes
-        self.rois = np.concatenate(new_rois).astype(np.float32)-self.offset
+        self.rois = new_rois.astype(np.float32)-self.offset
         self.centers = centers.astype(np.int32)
         self.frames = frames.astype(np.int32)
         self.rois_available = True

@@ -215,7 +215,7 @@ def showzernike(f,p,index=None):
         ax = fig.add_subplot(2,1,1)
         ax.plot(zcoeff.transpose(),'.-')
         ax.plot(indz[mask],zcoeff[1,indz[mask]],'ko',markersize = 6,mfc='none')
-        plt.xlabel('zernike polynomial')
+        plt.xlabel('zernike polynomial',fontsize=16)
         plt.ylabel('coefficient')
         plt.legend(['pupil magnitude','pupil phase'])
         

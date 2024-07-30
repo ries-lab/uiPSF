@@ -106,12 +106,19 @@ class dataloader:
             gname = ''
             while len(k)==1:
                 gname += k[0]+'/'
-                k = list(f[gname].keys())
-            datalist = list(f[gname].keys())
-            try:
-                dat = np.squeeze(np.array(f.get(gname+datalist[ind])).astype(np.float32))
-            except:
-                dat = np.squeeze(np.array(f.get(gname+datalist[ind]+'/'+datalist[ind])).astype(np.float32))
+                try:
+                    k = list(f[gname].keys())
+                except:
+                    k = None
+                    break
+            if k is None:
+                dat = np.squeeze(np.array(f.get(gname)).astype(np.float32))
+            else:
+                datalist = list(f[gname].keys())
+                try:
+                    dat = np.squeeze(np.array(f.get(gname+datalist[ind])).astype(np.float32))
+                except:
+                    dat = np.squeeze(np.array(f.get(gname+datalist[ind]+'/'+datalist[ind])).astype(np.float32))
             if param.insitu.frame_range:
                 dat = dat[param.insitu.frame_range[0]:param.insitu.frame_range[1]]
             dat = (dat-param.ccd_offset)*param.gain

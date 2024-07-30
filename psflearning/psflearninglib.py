@@ -786,22 +786,29 @@ class psflearninglib:
                 fwhmx = np.diff(xh)*p.pixel_size.x*1e3
                 fwhmy = np.diff(yh)*p.pixel_size.y*1e3
                 fwhmz = np.diff(zh)*p.pixel_size.z*1e3
+                xv = np.arange(0,Ix.shape[0])*p.pixel_size.x*1e3
+                yv = np.arange(0,Iy.shape[0])*p.pixel_size.x*1e3
+                zv = np.arange(0,Iz.shape[0])*p.pixel_size.z*1e3
                 fig = plt.figure(figsize=[12,4])
                 ax = fig.add_subplot(121)
-                plt.plot(Ix,'o-')
-                plt.plot(xh,[Imaxh,Imaxh],'-')
-                plt.plot(Iy,'o-')
-                plt.plot(yh,[Imaxh,Imaxh],'-')
-                plt.title('FWHMxy: '+str(np.round((fwhmx[0]+fwhmy[0])/2,2))+' nm',fontsize=15)
-                plt.xlabel('x (pixel)')
-                plt.ylabel('intensity')
+                plt.plot(xv,Ix/Imaxh/2,'o-')
+                plt.plot(xh*p.pixel_size.x*1e3,[0.5,0.5],'-')
+                plt.plot(yv,Iy/Imaxh/2,'o-')
+                plt.plot(yh*p.pixel_size.x*1e3,[0.5,0.5],'-')
+                plt.xticks(fontsize=14)
+                plt.yticks(fontsize=14)
+                plt.title('FWHMxy: '+str(np.round((fwhmx[0]+fwhmy[0])/2,2))+' nm',fontsize=16)
+                plt.xlabel('x (nm)',fontsize=16)
+                plt.ylabel('intensity',fontsize=16)
 
                 ax = fig.add_subplot(122)
-                plt.plot(Iz,'o-')
-                plt.plot(zh,[Imaxh,Imaxh],'-')
-                plt.title('FWHMz: '+str(np.round(fwhmz[0],2))+' nm',fontsize=15)
-                plt.xlabel('z (pixel)')
-                plt.ylabel('intensity')
+                plt.plot(zv,Iz/Imaxh/2,'o-')
+                plt.plot(zh*p.pixel_size.z*1e3,[0.5,0.5],'-')
+                plt.xticks(fontsize=14)
+                plt.yticks(fontsize=14)
+                plt.title('FWHMz: '+str(np.round(fwhmz[0],2))+' nm',fontsize=16)
+                plt.xlabel('z (nm)',fontsize=16)
+                plt.ylabel('intensity',fontsize=16)
                 
         elif p.channeltype == 'multi':
             Nchannel = f.rois.cor.shape[0]
@@ -820,22 +827,30 @@ class psflearninglib:
                 fwhmxi = np.diff(xh)*p.pixel_size.x*1e3
                 fwhmyi = np.diff(yh)*p.pixel_size.y*1e3
                 fwhmzi = np.diff(zh)*p.pixel_size.z*1e3
+                xv = np.arange(0,Ix.shape[0])*p.pixel_size.x*1e3
+                yv = np.arange(0,Iy.shape[0])*p.pixel_size.x*1e3
+                zv = np.arange(0,Iz.shape[0])*p.pixel_size.z*1e3
                 
-                ax = fig.add_subplot(spec[i])
-                plt.plot(Ix,'o-')
-                plt.plot(xh,[Imaxh,Imaxh],'-')
-                plt.plot(Iy,'o-')
-                plt.plot(yh,[Imaxh,Imaxh],'-')
-                plt.title('ch'+str(i)+' FWHMxy: '+str(np.round((fwhmxi[0]+fwhmyi[0])/2,2))+' nm',fontsize=15)
-                plt.xlabel('x (pixel)')
-                plt.ylabel('intensity')
+                fig = plt.figure(figsize=[12,4])
+                ax = fig.add_subplot(121)
+                plt.plot(xv,Ix/Imaxh/2,'o-')
+                plt.plot(xh*p.pixel_size.x*1e3,[0.5,0.5],'-')
+                plt.plot(yv,Iy/Imaxh/2,'o-')
+                plt.plot(yh*p.pixel_size.x*1e3,[0.5,0.5],'-')
+                plt.xticks(fontsize=14)
+                plt.yticks(fontsize=14)
+                plt.title('FWHMxy: '+str(np.round((fwhmx[0]+fwhmy[0])/2,2))+' nm',fontsize=16)
+                plt.xlabel('x (nm)',fontsize=16)
+                plt.ylabel('intensity',fontsize=16)
 
-                ax = fig.add_subplot(spec[Nchannel+i])
-                plt.plot(Iz,'o-')
-                plt.plot(zh,[Imaxh,Imaxh],'-')
-                plt.title('ch'+str(i)+' FWHMz: '+str(np.round(fwhmzi[0],2))+' nm',fontsize=15)
-                plt.xlabel('z (pixel)')
-                plt.ylabel('intensity')
+                ax = fig.add_subplot(122)
+                plt.plot(zv,Iz/Imaxh/2,'o-')
+                plt.plot(zh*p.pixel_size.z*1e3,[0.5,0.5],'-')
+                plt.xticks(fontsize=14)
+                plt.yticks(fontsize=14)
+                plt.title('FWHMz: '+str(np.round(fwhmz[0],2))+' nm',fontsize=16)
+                plt.xlabel('z (nm)',fontsize=16)
+                plt.ylabel('intensity',fontsize=16)
                 
                 fwhmx.append(fwhmxi)
                 fwhmz.append(fwhmzi)

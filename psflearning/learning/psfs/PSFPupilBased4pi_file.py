@@ -11,7 +11,7 @@ from .PSFInterface_file import PSFInterface
 from ..data_representation.PreprocessedImageDataInterface_file import PreprocessedImageDataInterface
 from ..loss_functions import mse_pupil_4pi
 from .. import utilities as im
-from .. import imagetools as nip
+#from .. import imagetools as nip
 
 class PSFPupilBased4pi(PSFInterface):
     def __init__(self, max_iter: int=None,options=None) -> None:

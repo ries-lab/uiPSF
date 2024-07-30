@@ -13,7 +13,7 @@ from .PSFInterface_file import PSFInterface
 from ..data_representation.PreprocessedImageDataInterface_file import PreprocessedImageDataInterface
 from ..loss_functions import mse_real_pupil
 from .. import utilities as im
-from .. import imagetools as nip
+#from .. import imagetools as nip
 
 class PSFPupilBased(PSFInterface):
     """
