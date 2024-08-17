@@ -460,13 +460,13 @@ def zernikemap(f,index,zmap,zcoeff,pupil,Zk):
         plt.colorbar()
     plt.show()
 
-def showpsfvsdata(f,p,index):
+def showpsfvsdata(f,p,index,step=4):
     psf_data = f.rois.psf_data
     psf_fit = f.rois.psf_fit
     if p.channeltype == 'single':
         im1 = psf_data[index]
         im2 = psf_fit[index]
-        psfcompare(im1,im2,p.pixel_size.z)
+        psfcompare(im1,im2,p.pixel_size.z,step=step)
     else:
         Nchannel = psf_data.shape[0]
         for ch in range(0,Nchannel):
@@ -477,7 +477,7 @@ def showpsfvsdata(f,p,index):
                 im1 = psf_data[ch,index]
                 im2 = psf_fit[ch,index]
             print('channel '+str(ch))
-            psfcompare(im1,im2,p.pixel_size.z)
+            psfcompare(im1,im2,p.pixel_size.z,step=step)
     try:
         cor = f.res.cor
     except:
@@ -493,10 +493,10 @@ def showpsfvsdata(f,p,index):
     plt.show()
     return
 
-def psfcompare(im1,im2,pz):
+def psfcompare(im1,im2,pz,step=4):
     Nz = im1.shape[0]
     zrange = np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz)*pz
-    zind = range(0,Nz,4)
+    zind = range(0,Nz,step)
     cc = im1.shape[-1]//2
     N = len(zind)+1
     fig = plt.figure(figsize=[3*N,6])

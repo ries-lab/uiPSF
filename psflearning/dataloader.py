@@ -102,8 +102,12 @@ class dataloader:
         ind = param.insitu.dataId
         for filename in filelist:
             f = h5.File(filename,'r')
-            k = list(f.keys())
-            gname = ''
+            if param.varname:
+                gname = param.varname+'/'
+                k = list(f[gname].keys())
+            else:
+                k = list(f.keys())
+                gname = ''
             while len(k)==1:
                 gname += k[0]+'/'
                 try:
