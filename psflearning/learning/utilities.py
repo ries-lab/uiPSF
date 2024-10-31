@@ -234,6 +234,7 @@ def gen_layers(imagesize,sigma,poolsize,roisize):
     max_pool_2d = tf.keras.layers.MaxPooling2D(pool_size=tuple(poolsize),strides=(1, 1), padding="same")
 
     # create a uniform convolutional layer
+    roisize = np.int64(np.array(roisize)*np.sqrt(2))
     conv_uniform = tf.keras.layers.Conv2D(1, tuple(roisize), strides=(1, 1), padding="same")
     conv_uniform.build(input_shape=(None, imagesize[-2], imagesize[-1], 1))
     kernel = np.ones(tuple(roisize)+(1,1))
