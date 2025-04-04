@@ -4,7 +4,8 @@ The point spread function (PSF) of a microscope describes the image of a point e
 Here we present uiPSF (universal inverse modelling of Point Spread Functions), a toolbox to infer accurate PSF models either from image stacks of fluorescent beads or directly from images of single blinking fluorophores, the raw data in SMLM. It is a powerful tool to characterize and optimize a microscope as it reports the aberration modes, including field-dependent aberrations.  The resulting PSF model enables accurate 3D super-resolution imaging using single molecule localization microscopy.
 Our modular framework is applicable to a variety of microscope geometries, and the forward model can include system specific characteristics such as the bead size, camera pixel size and transformations among channels. We demonstrate its application in single objective systems with single or multiple channels, 4Pi-SMLM, and lattice light-sheet microscopes.
 
-**Reference**: [Liu S, Chen J, Hellgoth J, et al. Universal inverse modelling of point spread functions for SMLM localization and microscope characterization. Preprint. bioRxiv. 2023](https://doi.org/10.1101/2023.10.26.564064)
+**Reference**:  
+[Liu, S., Chen, J., Hellgoth, J. et al. Universal inverse modeling of point spread functions for SMLM localization and microscope characterization. Nat Methods 21, 1082–1093 (2024).](https://doi.org/10.1038/s41592-024-02282-x)
 
 # System requirements
 ## Hardware
@@ -39,6 +40,7 @@ ipykernel
 
 # Installation
 ## Windows
+Installation time for the GPU version is around 10 minutes.
 1. Install miniconda for windows, [miniconda](https://docs.conda.io/en/latest/miniconda.html)
 2. Open Anaconda Powershell Prompt, clone the uiPSF package     
 ```
@@ -115,7 +117,7 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' >> $CONDA_PREF
   - [Evaluation of field-dependent aberration](demo/demo_eval_system_FD.ipynb).
 - [Generate PSF model at a given imaging depth](demo/demo_genPSF.ipynb)
 ## Run time of learning the PSF models listed in the demos
-The following run times are obtained from a desktop PC with Windows 11, RTX 3080.
+The following run times were obtained from a desktop PC with Windows 11, RTX 3080.
 |**PSF type**| run time (min)| # of parameters|
 |:------------------|:----------------|:------------|
 |**1ch LLS voxel**|1.9 | 31,144|
@@ -151,10 +153,29 @@ Download the [example data](https://zenodo.org/doi/10.5281/zenodo.8267520)
 
 - For explanation of user defined parameters and details of creating config files, please refer to [user defined parameters](config/parameter%20description.md).     
 - For explanation of the output parameters from PSF learning, please refer to [output parameters](demo/Description%20of%20output%20parameters.md).
-## Tips
 
+## Input data format
+uiPSF normally assumes the input data are unprocessed raw data from the camera frames. Except for the 4Pi bead data, all data were saved as a 3D array: `[x, y, z]` for bead data or `[x, y, frames]` for SMLM data.  
+- `.mat` file should be save as Matlab version 7.3. 
+- `.tif` or `.tiff` file should be multi-page tiff file.
+### Single channel learning: 
+- File format: .czi, .tif, .tiff, .mat
+- Data dimension: 3D
+### Multi-channel learning:
+- File format: .tif, .tiff, .mat
+- Data dimension: 
+  - For .tif file: 3D, all channels were collected from the same camera. uiPSF will crop the channels from the raw data based on user defined parameters (`mirrortype` and `channel_arrange`, see [user defined parameters](config/parameter%20description.md)).
+  - For .mat file: each channel is saved as a 3D array in the same file. 
+### 4Pi-PSF learning:
+- File format: .mat
+- Data dimension:
+  - Bead data: Each channel is saved as a 4D array, `[x, y, phase, z]`, in the same file.
+  - SMLM data: Each channel is saved as a 3D array, `[x, y, frames]`, in the same file.
+## Tips
 - Please ensure that the computer's current graphics card driver supports CUDA 11.2.
 - Don't run two notebooks at the same time, click `Restart` at the top of the notebook to release the memory.
+- Although uiPSF usually process on raw data from camera frames, where it will select multiple candidate emitters, it can also take small data stack with only one emitter in it. However, in this case, the user need to set the `roi_size` to a value smaller than the FOV of the input data.
+- `roi_size` is normally a two-element vector, defining the crop size of one emitter in `[y, x]`. Only for agarose bead data, `roi_size` is a three-element vector, defining the crop size of one bead in `[z, y, x]`.  
 
 # Localization using SMAP and FD-DeepLoc
 Tutorials for using the PSF model generated from uiPSF for localization analysis. Use one of the [demo notebooks](#Demo-notebooks) to generate the corresponding PSF model (.h5 file) before using the following tutorials. 
@@ -163,4 +184,4 @@ Tutorials for using the PSF model generated from uiPSF for localization analysis
 - [4Pi-SMLM imaging](tutorial/tutorial%20fit_4pi.pdf)
 - [Single channel SMLM imaging with large FOV](tutorial/Tutorial%20for%20FD_aberrations.pdf)
 # Need help?
-Open an issue here on github, or contact Jonas Ries (jonas.ries@univie.ac.at)
+Open an issue here on github, or contact Jonas Ries (jonas.ries@univie.ac.at), Sheng Liu (shengliu@unm.edu)
