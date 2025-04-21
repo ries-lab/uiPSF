@@ -164,9 +164,10 @@ class PSFZernikeBased(PSFInterface):
 
     def genpsfmodel(self,sigma,Zcoeff=None,pupil=None, addbead=False):
         if pupil is None:
-            pupil_mag = tf.reduce_sum(self.Zk*Zcoeff[0],axis=0)
+            Nzern = Zcoeff.shape[1]
+            pupil_mag = tf.reduce_sum(self.Zk[0:Nzern]*Zcoeff[0],axis=0)
             pupil_mag = tf.math.maximum(pupil_mag,0)
-            pupil_phase = tf.reduce_sum(self.Zk*Zcoeff[1],axis=0)
+            pupil_phase = tf.reduce_sum(self.Zk[0:Nzern]*Zcoeff[1],axis=0)
             pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid
 
         phiz = -1j*2*np.pi*self.kz*(self.Zrange+self.defocus)

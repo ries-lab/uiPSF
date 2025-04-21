@@ -696,38 +696,46 @@ class psflearninglib:
                 plt.colorbar()
                 plt.title('Strehl ratio map',fontsize=15)
             else:
-                f1.res.zernike_coeff[1,0:4] = 0.0
-                f1,psfobj = self.genpsf(f1,Nz=1,xsz=xsz)
-                I_model = f1.res.I_model/np.sum(f1.res.I_model)
-                I1 = I_model[0,xsz//2,xsz//2]
+                #f1.res.zernike_coeff[1,0:3] = 0.0
+                #f1,psfobj = self.genpsf(f1,Nz=21,xsz=xsz)
+                #I_model = f1.res.I_model/np.sum(f1.res.I_model,axis=(-1,-2),keepdims=True)
+                I_model = f.res.I_model/np.sum(f.res.I_model,axis=(-1,-2),keepdims=True)
+                #print('I max',np.max(I_model,axis=(-1,-2)))
+                #I1 = I_model[0,xsz//2,xsz//2]
+                I1 = np.max(I_model)
 
-                f1.res.zernike_coeff = np.zeros(f1.res.zernike_coeff.shape,dtype=np.float32)
+                f1.res.zernike_coeff = np.zeros((2,5),dtype=np.float32)
                 f1.res.zernike_coeff[0,0] = 1
                 f1,psfobj = self.genpsf(f1,Nz=1,xsz=xsz)
                 I_model = f1.res.I_model/np.sum(f1.res.I_model)
-                I0 = I_model[0,xsz//2,xsz//2]
+                #I0 = I_model[0,xsz//2,xsz//2]
+                I0 = np.max(I_model)
                 strehlratio = np.float32(I1/I0)
                 print('Strehl ratio: ',strehlratio)
         elif p.channeltype == 'multi':
             Nchannel = f1.rois.cor.shape[0]
             I1 = []
             I0 = []
-            for i in range(Nchannel):
-                f1.res['channel'+str(i)].zernike_coeff[1,0:4] = 0.0
-            f1,psfobj = self.genpsf(f1,Nz=1,xsz=xsz)
-            coeff = np.zeros(f1.res.channel0.zernike_coeff.shape,dtype=np.float32)
+            # for i in range(Nchannel):
+            #     f1.res['channel'+str(i)].zernike_coeff[1,0:4] = 0.0
+            # f1,psfobj = self.genpsf(f1,Nz=1,xsz=xsz)
+            #coeff = np.zeros(f1.res.channel0.zernike_coeff.shape,dtype=np.float32)
+            coeff = np.zeros((2,5),dtype=np.float32)
             coeff[0,0] = 1
 
             for i in range(Nchannel):
-                I_model = f1.res['channel'+str(i)].I_model/np.sum(f1.res['channel'+str(i)].I_model)
-                I1.append(I_model[0,xsz//2,xsz//2])
+                #I_model = f1.res['channel'+str(i)].I_model/np.sum(f1.res['channel'+str(i)].I_model)
+                I_model = f.res['channel'+str(i)].I_model/np.sum(f.res['channel'+str(i)].I_model,axis=(-1,-2),keepdims=True)
+                #I1.append(I_model[0,xsz//2,xsz//2])
+                I1.append(np.max(I_model))
                 f1.res['channel'+str(i)].zernike_coeff = coeff
 
 
             f1,psfobj = self.genpsf(f1,Nz=1,xsz=31)
             for i in range(Nchannel):
                 I_model = f1.res['channel'+str(i)].I_model/np.sum(f1.res['channel'+str(i)].I_model)
-                I0.append(I_model[0,xsz//2,xsz//2])
+                #I0.append(I_model[0,xsz//2,xsz//2])
+                I0.append(np.max(I_model))
 
             I1 = np.stack(I1)
             I0 = np.stack(I0)
@@ -787,26 +795,42 @@ class psflearninglib:
                 fwhmy = np.diff(yh)*p.pixel_size.y*1e3
                 fwhmz = np.diff(zh)*p.pixel_size.z*1e3
                 xv = np.arange(0,Ix.shape[0])*p.pixel_size.x*1e3
-                yv = np.arange(0,Iy.shape[0])*p.pixel_size.x*1e3
+                yv = np.arange(0,Iy.shape[0])*p.pixel_size.y*1e3
                 zv = np.arange(0,Iz.shape[0])*p.pixel_size.z*1e3
+
+                f1 = f.copy()
+                f1.res.zernike_coeff = np.zeros((2,5),dtype=np.float32)
+                f1.res.zernike_coeff[0,0] = 1
+                f1,psfobj = self.genpsf(f1,Nz=Iz.shape[0],xsz=Ix.shape[0])
+                I_model = f1.res.I_model.numpy()
+                Imaxh1 = np.max(I_model)/2
+                Ix1, xh1, Iy1, yh1, Iz1, zh1 = self.getfwhm(I_model)
+                fwhmx1 = np.diff(xh1)*p.pixel_size.x*1e3
+                fwhmz1 = np.diff(zh1)*p.pixel_size.z*1e3
+                xv1 = np.arange(0,Ix1.shape[0])*p.pixel_size.x*1e3
+                zv1 = np.arange(0,Iz1.shape[0])*p.pixel_size.z*1e3
+
+
                 fig = plt.figure(figsize=[12,4])
                 ax = fig.add_subplot(121)
+                plt.plot(xv1,Ix1/Imaxh1/2,'o-',color='gray')
                 plt.plot(xv,Ix/Imaxh/2,'o-')
                 plt.plot(xh*p.pixel_size.x*1e3,[0.5,0.5],'-')
                 plt.plot(yv,Iy/Imaxh/2,'o-')
-                plt.plot(yh*p.pixel_size.x*1e3,[0.5,0.5],'-')
+                plt.plot(yh*p.pixel_size.y*1e3,[0.5,0.5],'-')
                 plt.xticks(fontsize=14)
                 plt.yticks(fontsize=14)
-                plt.title('FWHMxy: '+str(np.round((fwhmx[0]+fwhmy[0])/2,2))+' nm',fontsize=16)
+                plt.title('FWHMxy: '+str(np.round((fwhmx[0]+fwhmy[0])/2,2))+' nm'+' (ideal: '+str(np.round(fwhmx1[0],2)) +' nm)',fontsize=16)
                 plt.xlabel('x (nm)',fontsize=16)
                 plt.ylabel('intensity',fontsize=16)
 
                 ax = fig.add_subplot(122)
+                plt.plot(zv1,Iz1/Imaxh1/2,'o-',color='gray')
                 plt.plot(zv,Iz/Imaxh/2,'o-')
                 plt.plot(zh*p.pixel_size.z*1e3,[0.5,0.5],'-')
                 plt.xticks(fontsize=14)
                 plt.yticks(fontsize=14)
-                plt.title('FWHMz: '+str(np.round(fwhmz[0],2))+' nm',fontsize=16)
+                plt.title('FWHMz: '+str(np.round(fwhmz[0],2))+' nm'+' (ideal: '+str(np.round(fwhmz1[0],2)) +' nm)',fontsize=16)
                 plt.xlabel('z (nm)',fontsize=16)
                 plt.ylabel('intensity',fontsize=16)
                 
@@ -839,7 +863,7 @@ class psflearninglib:
                 plt.plot(yh*p.pixel_size.x*1e3,[0.5,0.5],'-')
                 plt.xticks(fontsize=14)
                 plt.yticks(fontsize=14)
-                plt.title('FWHMxy: '+str(np.round((fwhmx[0]+fwhmy[0])/2,2))+' nm',fontsize=16)
+                plt.title('FWHMxy: '+str(np.round((fwhmxi[0]+fwhmyi[0])/2,2))+' nm',fontsize=16)
                 plt.xlabel('x (nm)',fontsize=16)
                 plt.ylabel('intensity',fontsize=16)
 
@@ -848,7 +872,7 @@ class psflearninglib:
                 plt.plot(zh*p.pixel_size.z*1e3,[0.5,0.5],'-')
                 plt.xticks(fontsize=14)
                 plt.yticks(fontsize=14)
-                plt.title('FWHMz: '+str(np.round(fwhmz[0],2))+' nm',fontsize=16)
+                plt.title('FWHMz: '+str(np.round(fwhmzi[0],2))+' nm',fontsize=16)
                 plt.xlabel('z (nm)',fontsize=16)
                 plt.ylabel('intensity',fontsize=16)
                 
@@ -888,14 +912,23 @@ class psflearninglib:
             x2=[x2,x2+1]
         else:
             x2=[x2,x2-1]
-        g = np.diff(x1)/np.diff(I[x1])
-        xh1 = g*(Imaxh-I[x1[0]])+x1[0]
-        x1 = np.array(x1,dtype = np.float64)
-        xh1 = np.minimum(np.maximum(xh1,np.min(x1)),np.max(x1))
-        g = np.diff(x2)/np.diff(I[x2])
-        xh2 = g*(Imaxh-I[x2[0]])+x2[0]
-        x2 = np.array(x2,dtype = np.float64)
-        xh2 = np.minimum(np.maximum(xh2,np.min(x2)),np.max(x2))
+        
+        try:
+            g = np.diff(x1)/np.diff(I[x1])
+            xh1 = g*(Imaxh-I[x1[0]])+x1[0]
+            x1 = np.array(x1,dtype = np.float64)
+            xh1 = np.minimum(np.maximum(xh1,np.min(x1)),np.max(x1))
+        except:
+            xh1 = x1[0]
+
+        try: 
+            g = np.diff(x2)/np.diff(I[x2])
+            xh2 = g*(Imaxh-I[x2[0]])+x2[0]
+            x2 = np.array(x2,dtype = np.float64)
+            xh2 = np.minimum(np.maximum(xh2,np.min(x2)),np.max(x2))
+        except:
+            xh2 = x2[0]
+
         return np.hstack([xh1, xh2])
 
     def localize(self,f,datarange=[0,5]):

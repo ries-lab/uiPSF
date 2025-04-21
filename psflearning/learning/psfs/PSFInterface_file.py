@@ -182,18 +182,20 @@ class PSFInterface():
             bin = self.options.model.bin
         
         Lx = self.data.rois.shape[-1]*bin
+        Ly = self.data.rois.shape[-2]*bin
         pixelsize_x = self.data.pixelsize_x/bin
         pixelsize_y = self.data.pixelsize_y/bin
 
         xrange = np.linspace(-Lx/2+0.5,Lx/2-0.5,Lx)+1e-6
+        yrange = np.linspace(-Ly/2+0.5,Ly/2-0.5,Ly)+1e-6
         zrange = np.linspace(-Nz/2+0.5,Nz/2-0.5,Nz)
-        [xx,yy,zz] = np.meshgrid(xrange,xrange,zrange)
+        [xx,yy,zz] = np.meshgrid(yrange,xrange,zrange)
         xx = np.swapaxes(xx,0,2)
         yy = np.swapaxes(yy,0,2)
         zz = np.swapaxes(zz,0,2)
 
         pkx = 1/Lx/pixelsize_x
-        pky = 1/Lx/pixelsize_y
+        pky = 1/Ly/pixelsize_y
         pkz = 1/Nz/pixelsize_z
         if bead_radius>0:
             Zk0 = np.sqrt((xx*pkx)**2+(yy*pky)**2+(zz*pkz)**2)*bead_radius
@@ -202,7 +204,7 @@ class PSFInterface():
             kernel = kernel/np.max(kernel)
             kernel = np.float32(kernel)
         else:
-            kernel = np.ones((Nz,Lx,Lx),dtype=np.float32)
+            kernel = np.ones((Nz,Ly,Lx),dtype=np.float32)
         self.bead_kernel = tf.complex(kernel,0.0)
 
         return 

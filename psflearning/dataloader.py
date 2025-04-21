@@ -125,6 +125,9 @@ class dataloader:
                     dat = np.squeeze(np.array(f.get(gname+datalist[ind]+'/'+datalist[ind])).astype(np.float32))
             if param.insitu.frame_range:
                 dat = dat[param.insitu.frame_range[0]:param.insitu.frame_range[1]]
+            if param.channeltype == 'multi':
+                dat = self.splitchannel(dat)
+
             dat = (dat-param.ccd_offset)*param.gain
             imageraw.append(dat)
         imagesall = np.stack(imageraw)
