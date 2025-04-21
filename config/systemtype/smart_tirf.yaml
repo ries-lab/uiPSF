@@ -4,16 +4,20 @@ Params:
     x: 0.13
     y: 0.13
   roi:
-    roi_size: [25,25]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
+    roi_size: [21,21]           # vector of 2 or 3 element, roi size in [y, x] or [z, y, x]
     gauss_sigma: [2,2]          # blur kernel size, corresponding to dimensions defined in roi_size
     max_kernel: [3,3]           # maximum filter kernel size, corresponding to dimensions defined in roi_size
   FOV:                           # define FOV for bead selection, if x_center, y_center, radius are 0, select the full FOV
     z_start: 0
     z_end: -0
   swapxy: true                  # permute x,y dimension 
+  
+  dual:                          # parameters only for dual channel systems
+    mirrortype: left-right          # up-down, left-right
+    channel_arrange: left-right     # up-down, left-right
 
   insitu:               
-    frame_range: [0,4000]     # set the frames to be loaded, only for .tif format
+    frame_range: [0,10000]     # set the frames to be loaded, only for .tif format
 
   option:   
     imaging:                       
