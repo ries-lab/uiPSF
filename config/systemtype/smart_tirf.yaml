@@ -27,6 +27,8 @@ Params:
         med: 1.335
         cov: 1.516
       NA: 1.49
+    multi:
+      polarization: [Ex,Ey]
     insitu:
       zernike_index: [5]           # for initial pupil, a vector of any size, if [], search for optimal zernike term
       zernike_coeff: [0.5]         # for initial pupil, value corresponding to the zernike index 
