@@ -655,6 +655,7 @@ class psflearninglib:
             for i in range(Nchannel):
                 psf = psfobj.psftype(options = psfobj.options)
                 psf.psftype = psfobj.PSFtype
+                psf.polarization_type = psfobj.options.multi.polarization[i]
                 psfobj.sub_psfs[i] = psf
                 sigma = f.res['channel'+str(i)].sigma
                 Zcoeff = f.res['channel'+str(i)].zernike_coeff
@@ -844,6 +845,15 @@ class psflearninglib:
             fwhmx = []
             fwhmy = []
             fwhmz = []
+            f1 = f.copy()
+            coeff = np.zeros((2,5),dtype=np.float32)
+            coeff[0,0] = 1
+            psfsize = f.res.channel0.I_model.shape
+            for i in range(Nchannel):
+                f1.res['channel'+str(i)].zernike_coeff = coeff
+            f1,psfobj = self.genpsf(f1,Nz=psfsize[0],xsz=psfsize[1])
+
+
             for i in range(0,Nchannel):
                 I_model = f.res['channel'+str(i)].I_model
                 Imaxh = np.max(I_model)/2
@@ -855,30 +865,42 @@ class psflearninglib:
                 yv = np.arange(0,Iy.shape[0])*p.pixel_size.x*1e3
                 zv = np.arange(0,Iz.shape[0])*p.pixel_size.z*1e3
                 
+                I_model = f1.res['channel'+str(i)].I_model.numpy()
+                Imaxh1 = np.max(I_model)/2
+                Ix1, xh1, Iy1, yh1, Iz1, zh1 = self.getfwhm(I_model)
+                fwhmx1 = np.diff(xh1)*p.pixel_size.x*1e3
+                fwhmz1 = np.diff(zh1)*p.pixel_size.z*1e3
+                xv1 = np.arange(0,Ix1.shape[0])*p.pixel_size.x*1e3
+                zv1 = np.arange(0,Iz1.shape[0])*p.pixel_size.z*1e3
+
                 fig = plt.figure(figsize=[12,4])
                 ax = fig.add_subplot(121)
+                plt.plot(xv1,Ix1/Imaxh1/2,'o-',color='gray')
                 plt.plot(xv,Ix/Imaxh/2,'o-')
                 plt.plot(xh*p.pixel_size.x*1e3,[0.5,0.5],'-')
                 plt.plot(yv,Iy/Imaxh/2,'o-')
-                plt.plot(yh*p.pixel_size.x*1e3,[0.5,0.5],'-')
+                plt.plot(yh*p.pixel_size.y*1e3,[0.5,0.5],'-')
                 plt.xticks(fontsize=14)
                 plt.yticks(fontsize=14)
-                plt.title('FWHMxy: '+str(np.round((fwhmxi[0]+fwhmyi[0])/2,2))+' nm',fontsize=16)
+                plt.title('FWHMxy: '+str(np.round((fwhmxi[0]+fwhmyi[0])/2,2))+' nm'+' (ideal: '+str(np.round(fwhmx1[0],2)) +' nm)',fontsize=16)
                 plt.xlabel('x (nm)',fontsize=16)
                 plt.ylabel('intensity',fontsize=16)
 
                 ax = fig.add_subplot(122)
+                plt.plot(zv1,Iz1/Imaxh1/2,'o-',color='gray')
                 plt.plot(zv,Iz/Imaxh/2,'o-')
                 plt.plot(zh*p.pixel_size.z*1e3,[0.5,0.5],'-')
                 plt.xticks(fontsize=14)
                 plt.yticks(fontsize=14)
-                plt.title('FWHMz: '+str(np.round(fwhmzi[0],2))+' nm',fontsize=16)
+                plt.title('FWHMz: '+str(np.round(fwhmzi[0],2))+' nm'+' (ideal: '+str(np.round(fwhmz1[0],2)) +' nm)',fontsize=16)
                 plt.xlabel('z (nm)',fontsize=16)
                 plt.ylabel('intensity',fontsize=16)
                 
                 fwhmx.append(fwhmxi)
+                fwhmy.append(fwhmyi)
                 fwhmz.append(fwhmzi)
             fwhmx = np.stack(fwhmx)
+            fwhmy = np.stack(fwhmy)
             fwhmz = np.stack(fwhmz)
 
         plt.show()

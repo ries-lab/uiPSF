@@ -24,6 +24,7 @@ class PSFZernikeBased(PSFInterface):
         self.defocus = np.float32(0)
         self.default_loss_func = mse_real_zernike
         self.psftype = 'scalar'
+        self.polarization_type = None
         return
 
     def calc_initials(self, data: PreprocessedImageDataInterface, start_time=None):
@@ -128,10 +129,21 @@ class PSFZernikeBased(PSFInterface):
             
         if self.psftype == 'vector':
             I_res = 0.0
-            for h in self.dipole_field:
-                PupilFunction = pupil*tf.exp(phiz+phixy)*h
-                psfA = im.cztfunc1(PupilFunction,self.paramxy)      
-                I_res += psfA*tf.math.conj(psfA)*self.normf
+            if self.polarization_type is None:
+                for h in self.dipole_field:
+                    PupilFunction = pupil*tf.exp(phiz+phixy)*h
+                    psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                    I_res += psfA*tf.math.conj(psfA)*self.normf
+            if self.polarization_type == 'Ex':
+                for h in self.dipole_field[:3]:
+                    PupilFunction = pupil*tf.exp(phiz+phixy)*h
+                    psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                    I_res += psfA*tf.math.conj(psfA)*self.normf
+            if self.polarization_type == 'Ey':
+                for h in self.dipole_field[3:]:
+                    PupilFunction = pupil*tf.exp(phiz+phixy)*h
+                    psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                    I_res += psfA*tf.math.conj(psfA)*self.normf
         else:
             PupilFunction = pupil*tf.exp(phiz+phixy)
             I_res = im.cztfunc1(PupilFunction,self.paramxy)
@@ -173,10 +185,22 @@ class PSFZernikeBased(PSFInterface):
         phiz = -1j*2*np.pi*self.kz*(self.Zrange+self.defocus)
         if self.psftype == 'vector':
             I_res = 0.0
-            for h in self.dipole_field:
-                PupilFunction = pupil*tf.exp(phiz)*h
-                psfA = im.cztfunc1(PupilFunction,self.paramxy)      
-                I_res += psfA*tf.math.conj(psfA)*self.normf
+            if self.polarization_type is None:
+                for h in self.dipole_field:
+                    PupilFunction = pupil*tf.exp(phiz)*h
+                    psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                    I_res += psfA*tf.math.conj(psfA)*self.normf
+            if self.polarization_type == 'Ex':
+                for h in self.dipole_field[:3]:
+                    PupilFunction = pupil*tf.exp(phiz)*h
+                    psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                    I_res += psfA*tf.math.conj(psfA)*self.normf
+            if self.polarization_type == 'Ey':
+                for h in self.dipole_field[3:]:
+                    PupilFunction = pupil*tf.exp(phiz)*h
+                    psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                    I_res += psfA*tf.math.conj(psfA)*self.normf
+
         else:
             PupilFunction = pupil*tf.exp(phiz)
             I_res = im.cztfunc1(PupilFunction,self.paramxy)      
