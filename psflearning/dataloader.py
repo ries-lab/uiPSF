@@ -101,20 +101,24 @@ class dataloader:
         imageraw = []
         ind = param.insitu.dataId
         for filename in filelist:
+            print(filename)
             f = h5.File(filename,'r')
             if param.varname:
                 gname = param.varname+'/'
-                k = list(f[gname].keys())
-            else:
-                k = list(f.keys())
-                gname = ''
-            while len(k)==1:
-                gname += k[0]+'/'
                 try:
                     k = list(f[gname].keys())
                 except:
                     k = None
-                    break
+            else:
+                k = list(f.keys())
+                gname = ''
+                while len(k)==1:
+                    gname += k[0]+'/'
+                    try:
+                        k = list(f[gname].keys())
+                    except:
+                        k = None
+                        break
             if k is None:
                 dat = np.squeeze(np.array(f.get(gname)).astype(np.float32))
             else:

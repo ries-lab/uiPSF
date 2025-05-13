@@ -124,7 +124,7 @@ def showpupil(f,p, index=None):
             pupil = f.res.pupil[index]
 
         ax = fig.add_subplot(1,2,1)
-        plt.imshow(np.abs(pupil),cmap='twilight_shifted',interpolation='nearest')
+        plt.imshow(np.abs(pupil),cmap='viridis',interpolation='nearest',vmin=0,vmax = np.percentile(np.abs(pupil),98))
         plt.title('pupil magnitude')
         plt.colorbar()
         ax = fig.add_subplot(1,2,2)
