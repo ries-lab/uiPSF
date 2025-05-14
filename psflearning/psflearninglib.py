@@ -23,7 +23,7 @@ import json
 from tqdm import tqdm
 #from PIL import Image
 from omegaconf import OmegaConf
-#import os
+import os
 #from tkinter import EXCEPTION, messagebox as mbox
 from dotted_dict import DottedDict
 from .dataloader import dataloader
@@ -511,6 +511,8 @@ class psflearninglib:
         rois_dict = dict(cor=np.stack(centers),fileID=np.stack(file_idxs),psf_data=fitter.rois,
                         psf_fit=fitter.forward_images,image_size=img.shape)
         resfile = savename+'.h5'
+        savefolder = os.path.dirname(resfile)
+        os.makedirs(savefolder, exist_ok=True)
         self.writeh5file(resfile,res_dict,locres_dict,rois_dict)
 
         self.result_file = resfile
