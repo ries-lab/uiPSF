@@ -101,20 +101,24 @@ class dataloader:
         imageraw = []
         ind = param.insitu.dataId
         for filename in filelist:
+            print(filename)
             f = h5.File(filename,'r')
             if param.varname:
                 gname = param.varname+'/'
-                k = list(f[gname].keys())
-            else:
-                k = list(f.keys())
-                gname = ''
-            while len(k)==1:
-                gname += k[0]+'/'
                 try:
                     k = list(f[gname].keys())
                 except:
                     k = None
-                    break
+            else:
+                k = list(f.keys())
+                gname = ''
+                while len(k)==1:
+                    gname += k[0]+'/'
+                    try:
+                        k = list(f[gname].keys())
+                    except:
+                        k = None
+                        break
             if k is None:
                 dat = np.squeeze(np.array(f.get(gname)).astype(np.float32))
             else:
@@ -125,6 +129,9 @@ class dataloader:
                     dat = np.squeeze(np.array(f.get(gname+datalist[ind]+'/'+datalist[ind])).astype(np.float32))
             if param.insitu.frame_range:
                 dat = dat[param.insitu.frame_range[0]:param.insitu.frame_range[1]]
+            if param.channeltype == 'multi':
+                dat = self.splitchannel(dat)
+
             dat = (dat-param.ccd_offset)*param.gain
             imageraw.append(dat)
         imagesall = np.stack(imageraw)

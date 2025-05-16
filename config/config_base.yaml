@@ -75,6 +75,7 @@ Params:
     multi:
       defocus_offset: 0     # micron
       defocus_delay: -0.0    # micron
+      polarization: [Ex,Ey]  # polarization for each channel, Ex: x-polarization, Ey: y-polarization
     model:
       pupilsize: 64                # unit: pixel
       n_max: 8                     # maximum zernike order

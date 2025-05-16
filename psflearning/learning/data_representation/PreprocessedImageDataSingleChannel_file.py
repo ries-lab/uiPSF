@@ -84,6 +84,10 @@ class PreprocessedImageDataSingleChannel(PreprocessedImageDataInterface):
                 if min_center_dist is None:
                     min_center_dist = np.max(roi_size)
                 rois, centers = self.remove_close_rois(rois, centers, min_center_dist)
+            if min_border_dist is not None:        
+                min_border_dist = np.array(min_border_dist)
+                inBorder = np.all(centers[:,1:]-min_border_dist >= 0,axis=1) & np.all(im2.shape[1:] - centers[:,1:] - min_border_dist >= 0, axis=1)
+                centers=centers[inBorder]
             if FOV is not None:        
                 fov = np.array(FOV)
                 coord_r = (centers[:,-1]-fov[1])**2+(centers[:,-2]-fov[0])**2
