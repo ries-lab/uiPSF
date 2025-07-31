@@ -120,15 +120,16 @@ class dataloader:
                         k = None
                         break
             if k is None:
-                dat = np.squeeze(np.array(f.get(gname)).astype(np.float32))
+                #dat = np.squeeze(np.array(f.get(gname)).astype(np.float32))
+                dat = f[gname]
             else:
                 datalist = list(f[gname].keys())
                 try:
-                    dat = np.squeeze(np.array(f.get(gname+datalist[ind])).astype(np.float32))
+                    dat = np.squeeze(np.array(f.get(gname+datalist[ind])).astype(np.float32))                    
                 except:
                     dat = np.squeeze(np.array(f.get(gname+datalist[ind]+'/'+datalist[ind])).astype(np.float32))
             if param.insitu.frame_range:
-                dat = dat[param.insitu.frame_range[0]:param.insitu.frame_range[1]]
+                dat = np.squeeze(np.array(dat[param.insitu.frame_range[0]:param.insitu.frame_range[1]]))
             if param.channeltype == 'multi':
                 dat = self.splitchannel(dat)
 

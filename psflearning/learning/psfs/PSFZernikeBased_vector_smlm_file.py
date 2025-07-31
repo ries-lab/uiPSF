@@ -24,6 +24,8 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         self.default_loss_func = mse_real_zernike_smlm
         self.pos_weight = 1
         self.Zoffset = None
+        self.polarization_type = None
+
         return
 
     def calc_initials(self, data: PreprocessedImageDataInterface, start_time=None):
@@ -188,7 +190,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         if self.options.model.zernike_nl:
             pupil_phase = tf.reduce_sum(self.Zk[self.noll_index]*tf.gather(Zcoeff[1],indices=self.noll_index)*self.weight[3],axis=0)
         else:
-            pupil_phase = tf.reduce_sum(self.Zk[4:]*Zcoeff[1][4:]*self.weight[3],axis=0)
+            pupil_phase = tf.reduce_sum(self.Zk[3:]*Zcoeff[1][3:]*self.weight[3],axis=0)
         
         pupil = tf.complex(pupil_mag*tf.math.cos(pupil_phase),pupil_mag*tf.math.sin(pupil_phase))*self.aperture*self.apoid                
         pos = tf.complex(tf.reshape(pos*self.weight[2],pos.shape+(1,1)),0.0)
@@ -205,10 +207,21 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         phiz = 1j*2*np.pi*(self.kz_med*pos[:,0]*self.zweight[self.ind[0]:self.ind[1]]-self.kz*stagepos)
         phixy = 1j*2*np.pi*self.ky*pos[:,1]+1j*2*np.pi*self.kx*pos[:,2]
         I_res = 0.0
-        for h in self.dipole_field:
-            PupilFunction = pupil*tf.exp(phiz+phixy)*h
-            psfA = im.cztfunc1(PupilFunction,self.paramxy)        
-            I_res += psfA*tf.math.conj(psfA)*self.normf
+        if self.polarization_type is None:
+            for h in self.dipole_field:
+                PupilFunction = pupil*tf.exp(phiz+phixy)*h
+                psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                I_res += psfA*tf.math.conj(psfA)*self.normf
+        if self.polarization_type == 'Ex':
+            for h in self.dipole_field[:3]:
+                PupilFunction = pupil*tf.exp(phiz+phixy)*h
+                psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                I_res += psfA*tf.math.conj(psfA)*self.normf
+        if self.polarization_type == 'Ey':
+            for h in self.dipole_field[3:]:
+                PupilFunction = pupil*tf.exp(phiz+phixy)*h
+                psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                I_res += psfA*tf.math.conj(psfA)*self.normf
 
         bin = self.options.model.bin
         if not self.options.model.var_blur:
@@ -254,7 +267,7 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         if self.options.insitu.zkorder_rank == 'H':
             zkrange = range(21,45)
         else:
-            zkrange = range(4,21)
+            zkrange = range(4,self.Zk.shape[0])
         for k in zkrange:
             for val in [-0.5,0.5]:
                 init_Zcoeff = np.zeros((2,self.Zk.shape[0],1,1),dtype=np.float32)
@@ -288,10 +301,21 @@ class PSFZernikeBased_vector_smlm(PSFInterface):
         phiz = 1j*2*np.pi*(self.kz_med*zrange-self.kz*stagepos)  
         phixy = 1j*2*np.pi*self.ky*0.0+1j*2*np.pi*self.kx*0.0
         I_res = 0.0
-        for h in self.dipole_field:
-            PupilFunction = pupil*tf.exp(phiz+phixy)*h
-            psfA = im.cztfunc1(PupilFunction,self.paramxy)       
-            I_res += psfA*tf.math.conj(psfA)*self.normf
+        if self.polarization_type is None:
+            for h in self.dipole_field:
+                PupilFunction = pupil*tf.exp(phiz+phixy)*h
+                psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                I_res += psfA*tf.math.conj(psfA)*self.normf
+        if self.polarization_type == 'Ex':
+            for h in self.dipole_field[:3]:
+                PupilFunction = pupil*tf.exp(phiz+phixy)*h
+                psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                I_res += psfA*tf.math.conj(psfA)*self.normf
+        if self.polarization_type == 'Ey':
+            for h in self.dipole_field[3:]:
+                PupilFunction = pupil*tf.exp(phiz+phixy)*h
+                psfA = im.cztfunc1(PupilFunction,self.paramxy)      
+                I_res += psfA*tf.math.conj(psfA)*self.normf
         
         filter2 = tf.exp(-2*sigma[1]*sigma[1]*self.kspace_x-2*sigma[0]*sigma[0]*self.kspace_y)
         filter2 = tf.complex(filter2/tf.reduce_max(filter2),0.0)
