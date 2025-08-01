@@ -27,31 +27,31 @@ L = psflearninglib()
 L.param = io.param.combine(basefile='config_base',psftype='insitu',channeltype='1ch',sysfile='smart_tirf')
 
 #%% load psf model
-resfile = r'C:\Users\Sheng\Documents\MATLAB\DNA-Paint\ruler\result_1ch\20R-ruler-0.05exp-FocusLock-noPol--2025-06-17_12-47-591_insitu_zernike_single.h5'
+resfile = r"T:\projects\smart-microscope\data\DNA paint ruler\2025-07-15\python\result_1ch\20R-ruler-0.1exp-TIRF-onlyZFocusLockDT5-noPol--2025-07-15_01-32-511_insitu_zernike_single.h5"
 f,p = io.h5.load(resfile) 
 L.param = p
 I_model = f.res.I_model
 pz = p.pixel_size.z # unit: um
 
 #%%
-L.param.datapath = r'C:\Users\Sheng\Documents\MATLAB\DNA-Paint/ruler/'
-filename = '20R-ruler-0.1exp-TIRF-onlyZFocusLockDT10-noPol--2025-07-10_20-02-37'
+L.param.datapath = r'T:\projects\smart-microscope\data\DNA paint ruler\2025-07-15/'
+filename = '20R-ruler-0.1exp-TIRF-onlyZFocusLockDT5-noPol--2025-07-15_01-32-51'
 L.param.filelist = [L.param.datapath + filename+'.h5']
 daf = h5.File(L.param.filelist[0],'r')
 dat = daf[L.param.varname]
 Nframes = dat.shape[0]
-batchsize = 1000
+batchsize = 200
 ind = list(np.linspace(0,Nframes,Nframes//batchsize+1,dtype=int))
-roisize = [9,9]
+roisize = [13,13]
 #%%
 start = time.process_time()
 
 dll = localizationlib(usecuda=True)
 L.param.roi.roi_size = roisize
 L.param.roi.peak_height = 0.1
-imsz = 256
-startx = 0
-starty = 570
+imsz = p.FOV.imsz
+startx = p.FOV.startx
+starty = p.FOV.starty
 x = []
 y = []  
 z = []
@@ -103,11 +103,9 @@ plt.plot(y,z*pz*1e3,'.',markersize=0.1)
 plt.plot(x,z*pz*1e3,'.',markersize=0.1)
 
 #%% show results
-llmask = -150
+llmask = -800
 mask = (LL>llmask) & (~np.isnan(x)) & (~np.isnan(y)) & (~np.isnan(z)) 
 h=plt.hist(LL[mask],100)
-
-
 
 #%%
 h=plt.hist(bg[mask],bins=100)
@@ -141,3 +139,4 @@ with h5.File(savename, "w") as f1:
     for k, v in res.items():
         g1[k] = v
 # 
+# %%

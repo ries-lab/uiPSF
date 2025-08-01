@@ -232,14 +232,14 @@ class psflearninglib:
         zT = param.fpi.modulation_period
         PSFtype = param.PSFtype
         channeltype = param.channeltype
-        fov = list(param.FOV.values())
+        #fov = list(param.FOV.values())
         skew_const = param.LLS.skew_const
         maxNobead = param.roi.max_bead_number
 
 
-        zstart = fov[-3]
-        zend = images.shape[-3]+fov[-2]
-        zstep = fov[-1]
+        zstart = param.FOV.z_start
+        zend = images.shape[-3]+param.FOV.z_end
+        zstep = param.FOV.z_step
         zind = range(zstart,zend,zstep)
         ims = np.swapaxes(images,0,-3)
 
@@ -269,8 +269,10 @@ class psflearninglib:
             else:
                 dataobj = PreprocessedImageDataMultiChannel(images, PreprocessedImageDataSingleChannel)
         
-        if fov[2]==0:
+        if param.FOV.radius==0:
             fov = None
+        else:
+            fov = [param.FOV.y_center, param.FOV.x_center, param.FOV.radius]
         if (skew_const[0]==0.0) & (skew_const[1]==0.0):
             skew_const = None
             

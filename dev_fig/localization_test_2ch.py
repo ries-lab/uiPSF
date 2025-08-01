@@ -24,7 +24,7 @@ except:
 L = psflearninglib()
 L.param = io.param.combine(basefile='config_base',psftype='insitu',channeltype='2ch',sysfile='smart_tirf')
 #%% load psf model
-resfile = r'C:\Users\Sheng\Documents\MATLAB\bead100nm_smart\python\result_2ch\100nmbeads-0.5exp-noFocusLock-8000Frames--2025-07-23_18-57-1811_insitu_zernike_multi.h5'
+resfile = r"T:\projects\cells-labeling\Data\DNA PAINT smart\7_22_25\2025-07-22\python\result_2ch\Cell2_Hek293_AlfaEGFR_WT_ALFA15pM_laser100percent--2025-07-22_17-21-221_insitu_zernike_multi.h5"
 f,p = io.h5.load(resfile) 
 L.param = p
 I_model = np.stack([f.res.channel0.I_model, f.res.channel1.I_model])
@@ -32,8 +32,8 @@ pz = p.pixel_size.z # unit: um
 imgcenter = f.res.imgcenter
 T = np.expand_dims(f.res.T,axis=0)
 #%%
-L.param.datapath = r'C:\Users\Sheng\Documents\MATLAB\bead100nm_smart/'
-filename = '100nmbeads-0.5exp-noFocusLock-8000Frames--2025-07-23_18-57-18'
+L.param.datapath = r'T:\projects\cells-labeling\Data\DNA PAINT smart\7_22_25\2025-07-22/'
+filename = 'Cell2_Hek293_AlfaEGFR_WT_ALFA15pM_laser100percent--2025-07-22_17-21-22'
 L.param.filelist = [L.param.datapath + filename+'.h5']
 daf = h5.File(L.param.filelist[0],'r')
 dat = daf[L.param.varname]
@@ -46,10 +46,10 @@ roisize = [13,13]
 start = time.process_time()
 L.param.plotall = False
 L.param.roi.roi_size = roisize
-L.param.roi.peak_height = 0.6
-imsz = 256
-startx = 0
-starty = 110
+L.param.roi.peak_height = 0.1
+imsz = p.FOV.imsz
+startx = p.FOV.startx
+starty = p.FOV.starty
 dll = localizationlib(usecuda=True)
 x = []
 y = []  
@@ -118,21 +118,18 @@ plt.plot(y,z*pz*1e3,'.',markersize=0.1)
 plt.plot(x,z*pz*1e3,'.',markersize=0.1)
 
 #%% 
-llmask = -1200
+llmask = -400
 mask = (LL>llmask) & (~np.isnan(x)) & (~np.isnan(y)) & (~np.isnan(z)) 
 h=plt.hist(LL[mask],100)
-
-#%%
-mask = mask & (np.sqrt(crlb[0])<0.025)
 
 #%%
 h=plt.hist(bg[mask],bins=100)
 #%%
 h=plt.hist(photon[mask],bins=np.linspace(100,10000,100))
 #%%
-h=plt.hist(np.sqrt(crlb[0,mask]),bins=np.linspace(0,0.1,100))
+h=plt.hist(np.sqrt(crlb[0,mask]),bins=np.linspace(0,0.5,100))
 #%%
-h=plt.hist(np.sqrt(crlb[1,mask]),bins=np.linspace(0,0.1,100))
+h=plt.hist(np.sqrt(crlb[1,mask]),bins=np.linspace(0,0.5,100))
 #%%
 h=plt.hist(np.sqrt(crlb[2,mask]),bins=np.linspace(0,1,100))
 #%%

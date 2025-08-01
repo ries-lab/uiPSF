@@ -21,10 +21,10 @@ except:
 
 
 # %%
-pixelsize = 80 # unit: nm
+pixelsize = 78 # unit: nm
 std_limit = 0.2
-folder = r'C:\Users\Sheng\Documents\MATLAB\DNA-Paint\ruler/result_1ch/'
-filename = '20R-ruler-0.05exp-FocusLock-noPol--2025-06-17_12-47-59_loc_1ch_dme'
+folder = r'T:\projects\smart-microscope\data\DNA paint ruler\2025-07-15\python\result_1ch/'
+filename = '20R-ruler-0.1exp-TIRF-onlyZFocusLockDT5-noPol--2025-07-15_01-32-51_loc_1ch_dme'
 resfile = folder+filename+'.h5'
 F = h5.File(resfile,'r')
 res = F['res']
@@ -75,23 +75,25 @@ resfile = folder+filename+'.h5'
 F = h5.File(resfile,'r')
 res = F['res']
 # %%
+photon = np.array(res['photon'])
+bg = np.array(res['bg'])
 ftsz=14
 fig = plt.figure(figsize=[14,5])
 spec = gridspec.GridSpec(ncols=2, nrows=1,
-                        width_ratios=[3, 3], wspace=0.2,
+                        width_ratios=[3, 3], wspace=0.3,
                         hspace=0.3)
 ax = fig.add_subplot(spec[0])
-h = plt.hist(res['photon'], bins=np.linspace(0, np.quantile(res['photon'],0.99), 100))
+h = plt.hist(photon, bins=np.linspace(0, np.quantile(photon,0.99), 100))
 plt.xlabel('photon',fontsize=ftsz)
 plt.ylabel('count',fontsize=ftsz)
 plt.xticks(fontsize=ftsz)
 plt.yticks(fontsize=ftsz)
 ax = fig.add_subplot(spec[1])
-h = plt.hist(res['bg'], bins=np.linspace(0, np.quantile(res['bg'],0.99), 100))
+h = plt.hist(bg, bins=np.linspace(0, np.quantile(bg,0.99), 100))
 plt.xlabel('bg',fontsize=ftsz)
 plt.xticks(fontsize=ftsz)
 plt.yticks(fontsize=ftsz)
 plt.ylabel('count',fontsize=ftsz)
+plt.show()
 
 
-# %%

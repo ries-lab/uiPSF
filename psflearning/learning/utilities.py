@@ -202,7 +202,7 @@ def find_peaks_3d(imgin,conv3d,max_pool_3d,conv_uniform,thresh,roisize):
     # find local maxima
     mask = tf.math.equal(imgmax,imgconv)
     locmax = tf.cast(mask,tf.float32) * imgconv
-    thresh = np.quantile(locmax[mask],1-1e-4) * thresh
+    thresh = np.quantile(locmax[mask],1-1e-3) * thresh
     # remove overlapping peaks
     locmax1= tf.cast(tf.math.greater(locmax,thresh),tf.float32)
     #locmaxf = conv_uniform(locmax1)
@@ -252,7 +252,7 @@ def find_peaks(imgin,conv2d,max_pool_2d,conv_uniform,thresh,roisize):
     # find local maxima
     mask = tf.math.equal(imgmax,imgconv)
     locmax = tf.cast(mask,tf.float32) * imgconv
-    thresh = np.quantile(locmax[mask],1-1e-4) * thresh
+    thresh = np.quantile(locmax[mask],1-1e-3) * thresh
     # remove overlapping peaks
     locmax1= tf.cast(tf.math.greater(locmax,thresh),tf.float32)
     locmaxf = conv_uniform(locmax1)
