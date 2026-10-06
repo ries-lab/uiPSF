@@ -271,12 +271,7 @@ class psflearninglib:
         if (skew_const[0]==0.0) & (skew_const[1]==0.0):
             skew_const = None
             
-        # a known shift between the channels ([y, x] per channel, target minus
-        # reference) replaces the search from bead coordinates, which a regular
-        # bead pattern can lead to a neighbouring bead
-        channel_shift = param.get('channel_shift', None)
-        if channel_shift and hasattr(dataobj, 'shiftxy'):
-            dataobj.shiftxy = np.float32(channel_shift)
+        #dataobj.shiftxy = np.array([[0,0],[0.3,1.6]])
         dataobj.process( roi_size = roi_size,
                         gaus_sigma=gaus_sigma,
                         min_border_dist= list(np.array(roi_size)//2+1),

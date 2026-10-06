@@ -113,7 +113,6 @@ Params:
   usecuda: true                  # for spline localization
   plotall: false
   ref_channel: 0                 # index of the reference channel, for multi-channel system
-  channel_shift: []              # multi-channel beads: known [y, x] shift per channel (target minus reference), else found from the beads
   batch_size: 1600               # maximum number of beads or emitters to be optimized at one time
   iteration: 200                 # number of iterations for learning
   varname: ""                    # only for simulated data from matlab, the variable name for the data
