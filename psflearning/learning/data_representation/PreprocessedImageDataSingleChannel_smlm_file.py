@@ -7,7 +7,6 @@ import scipy.special as spf
 
 import matplotlib.pyplot as plt
 from .. import imagetools as nip
-from tkinter import messagebox as mbox
 import sys
 
 from .PreprocessedImageDataInterface_file import PreprocessedImageDataInterface

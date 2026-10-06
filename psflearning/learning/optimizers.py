@@ -13,8 +13,6 @@ import scipy as sp
 import scipy.optimize as optimize
 import tensorflow as tf
 import sys
-import tkinter as tk
-from tkinter import messagebox as mbox
 
 class OptimizerABC:
     """
@@ -318,7 +316,7 @@ class L_BFGS_B(OptimizerABC):
         for variable in variables:
             shape = variable.shape
             self.shapes.append(shape)
-            self.lengths.append(np.product(shape))
+            self.lengths.append(np.prod(shape))
             self.dtypes.append(variable.dtype)
             flat_variables.append(variable.flatten())
 

@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md", "r") as f:
       long_descrition = f.read()
@@ -31,18 +31,19 @@ setup(
       ],
 
 
-      packages=['psflearning'], 
+      packages=find_packages(include=['psflearning', 'psflearning.*']), 
       python_requires='>=3.7',
       install_requires=[
             "numpy",
             "scipy",
             "matplotlib",
-            "tensorflow==2.9.1",
-            "tensorflow-probability==0.17",
+            "tensorflow>=2.9",
+            "tensorflow-probability>=0.17",
+            "h5py",
+            "pillow",
             "scikit-image",
             "tqdm",
             "czifile",
-            "hdfdict",
             "dotted_dict",
             "omegaconf",
             "ipykernel"

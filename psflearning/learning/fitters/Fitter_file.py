@@ -78,7 +78,9 @@ class Fitter(FitterInterface):
         # therefore make sure they are array
         # if they already are np.stack has no effect
         try:
-            self.rois = np.stack(rois)
+            # float32 as the model is: with numpy >= 2 (NEP 50) subtracting a
+            # numpy float64 scalar no longer keeps float32 rois float32
+            self.rois = np.stack(rois).astype(np.float32)
         except ValueError:
             raise RuntimeError("At this point each channel must have same number of rois and allow np.stack.")
 
