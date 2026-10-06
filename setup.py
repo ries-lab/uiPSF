@@ -38,7 +38,9 @@ setup(
             "scipy",
             "matplotlib",
             "tensorflow>=2.9",
-            "tensorflow-probability>=0.17",
+            # [tf] brings tf-keras, which tensorflow-probability needs with
+            # TensorFlow >= 2.16 (Keras 3)
+            "tensorflow-probability[tf]>=0.17",
             "h5py",
             "pillow",
             "scikit-image",
