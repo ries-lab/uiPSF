@@ -104,7 +104,7 @@ class PSFMultiChannel4pi(PSFInterface):
 
         #param.insert(0,init_subpixel_pos_ref_channel.astype(np.float32))
         param.append(self.init_trafos)
-        self.weight = np.ones((len(param)))
+        self.weight = np.ones((len(param)),dtype=np.float32)
         self.weight[-1] = 1e-4
         param[-1] = param[-1]/self.weight[-1]
         self.varinfo = self.sub_psfs[0].varinfo

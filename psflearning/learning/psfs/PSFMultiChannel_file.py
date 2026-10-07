@@ -108,7 +108,7 @@ class PSFMultiChannel(PSFInterface):
 
         #param.insert(0,init_subpixel_pos_ref_channel.astype(np.float32))
         param.append(self.init_trafos)
-        self.weight = np.ones((len(param)))
+        self.weight = np.ones((len(param)),dtype=np.float32)
         self.weight[-1] = 1e-3
         if hasattr(self.sub_psfs[0],'pos_weight'):
             self.weight[0] = self.sub_psfs[0].pos_weight

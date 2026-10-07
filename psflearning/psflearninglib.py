@@ -23,7 +23,6 @@ from tqdm import tqdm
 from PIL import Image
 from omegaconf import OmegaConf
 import os
-from tkinter import EXCEPTION, messagebox as mbox
 from dotted_dict import DottedDict
 from .dataloader import dataloader
 #sys.path.append("..")
@@ -448,7 +447,7 @@ class psflearninglib:
             res = psfobj.res2dict(self.learning_result)
             
             if channeltype == 'single':
-                self.param.option.insitu.stage_pos = float(res['stagepos'])
+                self.param.option.insitu.stage_pos = float(np.ravel(res['stagepos'])[0])
                 I_model = res['I_model']
                 Nz = I_model.shape[-3]
                 zind = range(0,Nz,4)
@@ -461,7 +460,7 @@ class psflearninglib:
                     plt.show()
             else:
                 try:
-                    self.param.option.insitu.stage_pos = float(res['channel0']['stagepos'])
+                    self.param.option.insitu.stage_pos = float(np.ravel(res['channel0']['stagepos'])[0])
                 except:
                     pass
                 if self.param.plotall:
