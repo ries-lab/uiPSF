@@ -11,6 +11,7 @@ A review of uiPSF written to start a discussion. It covers:
 Nothing in `psflearning/` was changed.
 
 - `uiPSF_review.html`: the full review; open it in a browser.
+- `REIMPLEMENTATION_BRIEF.md`: the decisions and plan outline for a v2 re-implementation.
 - `scripts/`: the synthetic tests behind the numbers in the review.
 - `results/`: their raw output, one JSON line per fit.
 

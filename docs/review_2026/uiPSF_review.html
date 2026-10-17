@@ -107,8 +107,8 @@ small,.fine{font-size:13px;color:var(--muted)}
 </ol>
 </div>
 <p><strong>Paper access.</strong> Yes, I could read the full paper: the main text, Methods and Extended Data through PubMed Central (PMC12330227), and Supplementary Notes 1–7 with all equations from the Nature ESM PDF. The theory comments below refer to those equation numbers.</p>
-<p><strong>PyTorch fork.</strong> <code>Li-Lab-SUSTech/uiPSF-Studio</code> is still not reachable from here. It is not public, and the Claude GitHub App connected to this session has no access to the Li lab organisation, even though the repository opens in your browser. Options: have the Li lab grant the Claude GitHub App access, push a copy to a ries-lab private repository, or upload a zip.</p>
 <p><strong>Forward model validated.</strong> A numerical cross-check against the TU Delft vectorial model (Stallinga/Rieger vecfit) agrees to float32 precision, including supercritical-angle emission (section D). The physics core is sound. The open issues are the solver, the parametrisation, the omitted effects and field dependence (section E).</p>
+<p><strong>Framework.</strong> PyTorch, running eager, with a matrix-DFT forward model. On an M1 Pro Mac, complex FFT and matrix DFT with gradients run natively on the GPU (errors &lt;10⁻⁶), at about 2.5× the Mac's CPU speed. On Linux and Windows the CUDA path is standard; its speed-up is still to be measured (section F3).</p>
 </section>
 
 <section id="weights">
@@ -397,6 +397,9 @@ I_exc(r) = |E_x|² + |E_y|² + |E_z|²          # freely rotating absorber</div>
 <li>In multi-channel in-situ, adding the variable shifted the "shared" index range. Stage position is now per channel and can absorb the channel defocus.</li>
 </ul></div>
 
+<div class="finding"><div class="hd"><span class="chip c-crit">Confirmed</span><strong>Loss and gradient are inconsistent with several bead batches</strong></div>
+<div class="where">learning/optimizers.py objective_wrapper_for_gradient (≈ lines 380-423)</div>
+<p>With N > <code>batch_size</code>, each batch's loss is weighted by its share <code>w1</code>, but the per-bead ("Nfit") gradients are concatenated unweighted. L-BFGS-B then gets a gradient that does not belong to its loss, which leads to line-search failures on large (in-situ) datasets. Fix: scale <code>grad1</code> of the Nfit variables by <code>w1</code> as well.</p></div>
 <div class="finding"><div class="hd"><span class="chip c-crit">Confirmed</span><strong><code>localize()</code> cannot run</strong></div>
 <div class="where">psflearninglib.py:978</div>
 <p>It calls <code>util.crop_rois</code> with 6 arguments, but the function takes 3. Even with that fixed, the box offset of −bxsz/2 looks missing at line 991 (plausible).</p></div>
@@ -472,7 +475,7 @@ I_exc(r) = |E_x|² + |E_y|² + |E_z|²          # freely rotating absorber</div>
 <ol>
 <li><strong>JAX.</strong> <code>jit</code> + <code>vmap</code> over beads, <code>jvp</code>/<code>vjp</code>, and ready-made L-BFGS and Levenberg–Marquardt solvers that run on device (<code>optimistix</code>, <code>jaxopt</code>). Easy float64 switch. It is the closest to the "physics plus a good solver" structure.</li>
 <li><strong>PyTorch.</strong> <code>torch.compile</code> and <code>torch.func</code> (jvp/vjp/vmap) cover the same ground. The ecosystem is the largest, and the EPFL vectorial-PSF library (arXiv 2502.03170) is PyTorch. Its built-in LBFGS is weaker than SciPy's, and an LM solver would have to be written.</li>
-<li><strong>Julia.</strong> This makes sense if Keith's lab is going that way anyway. It has fast native code, Enzyme/Zygote for AD, and LsqFit/Optim. GPU support for AD through complex FFTs is less mature.</li>
+<li><strong>Julia.</strong> This makes sense if collaborators are going that way anyway. It has fast native code, Enzyme/Zygote for AD, and LsqFit/Optim. GPU support for AD through complex FFTs is less mature.</li>
 </ol>
 <h3>Installation and GPU support by platform</h3>
 <p>The target for users is one <code>pip install</code> that uses the GPU automatically wherever one exists.</p>
@@ -493,7 +496,7 @@ I_exc(r) = |E_x|² + |E_y|² + |E_z|²          # freely rotating absorber</div>
 <li>A small Levenberg–Marquardt / Gauss–Newton solver built on <code>torch.func</code> JVP/VJP.</li>
 <li>Pure Python, installed with pip or conda.</li>
 </ul>
-<p>It also shares an ecosystem with the SUSTech fork and the EPFL <code>psf-generator</code>. JAX would be equally easy to write but would leave Windows and Mac users on CPU. The earlier open risk, complex autograd on Apple MPS, is cleared. <code>docs/review_2026/scripts/gpu_backend_check.py</code> passes on an M1 Pro (results below).</p></div>
+<p>It also shares an ecosystem with the EPFL <code>psf-generator</code> and other PyTorch PSF tools. JAX would be equally easy to write but would leave Windows and Mac users on CPU. The earlier open risk, complex autograd on Apple MPS, is cleared. <code>docs/review_2026/scripts/gpu_backend_check.py</code> passes on an M1 Pro (results below).</p></div>
 <h3>Measured on Apple M1 Pro (MPS)</h3>
 <p class="fine">MacBook Pro M1 Pro, 10 cores, 32 GB, macOS 27, torch 2.8.0 (Python 3.9). Forward + backward of the uiPSF-sized prototype: 41 z-slices × 6 dipole fields, 64 px pupil, 42 px image.</p>
 <div class="tblbox"><table>
@@ -529,14 +532,14 @@ I_exc(r) = |E_x|² + |E_y|² + |E_z|²          # freely rotating absorber</div>
 <section id="roadmap">
 <h2>Proposed roadmap</h2>
 <ol>
-<li><strong>Benchmark first.</strong> Assemble 5–10 bead datasets that currently need tuning (including the ones from Keith's group), plus simulations with known ground truth. Metrics: Zernike error on simulations, held-out-bead deviance, z-bias and runtime. Every later change is judged against this.</li>
+<li><strong>Benchmark first.</strong> Assemble 5–10 bead datasets that currently need tuning, plus simulations with known ground truth. Metrics: Zernike error on simulations, held-out-bead deviance, z-bias and runtime. Every later change is judged against this.</li>
 <li><strong>Bug fixes</strong> from F1 and E (ROI pairing, polarisation default, stage tilt, <code>localize</code>, FD export and map convention), plus a regression test of the new ROI finder against <code>main</code>.</li>
 <li><strong>Loss and solver fixes inside the current code:</strong> <code>xlogy</code> loss with a read-noise offset, summed likelihood, L-BFGS-B bounds instead of the <code>mu</code> ramp, removal of the degenerate parameters, Fisher-diagonal scaling instead of <code>self.weight</code>, and <code>tf.function</code>. These are small diffs. If the benchmark shows that weight tuning is no longer needed, that is the main result.</li>
 <li><strong>Residual atlas and the cheap physics terms</strong> (section B): per-slice shared z/xy/photon terms for beads, focal surface and n<sub>med</sub> for in-situ, planar background, saturation mask. Add them only where the residual atlas shows a pattern on the benchmark data.</li>
 <li><strong>Field dependence:</strong> replace the dense FD grid with a nodal-aberration-theory/low-order polynomial model plus an optional smooth residual, removing the defocus map; fix the FD export and the FD-DeepLoc import convention (section E).</li>
 <li><strong>Solver upgrade:</strong> a block Gauss–Newton/LM with a Schur complement, plus parameter uncertainties from the Fisher matrix.</li>
 <li><strong>Physics extensions</strong> as the benchmark motivates: polychromatic emission, depth-integrated bead model, smooth bleaching, automatic pupil sampling, Jones pupil for polarised channels.</li>
-<li><strong>Port or rewrite</strong> (JAX or PyTorch, or alignment with Keith's Julia code) once the algorithm is settled. Porting the current algorithm would carry the robustness problems along.</li>
+<li><strong>Port or rewrite</strong> (JAX or PyTorch, or alignment with collaborators' Julia code) once the algorithm is settled. Porting the current algorithm would carry the robustness problems along.</li>
 </ol>
 </section>
 
@@ -544,7 +547,7 @@ I_exc(r) = |E_x|² + |E_y|² + |E_z|²          # freely rotating absorber</div>
 <h2>Questions for discussion</h2>
 <div class="q">Which datasets exactly fail without tuning, and which weights did people change? A list of (dataset, weight changed, why) would show whether the problem is mostly preconditioning or mostly model mismatch.</div>
 <div class="q">Is <code>stage_tilt</code> meant to be a known input (measured once per microscope) or a fitted parameter?</div>
-<div class="q">Do we want to keep TF at all? If Keith's group goes Julia and SUSTech went PyTorch, is a shared reference implementation with test data more valuable than a third framework?</div>
+<div class="q">Do we want to keep TF at all? If collaborating groups move to Julia or PyTorch, is a shared reference implementation with test data more valuable than a third framework?</div>
 <div class="q">How important is backward compatibility of the .h5 outputs (spline coefficients, pupil, Zernikes) for SMAP and other consumers?</div>
 <div class="q">For an excitation module: which first target? Bead scans on a confocal/ISM (easiest, reuses the bead pipeline) or MINFLUX in-situ from raw TCP counts (most novel, nothing published)? Are raw MINFLUX traces with TCP positions accessible from the instruments we use?</div>
 <div class="q">Field dependence: should the default bead model always be field-dependent (low-order NAT), given that most users pool beads from the whole FOV? Should we coordinate one field-model format with the Li lab (FD-DeepLoc) and TU Delft (funnat)?</div>
