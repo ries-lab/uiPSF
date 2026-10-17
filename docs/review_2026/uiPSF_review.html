@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>uiPSF Robustness Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column (~70ch) with a sticky contents rail on wide screens; tables scroll in their own boxes */
+:root{
+  --bg:#f7f8fa; --surface:#ffffff; --fg:#1b2230; --muted:#5a6578; --rule:#dde2ea;
+  --accent:#1f5f8b; --accent-soft:#e6eff6;
+  --crit:#b3261e; --crit-soft:#fbe9e7; --warn:#9a6700; --warn-soft:#fff4d6; --ok:#2e7d4f; --ok-soft:#e5f4ea;
+  --code-bg:#eef1f5;
+  --f-display:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161d; --surface:#1a2029; --fg:#e3e8ef; --muted:#9aa6b8; --rule:#2c3542;
+  --accent:#7db8e0; --accent-soft:#1b2c3b;
+  --crit:#f2867c; --crit-soft:#3a1f1d; --warn:#e6c160; --warn-soft:#352b12; --ok:#7fd1a0; --ok-soft:#173023;
+  --code-bg:#222a35; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161d; --surface:#1a2029; --fg:#e3e8ef; --muted:#9aa6b8; --rule:#2c3542;
+  --accent:#7db8e0; --accent-soft:#1b2c3b;
+  --crit:#f2867c; --crit-soft:#3a1f1d; --warn:#e6c160; --warn-soft:#352b12; --ok:#7fd1a0; --ok-soft:#173023;
+  --code-bg:#222a35; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--f-body);}
+.wrap{max-width:1120px;margin:0 auto;padding-block:40px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}nav.toc{display:none}}
+nav.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px);align-self:start;font-size:13.5px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 0}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--accent)}
+nav.toc .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+main{min-width:0;max-width:74ch}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.2}
+h1{font-size:2.3rem;font-weight:650;margin:0 0 8px}
+h2{font-size:1.55rem;font-weight:650;margin:56px 0 12px;padding-top:16px;border-top:1px solid var(--rule)}
+h3{font-size:1.15rem;font-weight:650;margin:32px 0 8px}
+p,li{margin:0 0 12px}
+ul,ol{padding-left:22px;margin:0 0 16px}
+a{color:var(--accent)}
+code{font-family:var(--f-mono);font-size:.86em;background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.meta{color:var(--muted);font-size:14px;margin-bottom:28px}
+.lede{font-size:1.08rem}
+.callout{background:var(--accent-soft);border-radius:8px;padding:16px 20px;margin:20px 0}
+.callout p:last-child,.callout ul:last-child{margin-bottom:0}
+.tblbox{overflow-x:auto;margin:16px 0 24px;border:1px solid var(--rule);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--rule)}
+tr:last-child td{border-bottom:0}
+th{font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.chip{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.c-crit{background:var(--crit-soft);color:var(--crit)}
+.c-warn{background:var(--warn-soft);color:var(--warn)}
+.c-ok{background:var(--ok-soft);color:var(--ok)}
+.c-info{background:var(--accent-soft);color:var(--accent)}
+.finding{border-top:1px solid var(--rule);padding:14px 0}
+.finding:first-of-type{border-top:0}
+.finding .hd{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:4px}
+.finding .hd strong{font-weight:600}
+.finding .where{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.eq{font-family:var(--f-mono);font-size:14px;background:var(--code-bg);padding:10px 14px;border-radius:6px;overflow-x:auto;white-space:pre;margin:8px 0 16px}
+.q{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:0 0 14px}
+small,.fine{font-size:13px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <div class="lbl">Contents</div>
+  <a href="#summary">Summary</a>
+  <a href="#weights">Why the weights need tuning</a>
+  <a href="#experiment">Synthetic test</a>
+  <a href="#theory">A. Theory</a>
+  <a href="#mismatch">B. Missing physics</a>
+  <a href="#excitation">C. Excitation PSFs</a>
+  <a href="#vecfit">D. vs TU Delft vecfit</a>
+  <a href="#fd">E. Field dependence</a>
+  <a href="#bugs">F1. Bugs</a>
+  <a href="#hyper">F2. Hyperparameters</a>
+  <a href="#perf">F3. Performance &amp; framework</a>
+  <a href="#claude">Auto-tuning with Claude?</a>
+  <a href="#roadmap">Proposed roadmap</a>
+  <a href="#questions">Questions for discussion</a>
+  <a href="#sources">Sources</a>
+</nav>
+
+<main>
+<h1>uiPSF robustness review</h1>
+<div class="meta">Review of the <code>test_roi</code> branch of ries-lab/uiPSF (head <code>b367f00</code>) and of Liu et al., <i>Nature Methods</i> 2024. Written to start a discussion; nothing has been changed in the code. October 2026.</div>
+
+<section id="summary">
+<p class="lede">The main finding is that the forward model is mostly sound and the fitting is the weak part. Tuning <code>self.weight</code> is a symptom of that. Those weights are not loss weights. They scale the variables before L-BFGS-B sees them. If the fit converged to the true optimum, their exact values would barely matter. A synthetic test with a perfectly matched model shows exactly this. On dim beads, rescaling one variable changes the z error of the learned model from 61 nm to 5 nm, because only some scalings let L-BFGS-B converge within 200 iterations. Model mismatch in real data adds to this. It is covered in its own section below. In simulations it behaves differently: it biases the pupil the same way for every scaling and leaves a visible excess in the loss. A background gradient across the ROI and a piezo scale error were the most harmful effects tested. Both are cheap to model, in the same family as stage tilt.</p>
+<div class="callout">
+<p><strong>Five things that would probably help robustness most</strong></p>
+<ol>
+<li><strong>Replace the hand-set variable scaling with a solver that does not depend on it.</strong> Options: Levenberg–Marquardt or Gauss–Newton on the Poisson likelihood, using the block structure (per-bead parameters plus shared pupil parameters). A cheaper first step is to scale each variable by its Fisher information at the initial guess.</li>
+<li><strong>Make the objective stationary.</strong> The penalty factor <code>mu</code> grows by 1.1× on every function evaluation, including inside L-BFGS line searches. This bites only once a positivity constraint becomes active. Use L-BFGS-B's own bounds, or reparametrise (for example softplus for background and intensity), instead of ramped quadratic penalties.</li>
+<li><strong>Fix the Poisson loss.</strong> Pixels with data ≤ 0 or model ≤ 0 are silently dropped (<code>LL[is_finite(LL)]</code>). Use <code>xlogy</code> plus a read-noise or sCMOS offset term, and sum the loss instead of averaging it, so regularisation strength does not depend on how many beads and pixels there are.</li>
+<li><strong>Remove exact and near degeneracies.</strong> Pupil-magnitude scale vs photons is exactly degenerate. Defocus Z4 vs the common bead z offset is nearly degenerate, and so is Z11 vs depth for in-situ. Fix or orthogonalise them.</li>
+<li><strong>Compile the graph.</strong> Every evaluation currently runs eagerly with a NumPy float32→float64 round trip. Wrapping it in <code>tf.function</code>/XLA, or <code>torch.compile</code>/JAX <code>jit</code>, and moving the optimiser loop onto the device is the cheapest large speed-up. A switch of framework alone gains little.</li>
+</ol>
+</div>
+<p><strong>Paper access.</strong> Yes, I could read the full paper: the main text, Methods and Extended Data through PubMed Central (PMC12330227), and Supplementary Notes 1–7 with all equations from the Nature ESM PDF. The theory comments below refer to those equation numbers.</p>
+<p><strong>PyTorch fork.</strong> <code>Li-Lab-SUSTech/uiPSF-Studio</code> is still not reachable from here. It is not public, and the Claude GitHub App connected to this session has no access to the Li lab organisation, even though the repository opens in your browser. Options: have the Li lab grant the Claude GitHub App access, push a copy to a ries-lab private repository, or upload a zip.</p>
+<p><strong>Forward model validated.</strong> A numerical cross-check against the TU Delft vectorial model (Stallinga/Rieger vecfit) agrees to float32 precision, including supercritical-angle emission (section D). The physics core is sound. The open issues are the solver, the parametrisation, the omitted effects and field dependence (section E).</p>
+</section>
+
+<section id="weights">
+<h2>Why the weights need tuning</h2>
+<p>The bead Zernike model (<code>PSFZernikeBased_file.py:67</code>) sets:</p>
+<div class="eq">weight = [wI·100, median(bg), 40/wI, 20/wI, 20/wI]      # wI = sqrt(median photons)
+forward = psf · (I_var · w0) + bg_var · w1,   phase = Σ Zk · (Z_var · w3), …</div>
+<p>The optimiser sees <code>I_var</code>, <code>bg_var</code> and <code>Z_var</code>, and the weights act as a diagonal preconditioner. Three things in the current setup make the result depend on them:</p>
+<ol>
+<li><strong>L-BFGS is not scale-invariant early on.</strong> It starts from an identity Hessian, so its first steps and its line-search step sizes depend on the relative scale of the variables. The loss is a <em>mean</em> deviance over N·Nz·L² pixels, so the gradient with respect to a shared Zernike coefficient is tiny compared with the gradients of per-bead parameters. Within 100–200 iterations the solver simply does not reach the optimum unless the scales happen to suit the data.</li>
+<li><strong>The objective changes while it is being minimised.</strong> In <code>optimizers.py:429</code>, <code>mu *= 1.1</code> runs once per function <em>evaluation</em>, capped at 1e7 (reached after about 170 evaluations). It multiplies the positivity penalties. L-BFGS curvature pairs and Wolfe line searches assume a fixed function. The result is spurious <code>ABNORMAL_TERMINATION_IN_LNSRCH</code> stops and stiff penalty walls late in the fit. L-BFGS-B supports bounds natively, but they are commented out (<code>optimizers.py:291</code>).</li>
+<li><strong>Some regularisers act on the scaled variables.</strong> For example <code>gxymean</code> acts on <code>variables[-1]</code>, and in the in-situ losses the Zernike L2 acts on <code>zcoeff</code>. Changing a weight therefore also changes the effective regularisation strength.</li>
+</ol>
+<p>Add exact degeneracies with zero curvature (pupil magnitude vs photons) and float32 losses fed to a float64 L-BFGS (the default <code>ftol</code> can never be met, so runs stop on <code>maxiter</code> or on a line-search failure). The fit then lands at a point that depends on its path, which is what users report. The fix is to make the solver insensitive to scaling, not to search for better weights.</p>
+</section>
+
+<section id="experiment">
+<h2>Synthetic test</h2>
+<p>To check point 1, I ran the unmodified <code>test_roi</code> code: <code>PSFZernikeBased</code> (vector), <code>mse_real_zernike</code>, <code>L_BFGS_B</code> and <code>Fitter</code>, with small NumPy 2 shims only. The data were 6 simulated beads with Poisson noise. Each bead had 41 slices at 50 nm, a 21×21 ROI and 1–3·10⁴ photons per slice. The ground truth had known astigmatism, coma, trefoil and spherical aberration plus a non-uniform pupil magnitude. NA 1.43, λ = 680 nm, 200 iterations, CPU. Each row changes one thing.</p>
+<div class="tblbox"><table>
+<thead><tr><th>Data</th><th>Variable scaling</th><th>Stop reason</th><th>Iterations</th><th>RMS phase error (rad)</th><th>z error (nm)</th></tr></thead>
+<tbody>
+<tr><td>Bright beads<br><small>1–3·10⁴ ph/slice, bg 20–60</small></td><td>default</td><td>line-search failure</td><td class="num">122</td><td class="num">0.0012</td><td class="num">0.5</td></tr>
+<tr><td></td><td>default, no <code>mu</code> ramp</td><td>line-search failure</td><td class="num">122</td><td class="num">0.0012</td><td class="num">0.5</td></tr>
+<tr><td></td><td>photons ×0.1 / ×10</td><td>max iter / line search</td><td class="num">200 / 123</td><td class="num">0.0012 / 0.0011</td><td class="num">0.6 / 0.5</td></tr>
+<tr><td></td><td>Zernike ×0.2 / ×5</td><td>max iter / converged</td><td class="num">200 / 171</td><td class="num">0.0017 / 0.0012</td><td class="num">0.6 / 0.4</td></tr>
+<tr><td></td><td>background ×10</td><td>max iter</td><td class="num">200</td><td class="num"><strong>0.032</strong></td><td class="num"><strong>25</strong></td></tr>
+<tr><td>Dim beads<br><small>1.5–3·10³ ph/slice, bg 80–150</small></td><td>default</td><td>max iter</td><td class="num">200</td><td class="num"><strong>0.059</strong></td><td class="num"><strong>61</strong></td></tr>
+<tr><td></td><td>background ×10</td><td>max iter</td><td class="num">200</td><td class="num">0.116</td><td class="num">100</td></tr>
+<tr><td></td><td>background ×0.1</td><td>converged</td><td class="num">89</td><td class="num"><strong>0.015</strong></td><td class="num"><strong>5</strong></td></tr>
+<tr><td></td><td>Zernike ×0.2</td><td>max iter</td><td class="num">200</td><td class="num">0.119</td><td class="num">52</td></tr>
+<tr><td></td><td>Zernike ×5</td><td>max iter</td><td class="num">200</td><td class="num">0.025</td><td class="num">58</td></tr>
+<tr><td></td><td>photons ×0.1</td><td>max iter</td><td class="num">200</td><td class="num">0.050</td><td class="num">37</td></tr>
+</tbody></table></div>
+<p class="fine">z error is the standard deviation of fitted minus true bead z over the 6 beads. "Scaling ×f" multiplies one entry of <code>self.weight</code> and divides the matching initial value, so the starting point is the same and only the conditioning changes.</p>
+<ul>
+<li><strong>Bright, well-matched data.</strong> The defaults work and most scalings hardly matter. One scaling (background ×10) fails, and even the default run ends with an L-BFGS-B line-search failure. That failure is harmless here because the fit is already at the optimum.</li>
+<li><strong>Dim data.</strong> The same model and data give a 4× different Zernike error and a 10× different z error depending only on the variable scaling. The default does not converge in 200 iterations (61 nm z error). One rescaled run converges in 89. This is the behaviour users report, reproduced on synthetic data where the model is exactly right, so the cause is the optimiser and not model mismatch.</li>
+<li><strong>The <code>mu</code> ramp</strong> changed nothing here, because no positivity constraint became active. It is a latent problem that shows up when background or photons approach zero.</li>
+</ul>
+</section>
+
+<section id="theory">
+<h2>A. Theory</h2>
+<h3>What checks out</h3>
+<ul>
+<li><strong>Apodisation.</strong> <code>√cos θ_imm / cos θ_med</code> combined with the Fresnel <code>T_p</code>, <code>T_s</code> (<code>PSFInterface_file.py:121</code>, Suppl. Eq. 3.3) is the standard aplanatic emission-pupil factor. The <code>1/cos θ_med</code> comes from the angular-spectrum (Weyl) expansion and the <code>√cos θ_imm</code> from the sine condition, which is also what the Stallinga/Rieger vectorial fitters use. Above the critical angle the <code>1/cos θ_med</code> pole cancels against the <code>cos θ_med</code> in the numerator of the Fresnel coefficients. Supercritical emission enters through an imaginary <code>k_z,med</code>. I found nothing wrong here. What is missing is a model of the real objective's transmission roll-off near the NA edge, which the learned pupil magnitude has to absorb.</li>
+<li><strong>Vectorial model.</strong> It is an incoherent sum over three freely rotating dipoles with the correct <code>p</code>/<code>s</code> basis. The new <code>Ex</code>/<code>Ey</code> polarisation channels pick the correct three field components (<code>dipole_field[:3]</code> is the x-analyser response of the x, y and z dipoles).</li>
+<li><strong>Bead kernel.</strong> The Fourier transform of a uniform sphere, <code>J_{3/2}(2πqR)/(qR)^{3/2}</code>, is correct. So is the Gaussian blur parametrisation (σ is stored as π·σ_px, so <code>exp(−2σ²q²)</code> is a true Gaussian with standard deviation σ_px).</li>
+<li><strong>CZT.</strong> The Bluestein implementation has the correct padding length N+M−1.</li>
+</ul>
+
+<h3>Gaps, ranked by likely impact on robustness and accuracy</h3>
+<div class="finding"><div class="hd"><span class="chip c-crit">High</span><strong>Degeneracies are not handled</strong></div>
+<p>The scale of the pupil magnitude <code>Zcoeff[0][0]</code> and the photon counts are exactly degenerate, and nothing fixes either one. Z4 defocus is free alongside a free z for every bead (bead model), and also alongside a free <code>stagepos</code> (in-situ). Because the vectorial model uses the exact <code>k_z</code> and Z4 is paraxial, these are only <em>almost</em> degenerate, which makes the problem badly conditioned without being exactly singular. Z11 vs depth behaves the same way under index mismatch. The in-focus twin-image ambiguity (Φ(k) ↔ −Φ(−k)) is broken only when emitters sample both sides of focus. Suggestion: fix Z1–Z4 (or constrain the mean bead z), normalise the pupil to unit energy, and use high-NA defocus and spherical modes orthogonalised against <code>k_z</code> (Booth, Neil &amp; Wilson 1998).</p></div>
+<div class="finding"><div class="hd"><span class="chip c-crit">High</span><strong>The noise model is not quite Poisson</strong></div>
+<p>The data go through <code>(raw − offset)·gain</code>, and then the 0.1 % quantile is shifted to zero. The loss is a Poisson deviance, but entries with data ≤ 0 (NaN from <code>d·log d</code>) or model ≤ 0 are removed by boolean masking. That drops the <code>+model</code> term exactly in the dim wings, biasing background upward and the PSF tails downward. Read noise, per-pixel sCMOS offset, gain and variance (Huang et al. 2013) and the EMCCD excess factor are not modelled. A simple robust fix is the sCMOS shifted-Poisson likelihood, <code>(d + σ²/g²)</code> vs <code>(μ + σ²/g²)</code> with <code>xlogy</code>. It removes the masking, keeps shapes static (which enables XLA), and makes background estimates unbiased.</p></div>
+<div class="finding"><div class="hd"><span class="chip c-warn">Medium</span><strong>One Gaussian blur stands in for several physical effects</strong></div>
+<p>A single constant σ absorbs pixel integration (partly handled by <code>bin=2</code>), the finite emission bandwidth, bead size when R = 0 is set, vibration and drift, and any residual dipole orientation. Several of these depend on z. Spectral bandwidth is cheap to model properly: sum over 3–5 wavelengths weighted by the filtered emission spectrum (only <code>k</code>, <code>k_z</code> and the Fresnel terms change). This probably explains part of the extra blur that has to be fitted.</p></div>
+<div class="finding"><div class="hd"><span class="chip c-warn">Medium</span><strong>The bead-convolution model assumes the PSF does not change shape with depth</strong></div>
+<p>The 3D convolution in stage-z coordinates (Suppl. Eq. 2.9/3.4) assumes that moving the emitter is the same as moving the focus. With an oil objective and beads in water or air, the emitters inside a 100–200 nm bead sit at different heights above the interface. They see different supercritical-angle coupling and focal shift. Integrating over the bead volume in the forward model (a few depth slices with <code>k_z,med</code>) would remove this. It matters mainly for large beads at NA ≥ 1.45.</p></div>
+<div class="finding"><div class="hd"><span class="chip c-warn">Medium</span><strong>Free intensity per slice discards information</strong></div>
+<p><code>var_photon: true</code> (the default for the Zernike model) fits one photon count per bead per slice. That removes the z-dependent collection efficiency, which carries information about supercritical emission and the pupil magnitude, and it adds N·Nz nuisance parameters. A smooth bleaching model (exponential or a low-order polynomial in slice index) keeps most of the robustness with far fewer degrees of freedom.</p></div>
+<div class="finding"><div class="hd"><span class="chip c-warn">Medium</span><strong>The pupil sampling is fixed</strong></div>
+<p><code>pupilsize: 64</code> is fixed. At NA 1.43 the defocus phase step at the pupil rim reaches about π per pupil pixel near |z| ≈ 2.5–3 µm, which aliases for deep in-situ data, large z ranges and Tetrapod PSFs. Choose the pupil size automatically from the NA, the z range and the ROI size.</p></div>
+<div class="finding"><div class="hd"><span class="chip c-info">Low–medium</span><strong>Index mismatch, field dependence and the in-situ loop</strong></div>
+<ul>
+<li><strong>Index mismatch:</strong> a reduced Gibson–Lanni model with no coverslip or oil thickness deviations, so the Zernikes have to absorb those.</li>
+<li><strong>Field-dependent model:</strong> a bilinear grid of Zernike maps with a finite-difference penalty. Low-order field polynomials from nodal aberration theory are more data-efficient for sparse in-situ data.</li>
+<li><strong>In-situ loop:</strong> emitters are selected and z-binned using the current model, so the loop can confirm its own starting point (the paper notes this bias, SN4.1.5).</li>
+<li><strong>Not modelled:</strong> polarisation-dependent (Jones-pupil) aberrations from dichroics. These become relevant now that Ex/Ey channels exist.</li>
+</ul></div>
+<div class="finding"><div class="hd"><span class="chip c-info">Low</span><strong>No uncertainty and no held-out validation</strong></div>
+<p>No error bars are reported on Zernikes or pupil, although the Fisher matrix is cheap once there is a Gauss–Newton solver. Bead localisation checks reuse the training beads. A held-out-bead deviance and z-bias would give an honest quality metric. It is also the metric any automatic tuning would need.</p></div>
+</section>
+
+<section id="mismatch">
+<h2>B. What real data contain that the model leaves out</h2>
+<p>Freely rotating emitters are assumed throughout. The question is which instrument and sample effects are missing, in the same spirit as stage tilt, which was added later for in-situ data. Each missing effect gets absorbed somewhere: by Zernikes, the blur σ, the per-slice photons or the background. That gives a biased pupil, and it also makes the loss landscape flatter and less consistent, which makes the optimiser problem above worse.</p>
+
+<h3>Synthetic test: one unmodelled effect at a time</h3>
+<p>This uses the same harness and bright-bead setting as the optimiser test above. The data were simulated with one effect the model lacks and fitted with the unmodified uiPSF Zernike-vector model, at three variable scalings. The loss is uiPSF's mean half-deviance per pixel, about 0.50 for a perfect model.</p>
+<div class="tblbox"><table>
+<thead><tr><th>Effect in the data, not in the model</th><th>Final loss</th><th>RMS phase error (rad)</th><th>Spread across the 3 scalings</th></tr></thead>
+<tbody>
+<tr><td>None (reference, from the table above)</td><td class="num">0.501</td><td class="num">0.0012</td><td>small, except background ×10</td></tr>
+<tr><td>Polychromatic emission: 650/680/710 nm, equal weights</td><td class="num">0.500</td><td class="num">0.0015</td><td>none</td></tr>
+<tr><td>Piezo steps 5 % larger than nominal</td><td class="num">0.507</td><td class="num">0.0078 (6×)</td><td>none</td></tr>
+<tr><td>Background ramp ±30 % across the ROI</td><td class="num"><strong>1.060</strong></td><td class="num"><strong>0.026</strong> (22×)</td><td>none</td></tr>
+</tbody></table></div>
+<ul>
+<li><strong>Mismatch and poor convergence are separate problems with different signatures.</strong> With model mismatch all three scalings converge to the <em>same</em> biased answer, and the final loss sits above the noise floor. With poor convergence (the dim-bead test) the answer depends on the scaling and the loss looks fine. Users who tune weights are probably fighting the second problem. The first needs physics, and the excess deviance shows where.</li>
+<li><strong>A background gradient is the most damaging of the three.</strong> It is also the cheapest to fix: a planar background with 3 parameters per bead.</li>
+<li><strong>A 5 % piezo scale error</strong> barely changes the loss but distorts the pupil 6×. Worse, the exported z axis is then 5 % off, and nothing in the fit reports it. This is the strongest argument for a fitted z scale or per-slice z offsets.</li>
+<li><strong>A 60 nm emission band</strong> is absorbed almost completely by the blur σ for bead stacks. It may matter more in-situ and over large z ranges.</li>
+</ul>
+<p class="fine">These are single realisations, with 6 beads and modest mismatches, and test the bead model only. They show which way and how strongly each effect pulls. They do not quantify real data.</p>
+
+<h3>Inventory of omitted effects</h3>
+<p class="fine">Tags: "Bead" or "In-situ" says where the effect matters most. "Cheap" means a few global parameters, like stage tilt.</p>
+<div class="tblbox"><table>
+<thead><tr><th>Effect</th><th>Absorbed today by</th><th>How to model it</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td colspan="4"><strong>Stage, scan and geometry</strong> <small>(the "stage tilt" family)</small></td></tr>
+<tr><td><strong>Piezo z-step scale, non-linearity, hysteresis and settling; axial drift during the stack</strong> <span class="chip c-info">Bead</span> <span class="chip c-ok">Cheap</span></td><td>Z4/Z11, the shape of z vs defocus, per-slice photons. This directly biases the z calibration exported to the spline.</td><td>Per-slice shared offsets <code>δz_k</code>, with mean 0 or a smoothness prior, plus a global z scale. Every bead in a file shares the stage trajectory, so these are well constrained.</td><td>No dedicated SMLM study found. Piezo non-linearity is typically about 1–2 %.</td></tr>
+<tr><td><strong>Lateral jitter and drift per slice, shared by all beads</strong> <span class="chip c-info">Bead</span> <span class="chip c-ok">Cheap</span></td><td>Blur σ; today's per-bead linear drift <code>gxy</code></td><td>Shared <code>(δx_k, δy_k)</code> per slice instead of linear drift per bead</td><td>Berglund 2010 (motion blur)</td></tr>
+<tr><td><strong>Excitation fluctuations per slice</strong> (laser or lamp) <span class="chip c-info">Bead</span> <span class="chip c-ok">Cheap</span></td><td>Per-bead, per-slice photons (N·Nz parameters)</td><td>A shared factor per slice times a smooth bleaching curve per bead</td><td>—</td></tr>
+<tr><td><strong>Field-dependent aberrations</strong> when beads from the whole FOV are pooled into one pupil <span class="chip c-info">Both</span></td><td>Averaged into one pupil plus extra blur</td><td>Zernike coefficients as low-order polynomials of field position (nodal aberration theory) as the default, with the FD grid model for fine detail</td><td>von Diezmann 2015 (50–100 nm FOV-dependent 3D errors); Droste 2025 (nodal); Fu 2023</td></tr>
+<tr><td><strong>Focal surface: camera tilt, field curvature, coverslip tilt</strong> <span class="chip c-info">In-situ</span> <span class="chip c-ok">Cheap</span></td><td>Z4 and emitter z (for beads, harmless because each bead has its own z)</td><td>Generalise <code>stage_tilt</code> to a low-order focal surface z<sub>f</sub>(x,y) = a + b·x + c·y + d·r², centred on the FOV</td><td>Same as the field-dependent row</td></tr>
+<tr><td><strong>Coverslip tilted against the optical axis</strong>, giving depth-dependent coma and astigmatism under index mismatch <span class="chip c-info">In-situ</span></td><td>Zernikes, but they cannot follow the depth dependence</td><td>Tilt the interface in the depth phase term (two angles)</td><td>Arimoto &amp; Murray 2004</td></tr>
+<tr><td colspan="4"><strong>Refractive indices and depth</strong></td></tr>
+<tr><td><strong>Sample medium RI differs from nominal</strong> (cells ≈ 1.36–1.38 vs 1.33) <span class="chip c-info">In-situ</span> <span class="chip c-ok">Cheap</span></td><td>Stage position, Z4 and Z11, all with the wrong depth dependence</td><td>Fit n<sub>med</sub> (one parameter) together with the stage position</td><td>Petrov &amp; Moerner 2020; Siemons 2022 (non-linear focal shift, tens of nm axial bias)</td></tr>
+<tr><td><strong>Coverslip thickness or RI deviation, oil temperature</strong> <span class="chip c-info">In-situ</span> <span class="chip c-ok">Cheap</span></td><td>Z11 (constant, so wrong in depth)</td><td>Full Gibson–Lanni with a fitted coverslip-thickness offset</td><td>Gibson &amp; Lanni 1991</td></tr>
+<tr><td colspan="4"><strong>Emission optics</strong></td></tr>
+<tr><td><strong>Polychromatic emission and axial chromatic shift</strong> <span class="chip c-info">Both</span></td><td>Blur σ (constant in z, while the real effect varies with z)</td><td>Sum the PSF over 3–5 wavelengths weighted by dye spectrum × filter (cost ×3–5)</td><td>Erdelyi 2013</td></tr>
+<tr><td><strong>Objective transmission roll-off at high angles</strong> <span class="chip c-info">Both</span></td><td>Pupil magnitude, if it is free</td><td>Fine as is. Keep the magnitude free, or parametrise it radially with a few terms. With <code>const_pupilmag</code> (the in-situ default) it is lost.</td><td>Hanser 2004; Petrov 2017; Ferdman 2020</td></tr>
+<tr><td><strong>Polarisation aberrations</strong> (dichroic retardance and diattenuation) <span class="chip c-info">Both</span></td><td>Scalar pupil</td><td>Jones pupil: a 2×2 field over the pupil, or a few Zernikes per element. Becomes necessary with the new Ex/Ey channels.</td><td>Gutiérrez-Cuevas 2024</td></tr>
+<tr><td><strong>Emitter height inside the bead</strong> (supercritical coupling depends on height) <span class="chip c-info">Bead</span></td><td>Bead kernel (assumes the PSF does not change with depth); per-slice photons</td><td>Integrate the bead over a few heights with <code>k_z,med</code></td><td>Bourg 2015; Franke 2017; Cabriel 2019</td></tr>
+<tr><td colspan="4"><strong>Background and neighbouring emitters</strong></td></tr>
+<tr><td><strong>Background gradient or structure in the ROI; flare and halo beyond the ROI</strong> <span class="chip c-info">Both</span> <span class="chip c-ok">Cheap</span></td><td>Constant background, PSF wings, pupil magnitude</td><td>Planar background per ROI (3 parameters); larger model ROI than data ROI to avoid FFT wrap-around</td><td>Möckl 2020; Deschamps 2016</td></tr>
+<tr><td><strong>Neighbouring beads or emitters partly in the ROI</strong> <span class="chip c-info">Both</span></td><td>Background, PSF wings</td><td>Fit secondary emitters, or mask the affected pixels; do not just reject them</td><td>—</td></tr>
+<tr><td colspan="4"><strong>Detector</strong></td></tr>
+<tr><td><strong>sCMOS pixel offset, gain and variance maps; pixel QE and microlenses</strong> <span class="chip c-info">Both</span></td><td>Nothing: global gain and offset only</td><td>Per-pixel maps in the likelihood (shifted Poisson)</td><td>Huang 2013; Babcock 2019 (≈4 % relative QE)</td></tr>
+<tr><td><strong>EMCCD excess noise</strong> <span class="chip c-info">Both</span></td><td>Nothing (variance off by 2×)</td><td>Gain/2 in the Poisson approximation, or the exact EMCCD likelihood</td><td>Mortensen 2010; Hirsch 2013</td></tr>
+<tr><td><strong>Saturated or non-linear pixels</strong> in bright in-focus slices <span class="chip c-info">Bead</span> <span class="chip c-ok">Cheap</span></td><td>Flattened peak, read as defocus or spherical aberration</td><td>Mask pixels above a threshold</td><td>—</td></tr>
+</tbody></table></div>
+
+<h3>How to find out which ones matter on real data</h3>
+<p>Before adding physics, it pays to look at <strong>structured residuals</strong>. After a fit, average the residual (data − model)/√model in several ways. Each pattern points to a specific missing term:</p>
+<ul>
+<li><strong>Over beads, per slice.</strong> A common pattern means per-slice stage error, jitter or excitation fluctuation.</li>
+<li><strong>Against field position.</strong> Field-dependent aberrations.</li>
+<li><strong>Radially.</strong> Halo or flare, the blur model, ROI truncation.</li>
+<li><strong>Against z.</strong> z-dependent blur from polychromatic emission, or z-scale error.</li>
+<li><strong>Against pixel position on the sensor.</strong> Detector maps.</li>
+</ul>
+<p>The deviance per pixel for each such group should be about 1 if the model is adequate. This "residual atlas" is cheap, tells the user what is wrong, and is a good thing to hand to an agent for triage.</p>
+</section>
+
+<section id="excitation">
+<h2>C. Learning an excitation-dominated PSF (confocal, ISM, MINFLUX)</h2>
+<p>Most of uiPSF carries over: the pupil parametrisation, Zernikes, CZT, Fresnel coefficients, depth phase, bead kernel, Poisson loss, per-bead nuisance parameters, the multi-channel machinery and the in-situ idea. What changes is the forward model and the geometry of the data.</p>
+
+<h3>Forward model</h3>
+<p><strong>Excitation field (vectorial focusing, Richards–Wolf).</strong> In the same k-space form uiPSF uses, with pupil coordinates (k<sub>x</sub>, k<sub>y</sub>) inside the NA:</p>
+<div class="eq">E(r) ∝ Σ_k  P_in(k) · e^{iΦ_mask(k)} · e^{iΦ_aberr(k)} · [ T_p (e_in·ρ̂) p̂_med + T_s (e_in·φ̂) φ̂ ] / √cos θ_imm · e^{i(k_x x + k_y y + k_z,med z − k_z,imm z_s)}
+I_exc(r) = |E_x|² + |E_y|² + |E_z|²          # freely rotating absorber</div>
+<p>Differences from the emission model:</p>
+<ul>
+<li><strong>Apodisation.</strong> Light goes the other way through an aplanatic lens. In k-space the amplitude factor becomes 1/√cos θ<sub>imm</sub> instead of √cos θ<sub>imm</sub>/cos θ<sub>med</sub>. The Fresnel coefficients are taken immersion→coverslip→medium.</li>
+<li><strong>Input field P<sub>in</sub>.</strong> A Gaussian beam with an overfill ratio and a decentration (dx, dy) of the beam on the back aperture. These three parameters are cheap and matter a lot for donuts.</li>
+<li><strong>Input polarisation e<sub>in</sub>.</strong> A Jones vector with ellipticity and orientation as parameters. Circular handedness against the vortex charge decides whether the 2D donut has a zero at all (Hao 2010).</li>
+<li><strong>Known phase mask Φ<sub>mask</sub>.</strong> Vortex e<sup>iφ</sup>, top-hat (π step at radius r<sub>th</sub>, a parameter), half-moon, or the actual SLM pattern. Learned aberrations go on top of it as Zernikes.</li>
+<li><strong>Incoherent floor.</strong> I<sub>exc</sub> + ε·max(I<sub>exc</sub>) accounts for depolarisation, scattered light and imperfect wave plates. For MINFLUX, ε is the parameter that sets precision and bias (Balzarotti 2017; Marin &amp; Ries 2025, SimuFLUX).</li>
+</ul>
+<p><strong>Detection.</strong> For a freely rotating emitter, the effective confocal PSF is</p>
+<div class="eq">h_eff(r) = I_exc(r; λ_exc) · [ I_det(r; λ_em) ⊗ pinhole ]</div>
+<p><code>I_det</code> is exactly the current uiPSF emission PSF, without camera-pixel integration and with the back-projected pinhole (a disc) in place of the pixel. With a 0.5–1 AU pinhole it is nearly flat over a MINFLUX probing pattern of 50–150 nm laterally, but it still shapes the axial response. For SPAD-array ISM (and ISM-FLUX), each detector element has its own pinhole offset d<sub>j</sub>: <code>h_j(r) = I_exc(r)·I_det(r − d_j)</code>. This is a multi-channel model with a shared excitation, so uiPSF's multi-channel code fits the structure (Castello 2019; Zunino 2023; Slenders 2023/2025).</p>
+
+<h3>What data to learn from</h3>
+<ol>
+<li><strong>Fluorescent beads scanned through the focus</strong> (20–40 nm). These give an (x, y, z) raster per bead, which is the same data structure as a bead stack, so the bead pipeline can be reused. Changes:
+  <ul>
+  <li>Scan pixels instead of camera pixels: no pixel integration, but motion blur along the fast axis during the dwell time.</li>
+  <li>Scan distortion: galvo non-linearity and bidirectional line offsets.</li>
+  <li>Photon-counting detectors: pure Poisson, which is good, but SPAD dead time and afterpulsing at high count rates need a correction.</li>
+  <li>The bead size matters much more than for widefield. A 100 nm bead fills the donut zero, so the bead convolution is essential, and ε and the bead radius are correlated. Use small beads or two bead sizes.</li>
+  </ul></li>
+<li><strong>Gold beads in reflection or scattering.</strong> This is the standard for donut alignment (Gould 2012; Patton 2016). Scattering is <em>coherent</em>. With a large detector or no pinhole, the signal is ∝ |E<sub>exc</sub>|² summed over components (a Rayleigh particle with isotropic polarisability), which fits the model above. With a confocal pinhole in reflection it becomes an amplitude product, so a different, coherent model is needed. 80–150 nm gold is no longer a point scatterer for the zero. I found no paper that compares gold-bead with fluorescent-bead characterisation of the same donut.</li>
+<li><strong>In situ from MINFLUX raw data.</strong> Each localisation gives photon counts at K known beam positions (the targeted coordinate pattern, TCP). Fit the molecule positions together with the shared beam parameters (Zernikes, ε, polarisation, overfill, beam-steering calibration) under a multinomial/Poisson likelihood. This is the exact analogue of uiPSF in-situ, and SIMFLUX already estimates pattern parameters from the molecules (Cnossen 2020). I found no published in-situ phase retrieval for MINFLUX or STED beams, so this is an open opportunity. Two caveats:
+  <ul>
+  <li>The late iterations sample only near the zero, so the data mainly constrain curvature, ε and asymmetries (an off-centre zero from coma, anisotropic curvature from astigmatism). Early, wide-pattern iterations and the raw TCP traces are needed for the rest.</li>
+  <li>The beam-steering calibration (commanded vs actual EOD/AOD position: scale, rotation, non-linearity) plays the role stage tilt plays in widefield.</li>
+  </ul></li>
+</ol>
+
+<h3>Pitfalls specific to excitation PSFs</h3>
+<ul>
+<li><strong>The zero is a nearly singular feature.</strong> On a Poisson loss the few photons near the zero dominate the information about ε and the aberrations, so the loss must use raw counts, not normalised images.</li>
+<li><strong>Twin-image ambiguity.</strong> Intensity-only data leave Φ and −Φ(−k) indistinguishable without defocus diversity, so take the z-scan.</li>
+<li><strong>3D donut sensitivity.</strong> The top-hat (3D) donut is much more sensitive to spherical aberration and depth mismatch than the vortex. Depth-dependent learning (the reduced Gibson–Lanni term) is needed, and residual zero contrast degrades with depth in practice (Moosmayer, PNAS).</li>
+<li><strong>Bias from aberrations even with a good zero.</strong> Astigmatism and coma give position-dependent bias for freely rotating dipoles, and fixed dipoles add more (Stallinga, Wang &amp; Rieger 2026 preprint). That is one more reason to learn the actual beam rather than assume an ideal one.</li>
+<li><strong>Saturation.</strong> Fluorophore saturation at the crest of a confocal or MINFLUX beam breaks the linear I<sub>exc</sub> assumption. Keep the calibration power low or model saturation as I/(1 + I/I<sub>sat</sub>).</li>
+</ul>
+<p><strong>Effort estimate.</strong> A focusing module (a new <code>calpupilfield</code> variant: input field, polarisation, mask, reversed apodisation), a scan-data loader, a product forward model and, for ISM, the multi-channel reuse. The optimiser, loss and bead kernel can be shared, so it is a moderate extension. The MINFLUX in-situ variant is a new data path and the most novel part.</p>
+</section>
+
+<section id="vecfit">
+<h2>D. Comparison with the TU Delft vectorial PSF (Stallinga &amp; Rieger)</h2>
+<p>Reference implementation: <code>vecfitcpu</code>, the MATLAB code accompanying Hulleman, Thorsen, Stallinga &amp; Rieger (vortex PSF, 2021; <a href="https://doi.org/10.4121/15175494.v1">4TU 10.4121/15175494</a>), with <code>vecfitcpu_zstack_bead.m</code> for aberration retrieval from bead stacks. I read <code>get_pupil_matrix</code>, <code>get_field_matrix_derivatives</code>, <code>get_psfs_derivatives</code>, <code>get_normalization</code>, <code>likelihood</code>, <code>localization</code>/<code>thetaupdate</code>, <code>create3DBead</code>, <code>get_rimismatchpars</code> and <code>funnat</code>.</p>
+
+<h3>Numerical cross-check</h3>
+<p>I ported the vecfit forward model to NumPy (pupil matrix, Fresnel coefficients, apodisation, freely rotating dipole, stage-scan defocus) and compared it with uiPSF's <code>PSFZernikeBased.genpsfmodel</code> (vector, bin 1, no blur). The test case was NA 1.43, n<sub>imm</sub> 1.516, n<sub>med</sub> 1.335, so it includes supercritical-angle light, with astigmatism, coma and spherical aberration, a 21×21 ROI and 41 slices over ±1 µm.</p>
+<div class="callout"><p><strong>Result.</strong> The two PSF stacks agree to <strong>2.5·10⁻⁷ of the peak</strong> (float32 precision), with and without aberrations. This holds once you account for conventions. uiPSF uses the complex-conjugate phase convention (its evanescent branch is +i, vecfit's is −i, and both are internally consistent). The two codes also swap x and y because of MATLAB's column-major meshgrid, and the image is rotated by 180°.</p></div>
+<p>So the core vectorial model in uiPSF is right. In practice, Zernike coefficients cannot be compared directly between uiPSF, vecfit and SMAP. Conjugation flips the sign of every phase coefficient, and the axis swap and rotation change the sign of odd and of sin/cos terms. A documented per-mode conversion table and a shared test PSF would prevent misreadings when results are compared between labs.</p>
+<p class="fine">Caveat: this compares against my port of the vecfit equations, not against MATLAB itself, which was not available here. The in-situ depth term (emitter inside the medium) was not cross-checked.</p>
+
+<h3>Differences in modelling choices</h3>
+<div class="tblbox"><table>
+<thead><tr><th>Aspect</th><th>vecfit (TU Delft)</th><th>uiPSF</th><th>Take-away</th></tr></thead>
+<tbody>
+<tr><td>Fitting scope</td><td>Each bead fitted separately: xyz, photons, background and 12 Zernikes per bead</td><td>One shared pupil fitted jointly over all beads</td><td>Joint fitting has more statistical power. Per-bead fitting gives field dependence for free (see section E).</td></tr>
+<tr><td>Optimiser</td><td>Levenberg–Marquardt with the analytic Fisher-type Hessian and Marquardt diagonal scaling. Box bounds with retry.</td><td>L-BFGS-B with hand-set scaling and autodiff</td><td>LM with diagonal scaling is invariant to parameter units, which is why vecfit needs no <code>self.weight</code>. This supports section 1 of the recommendations.</td></tr>
+<tr><td>Derivatives</td><td>Analytic: field derivatives as CZTs of <code>−i k·P</code> and <code>i2πZ/λ·P</code></td><td>Reverse-mode autodiff</td><td>Analytic is efficient per emitter. For a joint fit, autodiff JVPs give the same Jacobian without hand-written code.</td></tr>
+<tr><td>Zernike set</td><td>Fixed list (2,±2) … (6,0), excluding piston, tilt and <strong>defocus</strong>. Coefficients bounded to ±0.25 λ rms.</td><td>All Noll modes up to n<sub>max</sub> from Z4 (defocus included), unbounded</td><td>vecfit drops the Z4/z degeneracy by construction. uiPSF should do the same, or orthogonalise.</td></tr>
+<tr><td>Pupil amplitude</td><td>Fixed (aplanatic × Fresnel)</td><td>Learned magnitude (Zernike or pixels)</td><td>uiPSF is more flexible. Fix the magnitude scale to remove the photon degeneracy.</td></tr>
+<tr><td>Likelihood</td><td>Poisson plus read-noise variance (<code>varfit</code>, shifted-Poisson sCMOS approximation). Negative data clamped to 1e-3.</td><td>Poisson; pixels with non-finite terms dropped</td><td>Adopt the shifted-Poisson form (section A).</td></tr>
+<tr><td>Normalisation</td><td>Energy in the pupil (Parseval), so N<sub>ph</sub> = total detected photons</td><td>Sum of the ideal in-focus PSF inside the ROI</td><td>vecfit photon counts are physical and comparable across ROI sizes. uiPSF's depend on the ROI size.</td></tr>
+<tr><td>Blur and pixels</td><td>None. Pixel blurring exists but is commented out.</td><td>Gaussian blur plus 2× upsampled pixel integration</td><td>uiPSF is more complete here.</td></tr>
+<tr><td>Bead</td><td>Binary voxel sphere, real-space <code>convn</code> (coarse, on the pixel and z grid)</td><td>Analytic Fourier sphere kernel</td><td>uiPSF is more accurate.</td></tr>
+<tr><td>Index mismatch</td><td>Gibson–Lanni-type: actual vs <strong>nominal immersion RI</strong>, free working distance and depth, with the stage position chosen to minimise rms wavefront (closed form) or, for SAF, to maximise Strehl</td><td>Reduced form: k<sub>z,med</sub>·z − k<sub>z,imm</sub>·z<sub>s</sub></td><td>Adding n<sub>imm,nominal</sub> and the working distance is cheap and fixes the depth-dependent spherical term (section B).</td></tr>
+<tr><td>Dipole models</td><td>Free, fixed (azimuth/polar angle) and partially constrained ("diffusion", g₂), plus vortex DOE masks</td><td>Free only; Ex/Ey analysers new on <code>test_roi</code></td><td>The fixed and partially rotating models are a ready reference if uiPSF ever goes beyond free dipoles.</td></tr>
+<tr><td>Field dependence</td><td>Two steps: per-bead Zernikes, then nodal-aberration-theory surfaces (<code>funnat</code>)</td><td>Joint fit with a bilinear grid of Zernike maps (FD model)</td><td>See section E.</td></tr>
+<tr><td>Uncertainty</td><td>CRLB from the Fisher matrix for every parameter, including Zernikes</td><td>None</td><td>Comes for free with a Gauss–Newton/LM solver.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="fd">
+<h2>E. Field dependence: FD-DeepLoc, uiPSF-FD and where to take it</h2>
+
+<h3>How FD-DeepLoc does it (Fu et al., <i>Nat. Methods</i> 2023)</h3>
+<p>Source: the bioRxiv version (10.1101/2022.10.14.512179) and the public FD-DeepLoc code.</p>
+<ul>
+<li><strong>Calibration.</strong> Thousands of bead stacks are taken over a ~180 µm FOV: 41 × 50 nm for astigmatism, 61 × 100 nm for Tetrapod. <strong>Each bead is fitted separately</strong> with a GPU vectorial MLE (Levenberg–Marquardt). Position is shared over the stack, while photons and background are free per slice, and there is a Gaussian OTF blur. There are 21 Zernike modes; piston, tilt and defocus are excluded.</li>
+<li><strong>Map.</strong> Outlier beads are removed: more than 2.5 SD from the local mean, or relative error above 15–20 %. The rest are interpolated per pixel with natural-neighbour <code>scatteredInterpolant</code>, which extrapolates linearly outside the convex hull of the beads. The map is then smoothed with a Gaussian (σ = 100–200 px).</li>
+<li><strong>Use.</strong> The training data for the network are simulated with the local Zernikes. CoordConv gives the network the field position, and "robust training" adds N(0, λ/100) noise to every coefficient. There is no in-situ refinement inside FD-DeepLoc. Its demo can import uiPSF <code>insitu_FD</code> maps instead.</li>
+</ul>
+<div class="finding"><div class="hd"><span class="chip c-warn">Confirmed</span><strong>The uiPSF → FD-DeepLoc map import is misregistered</strong></div>
+<div class="where">FD-DeepLoc fd_deeploc_core/uiPSF_abermap.py:7-11 · uiPSF PSFZernikeBased_FD_file.py:48</div>
+<p>uiPSF places n grid nodes from 0 to the image size (spacing imsz/(n−1)). The converter treats them as sitting at 0…n−1 and samples at n/imsz per pixel, so the map is stretched by n/(n−1). The error is zero at the origin and grows to one node spacing at the far edge, which is 40 px with the default <code>division</code>, and more for coarse grids. Outside the grid the converter extrapolates linearly. This is a small fix, but it needs agreement between both groups.</p></div>
+
+<h3>uiPSF's FD model today</h3>
+<ul>
+<li><strong>Representation.</strong> Every Zernike coefficient (phase <em>and</em> magnitude) is a grid map with <code>imsz//division</code> nodes per axis, interpolated bilinearly to each bead. <code>division</code> is pixels per node (default 40), not the number of subdivisions that the config comment and Supp. Note 3.6 describe. On a 2048 px chip that gives about 51² × 45 × 2 ≈ <strong>230 000 parameters</strong>, constrained by tens to hundreds of beads.</li>
+<li><strong>Regularisation.</strong> A first-difference smoothness penalty with weight 0.001, acting on the <em>scaled</em> variables, so its strength depends on bead brightness through <code>self.weight</code>. It is added to a <em>mean</em> likelihood, so it does not weaken as more beads are added. First differences pull the maps toward constants, which biases the physically linear field trends of coma and astigmatism. Nodes with no beads nearby are set only by the penalty and their zero initial value.</li>
+<li><strong>Identifiability.</strong> The bead FD model includes a <strong>defocus map</strong> (<code>Zk[3:]</code>) as well as a free z per bead, which are nearly degenerate. The in-situ FD model correctly starts at <code>Zk[4:]</code>.</li>
+<li><strong>Export.</strong> Bead FD writes the Zernike maps and per-bead models, but no spline (<code>gencspline</code> finds no <code>I_model</code>). In-situ FD exports a spline of the average PSF only.</li>
+<li><strong>Bugs.</strong>
+  <ul>
+  <li><code>genpsf</code> builds field coordinates as (x, y) where (y, x) is expected (<code>psflearninglib.py:639-642</code>), so the Strehl and FWHM maps are transposed.</li>
+  <li><code>calfwhm</code> reshapes (n+1)² samples to (ny, nx) and crashes.</li>
+  <li>In-situ FD with <code>zernike_nl</code> set computes the phase from the magnitude coefficients (<code>_FD_smlm_file.py:184</code>).</li>
+  <li><code>estzernike</code> unpacks 2 of 3 return values (<code>:254</code>).</li>
+  <li><code>postprocess</code> stores the corner-node piston, while the forward model uses the mean piston.</li>
+  </ul></li>
+<li><strong>What it does better than the two-step method.</strong> The paper's SI shows that the global joint fit gives smoother maps where beads cluster than fitting each bead separately. That is worth keeping.</li>
+</ul>
+
+<h3>Proposal: a physically structured, joint FD model</h3>
+<ol>
+<li><strong>Basis.</strong> Represent each Zernike coefficient as a low-order polynomial in field coordinates around a fitted optical-axis centre (x₀, y₀), constrained by nodal aberration theory. The TU Delft <code>funnat</code> code uses 47 parameters for 12 modes over the whole field: astigmatism up to quartic in field, coma up to cubic, and so on. Droste et al. (<i>Optica</i> 2025) fit such a model directly to SMLM frames without beads. Add an optional, heavily regularised coarse residual (cubic B-spline with about 6×6 knots and a <em>second</em>-difference/thin-plate penalty, so linear trends cost nothing). That is roughly 50–150 parameters instead of 10⁵. It extrapolates sensibly to areas without beads and can be compared between instruments.</li>
+<li><strong>Fitting.</strong> Keep uiPSF's joint maximum-likelihood fit. Initialise it with a quick two-step fit: Zernikes per bead or per cell (a few iterations with the shared solver), then a linear least-squares NAT fit. Report the R² of the NAT fit as a diagnostic of how well the low-order model describes the instrument.</li>
+<li><strong>Remove the degeneracies.</strong>
+  <ul>
+  <li>No defocus map.</li>
+  <li>Treat field curvature, camera tilt and stage tilt together as a focal surface z<sub>f</sub>(x, y), shared by beads and in-situ data (section B).</li>
+  <li>For bead stacks, use per-bead z = z<sub>stage</sub> + z<sub>f</sub>(x, y) + a small residual.</li>
+  <li>Keep piston and tilt out of the maps.</li>
+  <li>Make the pupil magnitude field-independent by default; vignetting at the corners is at most a first-order term.</li>
+  </ul></li>
+<li><strong>Coverage and uncertainty.</strong> Export a support or uncertainty map from the Fisher matrix of the field parameters, and mask or fall back to the polynomial where there are no beads. Rule of thumb for data: at least 3–5× as many well-spread beads as field parameters (≥ 100 for NAT), with a minimum per quadrant.</li>
+<li><strong>In-situ FD.</strong> With about 50 field parameters, in-situ data alone become usable (Droste 2025). Use the bead-calibrated FD model as a prior and refine only the low-order terms per sample, stratifying the emitter selection by field radius as well as z.</li>
+<li><strong>Export for downstream tools.</strong> Write the analytic model (coefficients, centre, normalisation) plus optional cspline stacks per tile for SMAP, and a resampled map with a documented grid convention for FD-DeepLoc. Fix the converter and the <code>genpsf</code> x/y swap together with the Li lab.</li>
+</ol>
+</section>
+
+<section id="bugs">
+<h2>F1. Bugs on <code>test_roi</code></h2>
+<p class="fine">"Confirmed" means verified by reading the code; "plausible" means likely but not traced end to end. Line numbers refer to <code>test_roi</code>.</p>
+
+<div class="finding"><div class="hd"><span class="chip c-crit">Confirmed</span><strong>Bead ROIs can be paired with the wrong centres</strong></div>
+<div class="where">data_representation/PreprocessedImageDataSingleChannel_file.py:89-90</div>
+<p>The border check filters <code>centers</code> but not <code>rois</code>. <code>find_peaks</code> keeps peaks at coordinate <code>roi//2</code>, while <code>min_border_dist = roi//2+1</code> rejects them. One bead exactly 10 px from the left or top edge (for a 21 px ROI) shifts every later ROI onto the wrong centre and file index. With an FOV set, <code>rois[inFov]</code> then raises a length mismatch.</p></div>
+
+<div class="finding"><div class="hd"><span class="chip c-crit">Confirmed</span><strong>The default polarisation <code>[Ex, Ey]</code> applies to all multi-channel vector fits</strong></div>
+<div class="where">config_base.yaml:78 · PSFMultiChannel_file.py:48,74 · PSFMultiChannel_smlm_file.py:52,78 · psflearninglib.py:662</div>
+<p>Biplane and ratiometric 2-channel data are silently modelled as x- and y-polarised channels. More than two channels raises an IndexError. Any value other than None/'Ex'/'Ey' leaves <code>I_res = 0</code>, because there is no <code>else</code> branch. The default should be <code>[]</code>, with an explicit "unpolarised" option.</p></div>
+
+<div class="finding"><div class="hd"><span class="chip c-crit">Confirmed</span><strong>Stage tilt is wired in only partly</strong></div>
+<div class="where">PSFZernikeBased_vector_smlm_file.py:126-129, 199-205, 375-397 · PSFMultiChannel_smlm_file.py:202-204</div>
+<ul>
+<li>The forward pass uses <code>self.init_stagetilt</code>, so the <code>stagetilt</code> variable is never updated: its loss weight is 0 and it has no path to the output. That is fine if the tilt is meant to be a known input, but then the variable should be removed.</li>
+<li>The tilt is applied only when <code>var_stagepos</code> is true.</li>
+<li><code>stage_tilt</code> exists only in <code>TIRF.yaml</code>, so other configurations most likely fail on the missing key.</li>
+<li>The tilt is anchored at pixel (0,0), not the FOV centre, and <code>max(stpos, 0)</code> clips it.</li>
+<li>In multi-channel in-situ, adding the variable shifted the "shared" index range. Stage position is now per channel and can absorb the channel defocus.</li>
+</ul></div>
+
+<div class="finding"><div class="hd"><span class="chip c-crit">Confirmed</span><strong><code>localize()</code> cannot run</strong></div>
+<div class="where">psflearninglib.py:978</div>
+<p>It calls <code>util.crop_rois</code> with 6 arguments, but the function takes 3. Even with that fixed, the box offset of −bxsz/2 looks missing at line 991 (plausible).</p></div>
+
+<div class="finding"><div class="hd"><span class="chip c-warn">Confirmed</span><strong>Smaller ROI-pipeline regressions</strong></div>
+<div class="where">PreprocessedImageDataSingleChannel_file.py:119-129 · utilities.py:222-282 · PreprocessedImageDataSingleChannel_smlm_file.py:67-109</div>
+<ul>
+<li><code>remove_close_rois</code> crashes when every file holds a single bead (3D ROI path).</li>
+<li><code>crop_rois</code> has no padding or bounds check (the old code zero-padded), so the voxel re-cut can index out of range.</li>
+<li>In-situ <code>find_rois</code> now ignores FOV and the border and centre distances.</li>
+<li>In-situ <code>resetdata</code> restores ROIs from before the offset subtraction, so negative pixels go into the Poisson loss in repeat iterations (this predates <code>test_roi</code>).</li>
+</ul></div>
+
+<div class="finding"><div class="hd"><span class="chip c-warn">Plausible</span><strong>Peak detection behaves differently from <code>main</code></strong></div>
+<div class="where">utilities.py:171-258</div>
+<ul>
+<li>Detection now uses a DoG filter, truncated at ±1.5σ, instead of a Gaussian.</li>
+<li>Odd σ gives an even kernel size, so peaks shift by about one pixel.</li>
+<li>Non-integer σ breaks the Conv layer.</li>
+<li>The threshold is one global 99.9 % quantile across all files instead of a per-file 99.99 % quantile. With few beads that quantile sits in the noise, and dim files can lose all their beads.</li>
+<li>The overlap rejection is a dense (2·ROI)² convolution over full frames, which is heavy on large-FOV data.</li>
+</ul>
+<p>This is worth regression-testing against <code>main</code> on a few existing bead datasets before merging.</p></div>
+
+<div class="finding"><div class="hd"><span class="chip c-info">Confirmed</span><strong>Minor</strong></div>
+<ul>
+<li>Non-square ROIs are not supported in <code>calpupilfield</code>/<code>prechirpz1</code>: both axes use <code>Lx</code>.</li>
+<li>The bead kernel swaps <code>pkx</code>/<code>pky</code> through <code>meshgrid(yrange, xrange, …)</code>. This matters only for non-square ROIs or when the x and y pixel sizes differ, as they do in M2 (127/116 nm).</li>
+<li><code>pupil_mag = maximum(…, 0)</code> gives zero gradient in clipped regions.</li>
+<li><code>relearn</code> mutates <code>initres</code> in place.</li>
+<li>The code uses <code>np.product</code> and <code>scipy.ndimage.filters</code>, which are removed or deprecated (<code>main</code> already has the NumPy 2 fixes).</li>
+</ul></div>
+</section>
+
+<section id="hyper">
+<h2>F2. Hyperparameters that users end up tuning</h2>
+<div class="tblbox"><table>
+<thead><tr><th>What</th><th>Where</th><th>Better default</th></tr></thead>
+<tbody>
+<tr><td>Variable scales <code>self.weight</code> (each model has its own formula)</td><td>every <code>psfs/*_file.py</code> <code>calc_initials</code></td><td>Remove them, using a scale-invariant solver or Fisher-diagonal scaling computed at the initial guess</td></tr>
+<tr><td>Penalty ramp <code>mu·1.1</code> per evaluation, cap 1e7</td><td>optimizers.py:429</td><td>Native L-BFGS-B bounds or a softplus/exp parametrisation</td></tr>
+<tr><td>Loss weights <code>bg_min</code>, <code>photon_min</code>, <code>gxy_min</code>, <code>smooth</code>, <code>Inorm</code>, <code>edge</code></td><td>config_base.yaml, psftype/*.yaml</td><td>Write them as priors with physical units (e.g. drift prior in nm per slice) on a <em>summed</em> likelihood, so they do not scale with data size</td></tr>
+<tr><td>Pupil-energy floor 0.97 (pixel pupils)</td><td>loss_functions.py</td><td>Normalise the pupil explicitly</td></tr>
+<tr><td>Peak threshold quantile, DoG ratio 0.75, kernel 3σ+1, overlap window 2·ROI</td><td>utilities.py:171-258</td><td>Threshold in photons above local background, set from the noise level of each file</td></tr>
+<tr><td><code>pupilsize</code>, <code>bin</code>, <code>n_max</code></td><td>config</td><td>Derive <code>pupilsize</code> and <code>bin</code> from NA, λ, pixel size and z range; choose <code>n_max</code> by held-out deviance</td></tr>
+<tr><td>In-situ: quantiles 0.99/0.1, Zernike search ±0.5 rad, partition sizes, transform weight 1e-3</td><td>*_smlm_file.py, PSFMultiChannel_smlm_file.py:167</td><td>Same as above; give the translation and linear parts of the affine transform separate scales</td></tr>
+<tr><td>Rejection thresholds <code>bias_z</code>, <code>mse</code>, <code>photon</code></td><td>config</td><td>Robust z-scores (MAD) on per-bead deviance</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="perf">
+<h2>F3. Performance and framework</h2>
+<h3>Where the time goes</h3>
+<ul>
+<li><strong>Everything runs eagerly.</strong> The <code>@tf.function</code> on <code>objective_wrapper_for_gradient</code> is commented out. Each evaluation re-dispatches hundreds of small ops from Python and then converts float32→NumPy→float64 for SciPy.</li>
+<li><strong>The full vectorial PSF is recomputed for every bead and slice.</strong> That is N·Nz·6 CZTs on a padded (64+2L−1)² grid. For 40 beads × 41 slices a single complex intermediate is about 0.9 GB, and the gradient tape keeps many of them. Lateral shifts could instead be phase ramps on a shared model. A per-bead z offset still needs its own defocus term, but it could be interpolated from a fine shared z grid.</li>
+<li><strong>The CZT could be a matrix multiplication.</strong> For a 64-pixel pupil and a 42-pixel output, a matrix Fourier transform (two dense matmuls, 42×64 · 64×64 · 64×42) is cheaper than three padded 105×105 FFTs and runs very well on GPU tensor cores.</li>
+<li><strong>The loss uses a boolean mask</strong> (<code>LL[is_finite]</code>). That gives dynamic shapes and blocks XLA compilation.</li>
+<li><strong>ROI and in-situ preprocessing has CPU hot spots.</strong> Dense overlap convolution, O(N²) Python channel pairing, a new <code>localizationlib</code> (DLL reload) inside the Zernike-search loop, and whole-file HDF5 reads before slicing.</li>
+</ul>
+<div class="tblbox"><table>
+<thead><tr><th>One loss + gradient evaluation<br><small>6 beads × 41 slices, vector, CPU (4 cores), TF 2.20</small></th><th>Time</th></tr></thead>
+<tbody>
+<tr><td>Eager, as in uiPSF</td><td class="num">0.73 s</td></tr>
+<tr><td>Eager, <code>xlogy</code> loss (no boolean mask)</td><td class="num">0.76 s</td></tr>
+<tr><td><code>tf.function</code></td><td class="num"><strong>0.27 s</strong> (2.7×)</td></tr>
+<tr><td><code>tf.function</code> + XLA</td><td class="num">0.50 s</td></tr>
+</tbody></table></div>
+<p class="fine">This was measured on CPU only; no GPU was available here. XLA is slow on CPU because of its FFTs. On GPU, graph compilation usually gains more than on CPU because each eager kernel launch costs relatively more there. These numbers need repeating on a lab GPU.</p>
+
+<h3>PyTorch, JAX, Julia?</h3>
+<p>The framework is a second-order question. TF, PyTorch and JAX all have complex FFTs, reverse-mode autodiff and GPU support. What makes the difference is (a) compiling the whole evaluation, (b) keeping the optimiser loop on the device, (c) access to forward-mode JVPs for Gauss–Newton/LM, and (d) float64 when needed. Ranked by how well the solver tooling fits this problem (installation and GPU access per platform come next, and they change the final choice):</p>
+<ol>
+<li><strong>JAX.</strong> <code>jit</code> + <code>vmap</code> over beads, <code>jvp</code>/<code>vjp</code>, and ready-made L-BFGS and Levenberg–Marquardt solvers that run on device (<code>optimistix</code>, <code>jaxopt</code>). Easy float64 switch. It is the closest to the "physics plus a good solver" structure.</li>
+<li><strong>PyTorch.</strong> <code>torch.compile</code> and <code>torch.func</code> (jvp/vjp/vmap) cover the same ground. The ecosystem is the largest, and the EPFL vectorial-PSF library (arXiv 2502.03170) is PyTorch. Its built-in LBFGS is weaker than SciPy's, and an LM solver would have to be written.</li>
+<li><strong>Julia.</strong> This makes sense if Keith's lab is going that way anyway. It has fast native code, Enzyme/Zygote for AD, and LsqFit/Optim. GPU support for AD through complex FFTs is less mature.</li>
+</ol>
+<h3>Installation and GPU support by platform</h3>
+<p>The target for users is one <code>pip install</code> that uses the GPU automatically wherever one exists.</p>
+<div class="tblbox"><table>
+<thead><tr><th></th><th>Linux + NVIDIA</th><th>Windows + NVIDIA</th><th>Mac (Apple Silicon)</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td><strong>PyTorch</strong></td><td>GPU out of the box: <code>pip install torch</code> includes CUDA, only the driver is needed</td><td>GPU, but needs the CUDA index URL in the pip command; an installer script can hide this</td><td>GPU through Metal (MPS) in the standard wheel. Support for complex FFT with gradients still has to be checked (test below).</td><td><span class="chip c-ok">best for users</span></td></tr>
+<tr><td><strong>JAX</strong></td><td>GPU, one command (<code>jax[cuda12]</code>)</td><td>No native GPU; WSL2 only</td><td>Effectively CPU. The Metal plugin is experimental, without complex FFT or float64.</td><td><span class="chip c-warn">best solver tooling, weak on Windows and Mac</span></td></tr>
+<tr><td><strong>TensorFlow</strong> (current)</td><td>GPU, one command</td><td>No native GPU since TF 2.10; WSL2 only</td><td><code>tensorflow-metal</code>, patchy for complex numbers</td><td><span class="chip c-warn">losing momentum</span></td></tr>
+<tr><td><strong>Julia</strong></td><td>GPU via CUDA.jl, which downloads CUDA itself</td><td>Same as Linux</td><td>Metal.jl, experimental</td><td><span class="chip c-info">extra install step for Python users; less mature GPU AD through complex FFT</span></td></tr>
+</tbody></table></div>
+<p>Apple GPUs have no float64, which is fine for the forward model in float32. In PyTorch's current compiler, <code>torch.compile</code> does not generate code for complex operators; it falls back to eager kernels for those. Compile gains for this code are therefore limited unless the field maths is written in real and imaginary parts.</p>
+<p><strong>How much does a GPU help?</strong> The workload is thousands of small batched FFTs or matrix DFTs (beads × slices × 6 dipole fields on 64–128 px grids), which suits GPUs. I expect roughly 10–50× over a multi-core CPU on a recent NVIDIA card, but that is unmeasured; no GPU was available here. Apple GPUs will gain less. For reference, on 4 CPU cores one forward+backward of a uiPSF-sized PyTorch prototype (6 beads × 41 slices × 6 fields) takes 0.12 s with a matrix DFT and 0.43 s with a padded FFT. The matrix DFT is the faster formulation on CPU too. The framework-independent gains add to this: about 10× fewer iterations from a Gauss–Newton/LM solver (an estimate) and about 3× from compiling (measured on CPU in TF). With those, bead fits are fine on a laptop CPU, and the GPU matters mostly for in-situ and field-dependent learning.</p>
+<div class="callout"><p><strong>Choice for a new version: PyTorch.</strong></p>
+<ul>
+<li>Automatic device choice: CUDA, then MPS, then CPU.</li>
+<li>Matrix-DFT forward model.</li>
+<li>A small Levenberg–Marquardt / Gauss–Newton solver built on <code>torch.func</code> JVP/VJP.</li>
+<li>Pure Python, installed with pip or conda.</li>
+</ul>
+<p>It also shares an ecosystem with the SUSTech fork and the EPFL <code>psf-generator</code>. JAX would be equally easy to write but would leave Windows and Mac users on CPU. The one open risk is complex autograd on Apple MPS. <code>docs/review_2026/scripts/gpu_backend_check.py</code> tests exactly that, and passes on CPU here.</p></div>
+
+<p><strong>Autodiff, analytic or numerical derivatives?</strong> Keep autodiff. There are thousands of parameters (per-bead positions, photons and backgrounds, plus about 90 shared Zernike coefficients) and one scalar loss. Reverse mode gives the full gradient for 2–4× the cost of one forward pass, while numerical differentiation costs one forward pass <em>per parameter</em> and is noisy in float32. Hand-written analytic derivatives (as in the Stallinga/Smith GPU fitters) pay off for per-emitter fits with five parameters, not for this joint problem. The bigger gain is to use autodiff for Jacobian-vector products and run Gauss–Newton/LM. With a Poisson likelihood, J<sup>T</sup>WJ is the Fisher matrix. With a Schur complement over the per-bead blocks, each iteration solves only a ~90×90 system for the shared parameters, and convergence typically takes tens of iterations instead of hundreds.</p>
+</section>
+
+<section id="claude">
+<h2>Auto-tuning with Claude?</h2>
+<p>An agent loop could tune parameters. It would run the fit, read diagnostics (held-out deviance, residual images, z-bias curves, L-BFGS status), adjust the configuration and repeat. I would treat that as a diagnostic aid rather than the fix, for three reasons:</p>
+<ul>
+<li>It needs a reliable, honest metric, and uiPSF does not have one yet: held-out beads and a deviance per pixel that is about 1 at the noise level. That metric is the first thing to build either way.</li>
+<li>Tuning preconditioners by search is costly: every candidate is a full fit, and the answer differs per dataset. Removing the sensitivity is cheaper and permanent.</li>
+<li>For a published method, reproducibility matters. "Claude picked these weights" is hard to defend in a Methods section. "Weights are derived from the Fisher information" is easy.</li>
+</ul>
+<p>Where an agent clearly helps: triaging failed fits ("the line search failed at iteration 37, background hit the bound, beads 3 and 11 overlap"), choosing <code>n_max</code>/ROI/z range from the data, and writing per-microscope configs. With the honest metric in place, a small Bayesian-optimisation loop over the few remaining physical options (<code>n_max</code>, <code>var_photon</code>, bead radius) is cheap and defensible.</p>
+</section>
+
+<section id="roadmap">
+<h2>Proposed roadmap</h2>
+<ol>
+<li><strong>Benchmark first.</strong> Assemble 5–10 bead datasets that currently need tuning (including the ones from Keith's group), plus simulations with known ground truth. Metrics: Zernike error on simulations, held-out-bead deviance, z-bias and runtime. Every later change is judged against this.</li>
+<li><strong>Bug fixes</strong> from F1 and E (ROI pairing, polarisation default, stage tilt, <code>localize</code>, FD export and map convention), plus a regression test of the new ROI finder against <code>main</code>.</li>
+<li><strong>Loss and solver fixes inside the current code:</strong> <code>xlogy</code> loss with a read-noise offset, summed likelihood, L-BFGS-B bounds instead of the <code>mu</code> ramp, removal of the degenerate parameters, Fisher-diagonal scaling instead of <code>self.weight</code>, and <code>tf.function</code>. These are small diffs. If the benchmark shows that weight tuning is no longer needed, that is the main result.</li>
+<li><strong>Residual atlas and the cheap physics terms</strong> (section B): per-slice shared z/xy/photon terms for beads, focal surface and n<sub>med</sub> for in-situ, planar background, saturation mask. Add them only where the residual atlas shows a pattern on the benchmark data.</li>
+<li><strong>Field dependence:</strong> replace the dense FD grid with a nodal-aberration-theory/low-order polynomial model plus an optional smooth residual, removing the defocus map; fix the FD export and the FD-DeepLoc import convention (section E).</li>
+<li><strong>Solver upgrade:</strong> a block Gauss–Newton/LM with a Schur complement, plus parameter uncertainties from the Fisher matrix.</li>
+<li><strong>Physics extensions</strong> as the benchmark motivates: polychromatic emission, depth-integrated bead model, smooth bleaching, automatic pupil sampling, Jones pupil for polarised channels.</li>
+<li><strong>Port or rewrite</strong> (JAX or PyTorch, or alignment with Keith's Julia code) once the algorithm is settled. Porting the current algorithm would carry the robustness problems along.</li>
+</ol>
+</section>
+
+<section id="questions">
+<h2>Questions for discussion</h2>
+<div class="q">Which datasets exactly fail without tuning, and which weights did people change? A list of (dataset, weight changed, why) would show whether the problem is mostly preconditioning or mostly model mismatch.</div>
+<div class="q">Is <code>stage_tilt</code> meant to be a known input (measured once per microscope) or a fitted parameter?</div>
+<div class="q">Do we want to keep TF at all? If Keith's group goes Julia and SUSTech went PyTorch, is a shared reference implementation with test data more valuable than a third framework?</div>
+<div class="q">How important is backward compatibility of the .h5 outputs (spline coefficients, pupil, Zernikes) for SMAP and other consumers?</div>
+<div class="q">For an excitation module: which first target? Bead scans on a confocal/ISM (easiest, reuses the bead pipeline) or MINFLUX in-situ from raw TCP counts (most novel, nothing published)? Are raw MINFLUX traces with TCP positions accessible from the instruments we use?</div>
+<div class="q">Field dependence: should the default bead model always be field-dependent (low-order NAT), given that most users pool beads from the whole FOV? Should we coordinate one field-model format with the Li lab (FD-DeepLoc) and TU Delft (funnat)?</div>
+<div class="q">Should in-situ learning share the bead solver (same loss and optimiser) so that improvements carry over automatically?</div>
+</section>
+
+<section id="sources">
+<h2>Sources</h2>
+<ul class="fine">
+<li>Liu S. et al., Universal inverse modeling of point spread functions for SMLM localization and microscope characterization, <i>Nat. Methods</i> 21, 2024. <a href="https://doi.org/10.1038/s41592-024-02282-x">doi:10.1038/s41592-024-02282-x</a> · <a href="https://static-content.springer.com/esm/art%3A10.1038%2Fs41592-024-02282-x/MediaObjects/41592_2024_2282_MOESM1_ESM.pdf">Supplementary Notes PDF</a></li>
+<li>Huang F. et al., sCMOS noise-correction algorithms, <i>Nat. Methods</i> 2013. <a href="https://doi.org/10.1038/nmeth.2488">doi:10.1038/nmeth.2488</a></li>
+<li>Gibson &amp; Lanni, <i>JOSA A</i> 1991. <a href="https://doi.org/10.1364/JOSAA.8.001601">doi:10.1364/JOSAA.8.001601</a></li>
+<li>Hanser et al., Phase-retrieved pupil functions, <i>J. Microsc.</i> 2004. <a href="https://doi.org/10.1111/j.0022-2720.2004.01393.x">doi:10.1111/j.0022-2720.2004.01393.x</a></li>
+<li>Stallinga &amp; Rieger, <i>Opt. Express</i> 2010. <a href="https://doi.org/10.1364/OE.18.024461">doi:10.1364/OE.18.024461</a></li>
+<li>Booth, Neil &amp; Wilson, aberration modes for high-NA systems, <i>J. Microsc.</i> 1998.</li>
+<li>Xu F. et al., INSPR, <i>Nat. Methods</i> 2020. <a href="https://doi.org/10.1038/s41592-020-0816-x">doi:10.1038/s41592-020-0816-x</a></li>
+<li>Fu S. et al., FD-DeepLoc, <i>Nat. Methods</i> 2023. <a href="https://doi.org/10.1038/s41592-023-01775-5">doi:10.1038/s41592-023-01775-5</a></li>
+<li>Liu Y. et al. (Unser, Sage, Dong), Revisiting PSF models: unifying framework and high-performance implementation, 2025. PyTorch library. <a href="https://arxiv.org/abs/2502.03170">arXiv:2502.03170</a></li>
+<li>Field-dependent aberrations via nodal aberration theory, bioRxiv 2024. <a href="https://doi.org/10.1101/2024.12.11.627909">doi:10.1101/2024.12.11.627909</a></li>
+<li>Gutiérrez-Cuevas et al., Vectorial phase retrieval with a Jones pupil, <i>APL Photonics</i> 2024. <a href="https://doi.org/10.1063/5.0179906">doi:10.1063/5.0179906</a></li>
+<li>von Diezmann et al., <i>Optica</i> 2015 (field-dependent 3D errors). <a href="https://doi.org/10.1364/OPTICA.2.000985">doi:10.1364/OPTICA.2.000985</a></li>
+<li>Droste et al., <i>Optica</i> 2025 (nodal aberration theory, vectorial). <a href="https://doi.org/10.1364/OPTICA.560721">doi:10.1364/OPTICA.560721</a></li>
+<li>Petrov &amp; Moerner, <i>Opt. Express</i> 2020 (focal shift). <a href="https://doi.org/10.1364/OE.391496">doi:10.1364/OE.391496</a> · Siemons et al., <i>Opt. Express</i> 2022. <a href="https://doi.org/10.1364/OE.461750">doi:10.1364/OE.461750</a></li>
+<li>Arimoto &amp; Murray, <i>J. Microsc.</i> 2004 (coverslip tilt). <a href="https://doi.org/10.1111/j.0022-2720.2004.01383.x">doi:10.1111/j.0022-2720.2004.01383.x</a></li>
+<li>Erdelyi et al., <i>Opt. Express</i> 2013 (chromatic). <a href="https://doi.org/10.1364/OE.21.010978">doi:10.1364/OE.21.010978</a></li>
+<li>Bourg et al., <i>Nat. Photon.</i> 2015 (SAF). <a href="https://doi.org/10.1038/nphoton.2015.132">doi:10.1038/nphoton.2015.132</a> · Franke et al., <i>Nat. Methods</i> 2017. <a href="https://doi.org/10.1038/nmeth.4073">doi:10.1038/nmeth.4073</a> · Cabriel et al., <i>Nat. Commun.</i> 2019. <a href="https://doi.org/10.1038/s41467-019-09901-8">doi:10.1038/s41467-019-09901-8</a></li>
+<li>Babcock et al., <i>Sci. Rep.</i> 2019 (sCMOS pixel QE). <a href="https://doi.org/10.1038/s41598-019-53698-x">doi:10.1038/s41598-019-53698-x</a> · Mortensen et al., <i>Nat. Methods</i> 2010. <a href="https://doi.org/10.1038/nmeth.1447">doi:10.1038/nmeth.1447</a> · Hirsch et al., <i>PLoS One</i> 2013. <a href="https://doi.org/10.1371/journal.pone.0053671">doi:10.1371/journal.pone.0053671</a></li>
+<li>Möckl et al., <i>PNAS</i> 2020 (structured background). <a href="https://doi.org/10.1073/pnas.1916219117">doi:10.1073/pnas.1916219117</a> · Deschamps et al., <i>Opt. Express</i> 2016. <a href="https://doi.org/10.1364/OE.24.028080">doi:10.1364/OE.24.028080</a></li>
+<li>Berglund, <i>Phys. Rev. E</i> 2010 (motion blur). <a href="https://doi.org/10.1103/PhysRevE.82.011917">doi:10.1103/PhysRevE.82.011917</a></li>
+<li>Richards &amp; Wolf, <i>Proc. R. Soc. A</i> 1959. <a href="https://doi.org/10.1098/rspa.1959.0200">doi:10.1098/rspa.1959.0200</a></li>
+<li>Hao et al., <i>J. Opt.</i> 2010 (donut and polarisation). <a href="https://doi.org/10.1088/2040-8978/12/11/115707">doi:10.1088/2040-8978/12/11/115707</a> · Gould et al., <i>Opt. Express</i> 2012. <a href="https://doi.org/10.1364/OE.20.020998">doi:10.1364/OE.20.020998</a> · Patton et al., <i>Opt. Express</i> 2016. <a href="https://doi.org/10.1364/OE.24.008862">doi:10.1364/OE.24.008862</a></li>
+<li>Balzarotti et al., <i>Science</i> 2017. <a href="https://doi.org/10.1126/science.aak9913">doi:10.1126/science.aak9913</a> · Gwosch et al., <i>Nat. Methods</i> 2020. <a href="https://doi.org/10.1038/s41592-019-0688-0">doi:10.1038/s41592-019-0688-0</a> · Schmidt et al., <i>Nat. Commun.</i> 2021. <a href="https://doi.org/10.1038/s41467-021-21652-z">doi:10.1038/s41467-021-21652-z</a></li>
+<li>Marin &amp; Ries, SimuFLUX, <i>Nat. Commun.</i> 2025. <a href="https://doi.org/10.1038/s41467-025-66952-w">doi:10.1038/s41467-025-66952-w</a></li>
+<li>Moosmayer et al., <i>PNAS</i> (MINFLUX zero quality in depth). <a href="https://doi.org/10.1073/pnas.2422020121">doi:10.1073/pnas.2422020121</a></li>
+<li>Stallinga, Wang &amp; Rieger, bioRxiv 2026 (aberration-induced MINFLUX bias, preprint). <a href="https://doi.org/10.64898/2026.01.11.698872">doi:10.64898/2026.01.11.698872</a></li>
+<li>Castello et al., <i>Nat. Methods</i> 2019 (SPAD ISM). <a href="https://doi.org/10.1038/s41592-018-0291-9">doi:10.1038/s41592-018-0291-9</a> · Zunino et al., <i>Nat. Photon.</i> 2023. <a href="https://doi.org/10.1038/s41566-023-01216-x">doi:10.1038/s41566-023-01216-x</a> · Slenders et al., ISM-FLUX, <i>Light Sci. Appl.</i> 2025. <a href="https://doi.org/10.1038/s41377-025-01883-1">doi:10.1038/s41377-025-01883-1</a></li>
+<li>Fu S. et al., FD-DeepLoc, <i>Nat. Methods</i> 2023 (preprint 10.1101/2022.10.14.512179); code: github.com/Li-Lab-SUSTech/FD-DeepLoc</li>
+<li>Hulleman, Thorsen, Stallinga &amp; Rieger, vecfitcpu (vortex PSF) software, 4TU.ResearchData 2021. <a href="https://doi.org/10.4121/15175494.v1">doi:10.4121/15175494.v1</a></li>
+<li>Cnossen et al., SIMFLUX, <i>Nat. Methods</i> 2020. <a href="https://doi.org/10.1038/s41592-019-0657-7">doi:10.1038/s41592-019-0657-7</a></li>
+</ul>
+</section>
+</main>
+</div>
+
+</body>
+</html>
