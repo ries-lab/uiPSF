@@ -479,13 +479,13 @@ I_exc(r) = |E_x|² + |E_y|² + |E_z|²          # freely rotating absorber</div>
 <div class="tblbox"><table>
 <thead><tr><th></th><th>Linux + NVIDIA</th><th>Windows + NVIDIA</th><th>Mac (Apple Silicon)</th><th>Verdict</th></tr></thead>
 <tbody>
-<tr><td><strong>PyTorch</strong></td><td>GPU out of the box: <code>pip install torch</code> includes CUDA, only the driver is needed</td><td>GPU, but needs the CUDA index URL in the pip command; an installer script can hide this</td><td>GPU through Metal (MPS) in the standard wheel. Support for complex FFT with gradients still has to be checked (test below).</td><td><span class="chip c-ok">best for users</span></td></tr>
+<tr><td><strong>PyTorch</strong></td><td>GPU out of the box: <code>pip install torch</code> includes CUDA, only the driver is needed</td><td>GPU, but needs the CUDA index URL in the pip command; an installer script can hide this</td><td>GPU through Metal (MPS) in the standard wheel. <strong>Tested on an M1 Pro (torch 2.8):</strong> complex FFT and matrix DFT with gradients run natively on the GPU and match float64 to &lt;10⁻⁶ (details below).</td><td><span class="chip c-ok">best for users</span></td></tr>
 <tr><td><strong>JAX</strong></td><td>GPU, one command (<code>jax[cuda12]</code>)</td><td>No native GPU; WSL2 only</td><td>Effectively CPU. The Metal plugin is experimental, without complex FFT or float64.</td><td><span class="chip c-warn">best solver tooling, weak on Windows and Mac</span></td></tr>
 <tr><td><strong>TensorFlow</strong> (current)</td><td>GPU, one command</td><td>No native GPU since TF 2.10; WSL2 only</td><td><code>tensorflow-metal</code>, patchy for complex numbers</td><td><span class="chip c-warn">losing momentum</span></td></tr>
 <tr><td><strong>Julia</strong></td><td>GPU via CUDA.jl, which downloads CUDA itself</td><td>Same as Linux</td><td>Metal.jl, experimental</td><td><span class="chip c-info">extra install step for Python users; less mature GPU AD through complex FFT</span></td></tr>
 </tbody></table></div>
 <p>Apple GPUs have no float64, which is fine for the forward model in float32. In PyTorch's current compiler, <code>torch.compile</code> does not generate code for complex operators; it falls back to eager kernels for those. Compile gains for this code are therefore limited unless the field maths is written in real and imaginary parts.</p>
-<p><strong>How much does a GPU help?</strong> The workload is thousands of small batched FFTs or matrix DFTs (beads × slices × 6 dipole fields on 64–128 px grids), which suits GPUs. I expect roughly 10–50× over a multi-core CPU on a recent NVIDIA card, but that is unmeasured; no GPU was available here. Apple GPUs will gain less. For reference, on 4 CPU cores one forward+backward of a uiPSF-sized PyTorch prototype (6 beads × 41 slices × 6 fields) takes 0.12 s with a matrix DFT and 0.43 s with a padded FFT. The matrix DFT is the faster formulation on CPU too. The framework-independent gains add to this: about 10× fewer iterations from a Gauss–Newton/LM solver (an estimate) and about 3× from compiling (measured on CPU in TF). With those, bead fits are fine on a laptop CPU, and the GPU matters mostly for in-situ and field-dependent learning.</p>
+<p><strong>How much does a GPU help?</strong> The workload is thousands of small batched FFTs or matrix DFTs (beads × slices × 6 dipole fields on 64–128 px grids), which suits GPUs. I expect roughly 10–50× over a multi-core CPU on a recent NVIDIA card, but that is unmeasured; no GPU was available here. Apple GPUs gain less: 2.5× on an M1 Pro, measured below. For reference, on 4 CPU cores one forward+backward of a uiPSF-sized PyTorch prototype (6 beads × 41 slices × 6 fields) takes 0.12 s with a matrix DFT and 0.43 s with a padded FFT. The matrix DFT is the faster formulation on CPU too. The framework-independent gains add to this: about 10× fewer iterations from a Gauss–Newton/LM solver (an estimate) and about 3× from compiling (measured on CPU in TF). With those, bead fits are fine on a laptop CPU, and the GPU matters mostly for in-situ and field-dependent learning.</p>
 <div class="callout"><p><strong>Choice for a new version: PyTorch.</strong></p>
 <ul>
 <li>Automatic device choice: CUDA, then MPS, then CPU.</li>
@@ -493,7 +493,24 @@ I_exc(r) = |E_x|² + |E_y|² + |E_z|²          # freely rotating absorber</div>
 <li>A small Levenberg–Marquardt / Gauss–Newton solver built on <code>torch.func</code> JVP/VJP.</li>
 <li>Pure Python, installed with pip or conda.</li>
 </ul>
-<p>It also shares an ecosystem with the SUSTech fork and the EPFL <code>psf-generator</code>. JAX would be equally easy to write but would leave Windows and Mac users on CPU. The one open risk is complex autograd on Apple MPS. <code>docs/review_2026/scripts/gpu_backend_check.py</code> tests exactly that, and passes on CPU here.</p></div>
+<p>It also shares an ecosystem with the SUSTech fork and the EPFL <code>psf-generator</code>. JAX would be equally easy to write but would leave Windows and Mac users on CPU. The earlier open risk, complex autograd on Apple MPS, is cleared. <code>docs/review_2026/scripts/gpu_backend_check.py</code> passes on an M1 Pro (results below).</p></div>
+<h3>Measured on Apple M1 Pro (MPS)</h3>
+<p class="fine">MacBook Pro M1 Pro, 10 cores, 32 GB, macOS 27, torch 2.8.0 (Python 3.9). Forward + backward of the uiPSF-sized prototype: 41 z-slices × 6 dipole fields, 64 px pupil, 42 px image.</p>
+<div class="tblbox"><table>
+<thead><tr><th>Workload</th><th>CPU (10 cores)</th><th>MPS GPU</th><th>Speed-up</th></tr></thead>
+<tbody>
+<tr><td>Matrix DFT, 20 beads</td><td class="num">0.187 s</td><td class="num"><strong>0.070 s</strong></td><td class="num">2.7×</td></tr>
+<tr><td>Padded FFT, 20 beads</td><td class="num">0.621 s</td><td class="num">0.120 s</td><td class="num">5.2×</td></tr>
+<tr><td>Matrix DFT, 40 beads</td><td class="num">0.352 s</td><td class="num"><strong>0.140 s</strong></td><td class="num">2.5×</td></tr>
+<tr><td>Padded FFT, 40 beads</td><td class="num">1.366 s</td><td class="num">0.246 s</td><td class="num">5.5×</td></tr>
+</tbody></table></div>
+<ul>
+<li><strong>Correctness.</strong> Complex arithmetic, complex FFT and gradients through both the FFT and the matrix DFT all run natively on the GPU. No CPU fallback was needed, and errors are below 10⁻⁶ relative to float64.</li>
+<li><strong>Matrix DFT is the formulation to use</strong> on both CPU and GPU. It is about 1.7× faster than the padded FFT on MPS and 3–4× faster on CPU.</li>
+<li><strong>A Mac GPU gives about 2.5× over its own CPU</strong> for the matrix DFT. That is useful but modest; NVIDIA cards are expected to gain much more (still unmeasured).</li>
+<li><strong><code>torch.compile</code> failed on MPS</strong> with a complex128 type error. The cause is in the test script, not in PyTorch: a NumPy complex128 constant was created inside the compiled function, and MPS has no complex128. The script is fixed (constants built outside), but the Mac rerun is still to do. Inductor does not generate code for complex operators in any case, so compile gains are small unless the maths is written in real and imaginary parts. A new version should run eager by default.</li>
+<li><strong>Apple has no float64 on the GPU.</strong> The solver's linear algebra (the small Schur system) should run on the CPU in float64. This is cheap.</li>
+</ul>
 
 <p><strong>Autodiff, analytic or numerical derivatives?</strong> Keep autodiff. There are thousands of parameters (per-bead positions, photons and backgrounds, plus about 90 shared Zernike coefficients) and one scalar loss. Reverse mode gives the full gradient for 2–4× the cost of one forward pass, while numerical differentiation costs one forward pass <em>per parameter</em> and is noisy in float32. Hand-written analytic derivatives (as in the Stallinga/Smith GPU fitters) pay off for per-emitter fits with five parameters, not for this joint problem. The bigger gain is to use autodiff for Jacobian-vector products and run Gauss–Newton/LM. With a Poisson likelihood, J<sup>T</sup>WJ is the Fisher matrix. With a Schur complement over the per-bead blocks, each iteration solves only a ~90×90 system for the shared parameters, and convergence typically takes tens of iterations instead of hundreds.</p>
 </section>

@@ -115,7 +115,16 @@ def t_grad_mft():
     e = rel(ph.grad, ph_ref.grad); return e < 1e-3, f"max rel grad err {e:.1e}"
 
 def t_compile():
-    f = torch.compile(lambda ph: psf_loss_mft(ph, torch.float32, dev))
+    # constants are built outside the compiled function: under tracing, torch.tensor(numpy complex128)
+    # becomes a complex128 tensor on the device first, which MPS does not support
+    Fm = torch.tensor(F, dtype=torch.complex64).to(dev)
+    ap = torch.tensor(aperture).to(dev)
+    wts = torch.linspace(0, 1, M*M, device=dev).reshape(M, M)
+    def loss(ph):
+        E = Fm @ (ap * torch.exp(1j*ph)) @ Fm.T
+        I = E.real**2 + E.imag**2
+        return (I * wts).sum() / I.sum()
+    f = torch.compile(loss)
     ph = torch.tensor(phase0, device=dev, requires_grad=True)
     l = f(ph); l.backward()
     ph2 = torch.tensor(phase0, device=dev, requires_grad=True)
