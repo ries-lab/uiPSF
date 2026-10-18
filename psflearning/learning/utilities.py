@@ -157,14 +157,15 @@ def cztfunc1(datain,param):
 
 def extractROI(images,roisize, sigma, poolsize, thresh,rawImg):
     imagesize = images.shape
-    if len(sigma) == 2:
-        conv2d, max_pool_2d, conv_uniform = gen_layers(imagesize,sigma,poolsize,roisize)
-        coords = find_peaks(images,conv2d,max_pool_2d,conv_uniform,thresh,roisize)
-        rois = crop_rois(rawImg,coords,roisize)
-    elif len(sigma) == 3:
-        conv3d, max_pool_3d, conv_uniform = gen_layers_3d(imagesize,sigma,poolsize,roisize)
-        coords = find_peaks_3d(images,conv3d,max_pool_3d,conv_uniform,thresh,roisize)
-        rois = crop_rois(rawImg,coords,roisize)
+    with tf.device("/CPU:0"):
+        if len(sigma) == 2:
+            conv2d, max_pool_2d, conv_uniform = gen_layers(imagesize,sigma,poolsize,roisize)
+            coords = find_peaks(images,conv2d,max_pool_2d,conv_uniform,thresh,roisize)
+            rois = crop_rois(rawImg,coords,roisize)
+        elif len(sigma) == 3:
+            conv3d, max_pool_3d, conv_uniform = gen_layers_3d(imagesize,sigma,poolsize,roisize)
+            coords = find_peaks_3d(images,conv3d,max_pool_3d,conv_uniform,thresh,roisize)
+            rois = crop_rois(rawImg,coords,roisize)
 
     return rois,coords
 
