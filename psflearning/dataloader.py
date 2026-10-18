@@ -120,8 +120,7 @@ class dataloader:
                         k = None
                         break
             if k is None:
-                #dat = np.squeeze(np.array(f.get(gname)).astype(np.float32))
-                dat = f[gname]
+                dat = np.squeeze(np.array(f.get(gname)).astype(np.float32))
             else:
                 datalist = list(f[gname].keys())
                 try:
